@@ -36,7 +36,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // Test
             DeterministicAI p1 = (DeterministicAI)players[1];
-            int score = p1.ScoreAfterPlayingCard(testGame, cardDS.GameCards[CardId.Palace]);
+            int score = p1.ScoreAfterPlayingCard(testGame.Era, cardDS.GameCards[CardId.Palace]);
 
             // Evaluate
             Assert.AreEqual(expectedScore, score);
@@ -81,7 +81,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // Test
             DeterministicAI p1 = (DeterministicAI)players[1];
-            int score = p1.ScoreAfterPlayingCard(testGame, cardDS.GameCards[CardId.Strategists]);
+            int score = p1.ScoreAfterPlayingCard(testGame.Era, cardDS.GameCards[CardId.Strategists]);
 
             // Evaluate
             Assert.AreEqual(expectedScore, score);
@@ -123,7 +123,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // Test
             DeterministicAI p1 = (DeterministicAI)players[1];
-            int score = p1.ScoreAfterPlayingCard(testGame, cardDS.GameCards[CardId.Walls]);
+            int score = p1.ScoreAfterPlayingCard(testGame.Era, cardDS.GameCards[CardId.Walls]);
 
             // Evaluate
             Assert.AreEqual(expectedScore, score);
