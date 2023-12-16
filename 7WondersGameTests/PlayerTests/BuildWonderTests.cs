@@ -43,7 +43,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // Evaluate
             Assert.IsTrue(canBuildWonder);
-            Assert.IsTrue(players[1].CanBuildWonder);
+            Assert.IsFalse(players[1].CanBuildWonder);
             // eval hand card change
             bool cardInHand = players[1].HandCards.Contains<Card>(player1Card);
             Assert.IsFalse(cardInHand);
