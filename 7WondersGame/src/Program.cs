@@ -122,10 +122,8 @@ namespace _7WondersGame.src
         }
         static string? GetProgramFilePath()
         {
-            string codeBase = Assembly.GetExecutingAssembly().Location;
-            UriBuilder uri = new UriBuilder(codeBase);
-            string path = Uri.UnescapeDataString(uri.Path);
-            return System.IO.Path.GetDirectoryName(path);
+            string executablePath = AppDomain.CurrentDomain.BaseDirectory;
+            return executablePath;
         }
     }
 }
