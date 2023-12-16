@@ -13,12 +13,14 @@ namespace _7WondersGame.src.models
 {
     internal static class Filer
     {
-        //private static string _filepath = "C:\\Users\\Aleksandras\\Desktop\\VU\\Programu_Sistemos_VII_sem\\Kursinis\\New folder\\TestAI";
+        private static readonly int MAX_PLAYERS = 7;
         private static string _filepath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         private static string _fileName = "Game_results.xlsx";
 
         private static readonly object _logFileLock = new object();
+        private static readonly object _logBufferLock = new object();
         private static List<List<Player>> playerResultsBuffer = new List<List<Player>>();
+        private static List<Task> runningTasks = new List<Task>();
 
         public static void InitFiler(string? filepath, string fileName)
         {
@@ -31,6 +33,20 @@ namespace _7WondersGame.src.models
             {
                 Log.Error("Filer initialized with default path because given path was null.\n Default file path: {filePath}", _filepath);
                 _fileName = fileName;
+            }
+
+            // check for file access errors
+            try
+            {
+                FileInfo file = new FileInfo(Path.Combine(_filepath, _fileName));
+                using (ExcelPackage excelPackage = new ExcelPackage(file))
+                {
+                    excelPackage.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("File access denied!\n{exType}: {exMessage}", ex.GetType().Name, ex.Message);
             }
         }
 
@@ -55,11 +71,17 @@ namespace _7WondersGame.src.models
                             worksheet.Cells[1, i + 1].Value = $"Player_{i}";
                         }
                         //worksheet.Cells[1, players.Count + 1].Value = "LogedAt";
-                        worksheet.Cells[1, players.Count + 3].Value = "WinnerId";
+                        worksheet.Cells[1, MAX_PLAYERS + 1].Value = "p2 Wonder";
+                        worksheet.Cells[1, MAX_PLAYERS + 2].Value = "Winner Wonder";
+                        worksheet.Cells[1, MAX_PLAYERS + 3].Value = "WinnerId";
+                        worksheet.Cells[1, MAX_PLAYERS + 4].Value = "Score";
                     }
 
                     // Find the next available row in the worksheet
                     int row = worksheet.Dimension?.End.Row + 1 ?? 1;
+
+                    if (row % 1 == 0)
+                        Log.Information("Logging row: {rowNr}", row);
 
                     // Write player scores to the worksheet
                     for (int i = 0; i < players.Count; i++)
@@ -69,9 +91,14 @@ namespace _7WondersGame.src.models
                     // save time of writing this log
                     //worksheet.Cells[row, players.Count + 1].Value = logTimestamp.ToOADate();
 
-                    // log winning player id
+                    // log player 2 wonder names
+                    worksheet.Cells[row, MAX_PLAYERS + 1].Value = players[2].Board.Name;
+
+                    // log winning player wonder name, id and score
                     List<Player> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
-                    worksheet.Cells[row, players.Count + 3].Value = sortedPlayers[0].Id;
+                    worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
+                    worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
+                    worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
 
                     // Save changes to the Excel file
                     excelPackage.Save();
@@ -96,26 +123,33 @@ namespace _7WondersGame.src.models
         public static async Task WriteMatchLogAsync(string sheetName, List<Player> players)
         {
             // Asynchronously append the log to the file
-            await Task.Run(() =>
+            Task task = Task.Run(() =>
             {
                 WriteMatchLogThreadSafe(sheetName, players);
             });
+
+            // add new task to awaitable running tasks list
+            runningTasks.Add(task);
         }
 
         public static void WriteMatchLogBuffered(string sheetName, List<Player> players)
         {
-            if (playerResultsBuffer.Count < 10)
+            lock(_logBufferLock)
             {
-                playerResultsBuffer.Add(players);
-            }
-            else
-            {
-                playerResultsBuffer.Add(players);
-                foreach (var results in playerResultsBuffer)
+                if (playerResultsBuffer.Count < 9)
                 {
-                    _ = WriteMatchLogAsync(sheetName, results.Select(e => e).ToList());
+                    playerResultsBuffer.Add(players);
                 }
-                playerResultsBuffer.Clear();
+                else
+                {
+                    playerResultsBuffer.Add(players);
+                    List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.ToList()).ToList();
+                    playerResultsBuffer.Clear();
+                    foreach (var results in tempBuffer)
+                    {
+                        _ = WriteMatchLogAsync(sheetName, results.Select(e => e).ToList());
+                    }
+                }
             }
         }
 
@@ -128,6 +162,12 @@ namespace _7WondersGame.src.models
             playerResultsBuffer.Clear();
 
             return playerResultsBuffer.Count > 0 ? false : true;
+        }
+
+        public static async Task<bool> AwaitAllLoggingTasksAsync()
+        {
+            await Task.WhenAll(runningTasks);
+            return true;
         }
 
         public static void OLDWriteMatchLog(List<Player> players, DateTime logTimestamp)
