@@ -28,6 +28,7 @@ namespace _7WondersGame.src
             int maxLogBufferSize = 2;
             int gameCount = 4;
             string resultsSheetName = "TestRun4";
+
             if (args.Length > 0 && !int.TryParse(args[0], out maxLogBufferSize))
                 maxLogBufferSize = 2;
             if (args.Length > 1 && !int.TryParse(args[1], out gameCount))
