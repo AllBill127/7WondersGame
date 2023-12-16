@@ -93,7 +93,7 @@ namespace _7WondersGame.src.models
             GiveWonders();
         }
 
-        private void SetPlayerNeighbors()
+        public void SetPlayerNeighbors()
         {
             // set player neighbors
             for (int i = 0; i < NumPlayers; i++)
@@ -350,7 +350,7 @@ namespace _7WondersGame.src.models
             } while (p1 != p);
         }
 
-        public void Loop(string matchLogSheet = "")
+        public Dictionary<int, int> Loop(string matchLogSheet = "")
         {
             while (Turn < 21)
             {
@@ -423,6 +423,8 @@ namespace _7WondersGame.src.models
 
                 // Moves the game to the next turn, processes DiscardFree and PlaySeventh effects
                 NextTurn();
+                if (!matchLogSheet.Equals(""))
+                    Log.Information("Turn {turn} complete", Turn);
             }
 
             //calculate scores
@@ -440,13 +442,15 @@ namespace _7WondersGame.src.models
                 //Filer.WriteMatchLog(matchLogSheet, Players);
                 //Filer.WriteMatchLogThreadSafe(matchLogSheet, Players);
                 //_ = Filer.WriteMatchLogAsync(matchLogSheet, Players.Select(e => e).ToList());
-                Filer.WriteMatchLogBuffered(matchLogSheet, Players.Select(e => e).ToList());
+                Filer.WriteMatchLogBuffered(matchLogSheet, Players.Select(e => (Player)e.DeepCopy()).ToList());
             }
 
             // NOTE:
             //      maybe consider releasing all used memmory except player scores
             //      save player scores to a separate list and release everything else in game state
             //      changes need applying in MCTS to account for player score 
+            var scores =  Players.Select(p => new { Key = p.Id, Value = p.VictoryPoints }).ToList();
+            return scores.ToDictionary(e => e.Key, e => e.Value);
         }
 
         public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false)
@@ -672,6 +676,10 @@ namespace _7WondersGame.src.models
         {
             Player? newPlayer = null;
 
+            // TEST:
+            if ((Turn + 2) % 7 == 0)
+            { }
+
             // if not all players are ready then simply set move and player ready
             if (PlayersReady.Contains(false))
             {
@@ -727,8 +735,8 @@ namespace _7WondersGame.src.models
                 }
             }
 
-            // discard last card in hand if turn is 7 14 and 21
-            if (Turn % 7 == 0 && Turn != 0)
+            // discard last card in hand if turn is 7 14 and 21 and all palyer commands were handled (PlayersReady all false)
+            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
             {
                 // transfer the remaining card in each player's hand to the discarded card list
                 foreach (Player p in Players)
@@ -769,18 +777,18 @@ namespace _7WondersGame.src.models
                 PlayersReady[player.Id] = false;
             }
 
-            // if at the end of age discardFree effect active for some player and the player hasnt chosen a move return current state and set new player to the DiscardFree player
+            // if at the end of a turn discardFree effect active for some player and the player hasnt chosen a move return current state and set new player to the DiscardFree player
             var discardFreePlayer = Players.FirstOrDefault(p => p.DiscardFree == true);
             if (discardFreePlayer is not null &&
-                Turn % 7 == 0 && Turn != 0 &&
+                //Turn % 7 == 0 && Turn != 0 &&
                 PlayersReady[discardFreePlayer.Id] == false)
             {
                 return discardFreePlayer;
             }
 
-            // if end of an era (turns 7 14 and 21)
+            // if end of an era (turns 7 14 and 21) and all player moves were handled (PlayersReady all false)
             // calculate battle tokens, reset OlympiaA2 effect if needed, give new Era cards to players
-            if (Turn % 7 == 0 && Turn != 0)
+            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
             {
                 foreach (Player p in Players)
                 {
@@ -809,16 +817,15 @@ namespace _7WondersGame.src.models
                 RotateHandCards();
             }
 
-            // return next node player
-            if (Turn % 7 == 0 && Turn != 0)
+            // set new player to first so the next turn cycle can be explored
+            // NOTE:    not sure if this is valid because this should be reset to root node player, but the turn cycle will still be completed so at that point we should calculate the uct
+            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
             {
-                // set new player to first so the next turn cycle can be explored
-                // NOTE:    not sure if this is valid because this should be reset to root node player, but the turn cycle will still be completed so at that point we should calculate the uct
                 newPlayer = (Player)Players[0].DeepCopy();
             }
+            // return next player in turn cycle 
             else
             {
-                // return next player in turn cycle 
                 int newPlayerIdx = player.Id - 1 < 0 ? Players.Count - 1 : player.Id - 1;
                 // deep copy player without his neighbors
                 // neighbors arent used with this variable so it isnt neccessary
@@ -849,18 +856,84 @@ namespace _7WondersGame.src.models
             return completedTurn;
         }
 
-        public int GetCurrentScoreForPlayer(int playerId)
+        public void ApplyMoveNew(Command playerMove, int playerId)
         {
-            Player player = (Player)Players[playerId].DeepCopy();
+            // update pre turn game data for players
+            foreach (Player player in Players)
+            {
+                // set PlayableCards
+                player.PlayableCards = player.GetPlayableCards(player.HandCards);
+                // set CanBuildWonder
+                player.CheckCanBuildWonder();
+            }
 
-            // calculate player score
-            player.Battle(Era);
-            player.CopyGuild();
-            int score = player.CalculateScore();
+            // set other player moves and this players chosen move
+            foreach (Player player in Players)
+            {
+                if (player.Id != playerId)
+                    player.ChooseMoveCommand(this);
+                else
+                {
+                    PlayerCommands[playerId] = playerMove;
+                    PlayersReady[playerId] = true;
+                }
+            }
 
-            // NOTE:    probabbly should reward having highest score in the game or consider science / war potential
+            // handle command for each player
+            foreach (Player p in Players)
+            {
+                Command playerCommand = PlayerCommands[p.Id];
 
-            return score;
+                // handle command for player
+                HandlePlayerCommand(p, playerCommand, p.HandCards);
+
+                // reset PlayersReady status for player
+                PlayersReady[p.Id] = false;
+            }
+
+            // Moves the game to the next turn, processes DiscardFree and PlaySeventh effects
+            NextTurn();
+        }
+
+        public List<Command> GetPossibleMovesForAllPlayers(Command huh, int playerId)
+        {
+            List<string> actionOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard", "skip_move" };
+            List<Command> legalMoves = new();
+            Player player = Players[playerId];
+
+            // update player playable cards and wonder 
+            player.PlayableCards = player.GetPlayableCards(player.HandCards);
+            player.CheckCanBuildWonder();
+
+            // get possible actions for general situation
+            //if (!playSeventh && !discardFree)
+            {
+                // add build structure moves with playable cards
+                if (player.PlayableCards.Count > 0)
+                {
+                    foreach (Card c in player.PlayableCards)
+                        legalMoves.Add(new Command(actionOpt[0], c));
+                }
+                // add build wonder moves with any of hand cards
+                if (player.CanBuildWonder)
+                {
+                    foreach (Card c in player.HandCards)
+                        legalMoves.Add(new Command(actionOpt[2], c));
+                }
+                // add build hand free moves with all playable cards when all hand cards are free
+                if (player.FreeCardOnce)
+                {
+                    player.PlayableCards = player.GetPlayableCards(player.HandCards, playAllFree: true);
+                    foreach (Card c in player.PlayableCards)
+                        legalMoves.Add(new Command(actionOpt[1], c));
+                }
+
+                // add discard moves
+                foreach (Card c in player.HandCards)
+                    legalMoves.Add(new Command(actionOpt[3], c));
+            }
+
+            return legalMoves;
         }
     }
 }
