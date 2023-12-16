@@ -142,7 +142,7 @@ namespace _7WondersGame.src.models.Players
                     PlayerWest.ResetUsed();
 
                     Log.Debug("SUCCESSFULLY built {WonderName} stage {stage} by Player {PlayerId}", Board.Name, Board.Stage, Id);
-                    //CanBuildWonder = false;
+                    CanBuildWonder = false;
                     return true;
                 }
                 else
@@ -1541,14 +1541,14 @@ namespace _7WondersGame.src.models.Players
         public abstract void ChooseMoveCommand(Game game);
 
         // =========== Deterministic heuristics ===========
-        public Card? Age3BuildHeuristic(Game game, List<Card> cardsList, bool isNeighbor = false)
+        public Card? Age3BuildHeuristic(List<Card> cardsList, bool isNeighbor = false)
         {
             Card? bestCard = null;
             double score, maxScore = -100;
 
             foreach (Card card in cardsList)
             {
-                score = ScoreAfterPlayingCard(game, card);
+                score = ScoreAfterPlayingCard(3, card);
 
                 if (score > maxScore)
                 {
@@ -1560,7 +1560,7 @@ namespace _7WondersGame.src.models.Players
                     // if cards score is equal to max score then choose a card that would be most usefull for neighbor in next turn
                     Player nextNeighbor = this.PlayerWest;
                     List<Card> nextNeighborPlayableCards = nextNeighbor.GetPlayableCards(cardsList);
-                    Card? betterBestCard = nextNeighbor.Age3BuildHeuristic(game, nextNeighborPlayableCards, isNeighbor: true);
+                    Card? betterBestCard = nextNeighbor.Age3BuildHeuristic(nextNeighborPlayableCards, isNeighbor: true);
                     if (betterBestCard != null)
                         bestCard = betterBestCard;
                 }
@@ -1569,7 +1569,7 @@ namespace _7WondersGame.src.models.Players
             return bestCard;
         }
 
-        public Card? Age2BuildHeuristic(Game game, List<Card> cardsList, bool isNeighbor = false)
+        public Card? Age2BuildHeuristic(List<Card> cardsList, bool isNeighbor = false)
         {
             Card? bestCard = null;
             double score, maxScore = -100;
@@ -1579,7 +1579,7 @@ namespace _7WondersGame.src.models.Players
                 if (card.Id == CardId.Vineyard &&
                     this.Resources[Resource.Coins] <= 3)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(2, null);
                     // add score for gaining money with extra weight 
                     int cardAmount = this.AmountOfType(CardType.Materials) + 
                         this.PlayerEast.AmountOfType(CardType.Materials) + 
@@ -1589,7 +1589,7 @@ namespace _7WondersGame.src.models.Players
                 else if (card.Id == CardId.Bazar &&
                     this.Resources[Resource.Coins] <= 3)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(2, null);
                     // add score for gaining money with extra weight 
                     int cardAmount = this.AmountOfType(CardType.Manufactured) +
                         this.PlayerEast.AmountOfType(CardType.Manufactured) +
@@ -1598,7 +1598,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Id == CardId.Forum)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(2, null);
                     Dictionary<string, int> usedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // get amounts of potencially producable manufectured goods resources
@@ -1640,7 +1640,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Id == CardId.Caravansery)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(2, null);
                     Dictionary<string, int> thisUsedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     Dictionary<string, int> westUsedResourceBckp = this.PlayerWest.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     Dictionary<string, int> eastUsedResourceBckp = this.PlayerEast.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1701,7 +1701,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Materials)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(2, null);
                     Dictionary<string, int> thisUsedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     Dictionary<string, int> westUsedResourceBckp = this.PlayerWest.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     Dictionary<string, int> eastUsedResourceBckp = this.PlayerEast.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1809,7 +1809,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Manufactured)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(2, null);
                     Dictionary<string, int> usedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // get amounts of potencially producable manufectured goods resources
@@ -1878,7 +1878,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Scientific)
                 {
-                    score = ScoreAfterPlayingCard(game, card);
+                    score = ScoreAfterPlayingCard(2, card);
                     if (this.AmountOfType(CardType.Scientific) < 1 &&
                         this.AmountOfType(CardType.Materials) > 1)
                         score += 10;
@@ -1886,7 +1886,7 @@ namespace _7WondersGame.src.models.Players
                         score += 2.3;
                 }
                 else
-                    score = ScoreAfterPlayingCard(game, card);
+                    score = ScoreAfterPlayingCard(2, card);
 
                 if (score > maxScore)
                 {
@@ -1898,7 +1898,7 @@ namespace _7WondersGame.src.models.Players
                     // if cards score is equal to max score then choose a card that would be most usefull for neighbor in next turn
                     Player nextNeighbor = this.PlayerEast;
                     List<Card> nextNeighborPlayableCards = nextNeighbor.GetPlayableCards(cardsList);
-                    Card? betterBestCard = nextNeighbor.Age2BuildHeuristic(game, nextNeighborPlayableCards, isNeighbor: true);
+                    Card? betterBestCard = nextNeighbor.Age2BuildHeuristic(nextNeighborPlayableCards, isNeighbor: true);
                     if (betterBestCard != null)
                         bestCard = betterBestCard;
                 }
@@ -1907,7 +1907,7 @@ namespace _7WondersGame.src.models.Players
             return bestCard;
         }
 
-        public Card? Age1BuildHeuristic(Game game, List<Card> cardsList, bool isNeighbor = false)
+        public Card? Age1BuildHeuristic(List<Card> cardsList, bool isNeighbor = false)
         {
             Card? bestCard = null;
             double score, maxScore = -100;  // must be less than possible negative score from military loss
@@ -1916,7 +1916,7 @@ namespace _7WondersGame.src.models.Players
             {
                 if (card.Id == CardId.EastTradingPost)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(1, null);
                     int eastRawAmount = this.PlayerEast.AmountOfType(CardType.Materials);
                     int thisRawAmount = this.AmountOfType(CardType.Materials);
                     if (this.Board.Production <= Resource.Stone)
@@ -1930,7 +1930,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Id == CardId.WestTradingPost)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(1, null);
                     int westRawAmount = this.PlayerWest.AmountOfType(CardType.Materials);
                     int thisRawAmount = this.AmountOfType(CardType.Materials);
                     if (this.Board.Production <= Resource.Stone)
@@ -1944,7 +1944,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Id == CardId.Marketplace)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(1, null);
                     int eastManufAmount = this.PlayerEast.AmountOfType(CardType.Manufactured);
                     int westManufAmount = this.PlayerWest.AmountOfType(CardType.Manufactured);
                     int thisManufAmount = this.AmountOfType(CardType.Manufactured);
@@ -1964,7 +1964,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Materials)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(1, null);
                     double tradingWeight = 0;
                     Dictionary<string, int> thisUsedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     Dictionary<string, int> westUsedResourceBckp = this.PlayerWest.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -2243,7 +2243,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Manufactured)
                 {
-                    score = ScoreAfterPlayingCard(game, null);
+                    score = ScoreAfterPlayingCard(1, null);
                     Dictionary<string, int> usedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // get amounts of potencially producable manufectured goods resources
@@ -2294,7 +2294,7 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Scientific)
                 {
-                    score = ScoreAfterPlayingCard(game, card);
+                    score = ScoreAfterPlayingCard(1, card);
                     if (this.AmountOfType(CardType.Scientific) < 1 &&
                         this.AmountOfType(CardType.Materials) > 1)
                         score += 4;
@@ -2303,11 +2303,11 @@ namespace _7WondersGame.src.models.Players
                 }
                 else if (card.Type == CardType.Civilian)
                 {
-                    score = ScoreAfterPlayingCard(game, card);
+                    score = ScoreAfterPlayingCard(1, card);
                     score -= 0.7;
                 }
                 else
-                    score = ScoreAfterPlayingCard(game, card);
+                    score = ScoreAfterPlayingCard(1, card);
 
                 if (score > maxScore)
                 {
@@ -2319,7 +2319,7 @@ namespace _7WondersGame.src.models.Players
                     // if cards score is equal to max score then choose a card that would be most usefull for neighbor in next turn
                     Player nextNeighbor = this.PlayerWest;
                     List<Card> nextNeighborPlayableCards = nextNeighbor.GetPlayableCards(cardsList);
-                    Card? betterBestCard = nextNeighbor.Age1BuildHeuristic(game, nextNeighborPlayableCards, isNeighbor: true);
+                    Card? betterBestCard = nextNeighbor.Age1BuildHeuristic(nextNeighborPlayableCards, isNeighbor: true);
                     if (betterBestCard != null)
                         bestCard = betterBestCard;
                 }
@@ -2331,8 +2331,10 @@ namespace _7WondersGame.src.models.Players
             return bestCard;
         }
 
-        public int ScoreAfterPlayingCard(Game g, Card? card)
+        public int ScoreAfterPlayingCard(int era, Card? card)
         {
+            int score = 0;
+
             // backup relevant player data before scoring
             //          Player related:  VictoryTokens, DefeatTokens, ResourcesDict, PlayedCards, VictoryPoints,
             //          Card related:    ExtraScience,
@@ -2352,10 +2354,10 @@ namespace _7WondersGame.src.models.Players
             }
 
             // do battle and copy guild
-            this.Battle(g.Era);
+            this.Battle(era);
             this.CopyGuild();
             // get score
-            int score = this.CalculateScore();
+            score = this.CalculateScore();
 
             // revert player changes
             this.VictoryTokens = victoryTokensBckp;
