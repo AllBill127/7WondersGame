@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +13,12 @@ namespace _7WondersGame.src.models.MCTS
     public class MCTSAI : Player
     {
         private const int MaxIterations = 5000;
-        private const double ExplorationWeight = 1.3;
+        private const double EXPLORATION_WEIGHT = 3.6;
+        private const double DISCARD_DISCOURAGE = 1;
+        private const double BEST_MOVE_EXPLORATION_WEIGHT = 1;
+        // NOTE:
+        //      GizahB MCTS won with EXPLORATION_WEIGHT = 3.6 | DISCARD_DISCOURAGE = 1 | BEST_MOVE_EXPLORATION_WEIGHT = 1
+        //      
 
         public MCTSAI(int id) : base(id)
         {
@@ -33,6 +39,7 @@ namespace _7WondersGame.src.models.MCTS
                 // Babylon B stage 2
                 PlaySeventh = this.PlaySeventh,
                 // Olympia B stage 1
+                WonderRawCheap = this.WonderRawCheap,
                 RawCheapEast = this.RawCheapEast,
                 RawCheapWest = this.RawCheapWest,
                 // Marketplace card effect
@@ -87,8 +94,12 @@ namespace _7WondersGame.src.models.MCTS
         {
             Node rootNode = new Node(game.DeepCopy(), (Player)game.Players[this.Id].DeepCopy(), null, null); // Create a clone of the game state as the root node and copy root player
 
-            for (int iteration = 0; iteration < MaxIterations; iteration++)
+            for (int iteration = 0; iteration < MaxIterations;)
             {
+                // TEST:
+                if (iteration == MaxIterations - 1)
+                { }
+
                 Node selectedNode = Selection(rootNode);
                 Node expandedNode = Expansion(selectedNode);
 
@@ -102,12 +113,21 @@ namespace _7WondersGame.src.models.MCTS
                 if (TurnEnded(expandedNode)) 
                 {
                     double simulationResult = Simulation(expandedNode);
+
+                    // discourage discarding cards
+                    if (expandedNode.GameState.PlayerCommands[this.Id].Subcommand.Equals("discard"))
+                    {
+                        simulationResult = simulationResult * DISCARD_DISCOURAGE;
+                    }
                     Backpropagation(expandedNode, simulationResult);
+
+                    iteration++;
                 }
             }
 
             // Choose the best child of the root node as the final move
             Command? bestMove = BestUCTChild(rootNode).LastMove;
+
             if (bestMove != null)
                 return bestMove;
             else
@@ -183,7 +203,7 @@ namespace _7WondersGame.src.models.MCTS
             // Upper Confidence Bound applied to Trees (UCT) formula
             double exploitation = node.TotalScore / (node.VisitCount + 1);
             double exploration = Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
-            return exploitation + ExplorationWeight * exploration;
+            return exploitation + EXPLORATION_WEIGHT * exploration;
         }
 
         /// <summary>
@@ -253,61 +273,140 @@ namespace _7WondersGame.src.models.MCTS
                 simGame.Players[0].HandCards.Count == 0 && simGame.Era < 4)
             { }
 
-            // cast mcts player to deterministicAI player
-            Player currPlayer = simGame.Players[this.Id];
-            DeterministicAI simPlayer = new DeterministicAI(currPlayer.Id)
+            
+            // cast any mcts players to deterministicAI player
+            for (int i = 0; i < simGame.Players.Count; i++)
             {
-                Board = (Wonder)currPlayer.Board.DeepCopy(),
-                HandCards = currPlayer.HandCards.Select(e => e).ToList(),
-                PlayedCards = currPlayer.PlayedCards.Select(e => e).ToList(),
-                PlayableCards = currPlayer.PlayableCards.Select(e => e).ToList(),
+                Player player = simGame.Players[i];
 
-                VictoryTokens = currPlayer.VictoryTokens,
-                DefeatTokens = currPlayer.DefeatTokens,
-                VictoryPoints = currPlayer.VictoryPoints,
-                // Babylon B stage 2
-                PlaySeventh = currPlayer.PlaySeventh,
-                // Olympia B stage 1
-                RawCheapEast = currPlayer.RawCheapEast,
-                RawCheapWest = currPlayer.RawCheapWest,
-                // Marketplace card effect
-                ManufCheap = currPlayer.ManufCheap,
-                // Olympia A stage 2
-                FreeCardOnce = currPlayer.FreeCardOnce,
-                // Halikarnassos A stage 2 & B stage 1-3
-                DiscardFree = currPlayer.DiscardFree,
-                // Science guild effect
-                ExtraScience = currPlayer.ExtraScience,
-                CanBuildWonder = currPlayer.CanBuildWonder,
+                if (player.GetType() == typeof(MCTSAI))
+                {
+                    DeterministicAI simPlayer = new DeterministicAI(player.Id)
+                    {
+                        Board = (Wonder)player.Board.DeepCopy(),
+                        HandCards = player.HandCards.Select(e => e).ToList(),
+                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
+                        PlayableCards = player.PlayableCards.Select(e => e).ToList(),
 
-                // flags used to check multichoice materials only once
-                UsedOnDemandResource = currPlayer.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                Resources = currPlayer.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-            };
-            simGame.Players[this.Id] = simPlayer;
-            // set neighbors
-            int westPlayerId = simPlayer.Id - 1 < 0 ? simGame.Players.Count - 1 : simPlayer.Id - 1;
-            int eastPlayerId = simPlayer.Id + 1 >= simGame.Players.Count ? 0 : simPlayer.Id + 1;
-            Player westPlayer = simGame.Players[westPlayerId];
-            westPlayer.PlayerEast = simPlayer;
-            Player eastPlayer = simGame.Players[eastPlayerId];
-            eastPlayer.PlayerWest = simPlayer;
-            simPlayer.PlayerWest = westPlayer;
-            simPlayer.PlayerEast = eastPlayer;
+                        VictoryTokens = player.VictoryTokens,
+                        DefeatTokens = player.DefeatTokens,
+                        VictoryPoints = player.VictoryPoints,
+                        // Babylon B stage 2
+                        PlaySeventh = player.PlaySeventh,
+                        // Olympia B stage 1
+                        RawCheapEast = player.RawCheapEast,
+                        RawCheapWest = player.RawCheapWest,
+                        // Marketplace card effect
+                        ManufCheap = player.ManufCheap,
+                        // Olympia A stage 2
+                        FreeCardOnce = player.FreeCardOnce,
+                        // Halikarnassos A stage 2 & B stage 1-3
+                        DiscardFree = player.DiscardFree,
+                        // Science guild effect
+                        ExtraScience = player.ExtraScience,
+                        CanBuildWonder = player.CanBuildWonder,
+
+                        // flags used to check multichoice materials only once
+                        UsedOnDemandResource = player.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                    };
+                    simGame.Players[player.Id] = simPlayer;
+                }
+            }
+
+            /* // cast this MCTS player to Deterministic and all other players to RandomChoice
+            for (int i = 0; i < simGame.Players.Count; i++)
+            {
+                Player player = simGame.Players[i];
+
+                if (player.Id == this.Id)
+                {
+                    DeterministicAI simPlayer = new DeterministicAI(player.Id)
+                    {
+                        Board = (Wonder)player.Board.DeepCopy(),
+                        HandCards = player.HandCards.Select(e => e).ToList(),
+                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
+                        PlayableCards = player.PlayableCards.Select(e => e).ToList(),
+
+                        VictoryTokens = player.VictoryTokens,
+                        DefeatTokens = player.DefeatTokens,
+                        VictoryPoints = player.VictoryPoints,
+                        // Babylon B stage 2
+                        PlaySeventh = player.PlaySeventh,
+                        // Olympia B stage 1
+                        RawCheapEast = player.RawCheapEast,
+                        RawCheapWest = player.RawCheapWest,
+                        // Marketplace card effect
+                        ManufCheap = player.ManufCheap,
+                        // Olympia A stage 2
+                        FreeCardOnce = player.FreeCardOnce,
+                        // Halikarnassos A stage 2 & B stage 1-3
+                        DiscardFree = player.DiscardFree,
+                        // Science guild effect
+                        ExtraScience = player.ExtraScience,
+                        CanBuildWonder = player.CanBuildWonder,
+
+                        // flags used to check multichoice materials only once
+                        UsedOnDemandResource = player.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                    };
+                    simGame.Players[player.Id] = simPlayer;
+                }
+                else
+                {
+                    RandomChoiceAI simPlayer = new RandomChoiceAI(player.Id)
+                    {
+                        Board = (Wonder)player.Board.DeepCopy(),
+                        HandCards = player.HandCards.Select(e => e).ToList(),
+                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
+                        PlayableCards = player.PlayableCards.Select(e => e).ToList(),
+
+                        VictoryTokens = player.VictoryTokens,
+                        DefeatTokens = player.DefeatTokens,
+                        VictoryPoints = player.VictoryPoints,
+                        // Babylon B stage 2
+                        PlaySeventh = player.PlaySeventh,
+                        // Olympia B stage 1
+                        RawCheapEast = player.RawCheapEast,
+                        RawCheapWest = player.RawCheapWest,
+                        // Marketplace card effect
+                        ManufCheap = player.ManufCheap,
+                        // Olympia A stage 2
+                        FreeCardOnce = player.FreeCardOnce,
+                        // Halikarnassos A stage 2 & B stage 1-3
+                        DiscardFree = player.DiscardFree,
+                        // Science guild effect
+                        ExtraScience = player.ExtraScience,
+                        CanBuildWonder = player.CanBuildWonder,
+
+                        // flags used to check multichoice materials only once
+                        UsedOnDemandResource = player.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                    };
+                    simGame.Players[player.Id] = simPlayer;
+                }
+            }
+            */
+
+            // set neighbors for recasted players
+            simGame.SetPlayerNeighbors();
 
             // simulate game until the end
-            //string resultsSheetName = simGame.Turn.ToString() + "_turn_sim_results";
-            simGame.Loop();
+            Dictionary<int, int> scores = simGame.Loop();
 
             // get this players score in the end of game
-            int simScore = simGame.Players[simPlayer.Id].VictoryPoints;
+            int simScore = scores[this.Id];
 
             // determine what place this player scored in the game
-            List<Player> sortedPlayers = simGame.Players.OrderByDescending(p => p.VictoryPoints).ToList();
-            int simRank = sortedPlayers.FindIndex(p => p.Id == simPlayer.Id) + 1;
+            int simRank = scores
+                .OrderByDescending(x => x.Value)
+                .Select((entry, i) => new { entry.Key, Index = i })
+                .FirstOrDefault(x => x.Key == this.Id)?.Index ?? -1;
 
             // calculate simulation results - player score normalized by his overal rank
-            simulationResults = simScore / simRank;
+            //simulationResults = simScore / simRank;
+            //simulationResults = simScore * (simRank == 1 ? 1.2 : 1);
+            simulationResults = simScore;
 
             // Return the result of the simulation
             return simulationResults;
@@ -330,7 +429,12 @@ namespace _7WondersGame.src.models.MCTS
                 }
                 else
                 {
-                    currentNode.MCTPlayerScore = childMCTSPlayerScore;
+                    //currentNode.MCTPlayerScore = childMCTSPlayerScore;
+                    if (currentNode.MCTPlayerScore < result)
+                    {
+                        currentNode.MCTPlayerScore = result;
+                        currentNode.TotalScore = result;
+                    }
                 }
                 
                 // update visit count for each visited node in path
@@ -344,6 +448,7 @@ namespace _7WondersGame.src.models.MCTS
             if (currentNode.CurrentPlayer.Id == this.Id)
             {
                 currentNode.TotalScore += result;
+                currentNode.MCTPlayerScore = result;
             }
             // update visit count 
             currentNode.VisitCount++;
@@ -358,9 +463,10 @@ namespace _7WondersGame.src.models.MCTS
             foreach (Node child in node.Children)
             {
                 // calculate uct based on passed through mcts player score
-                exploitation = child.MCTPlayerScore / (child.VisitCount + 1);
-                exploration = Math.Sqrt(Math.Log((child.Parent?.VisitCount ?? 0) + 1) / (child.VisitCount + 1));
-                uctValue = exploitation + ExplorationWeight * exploration;
+                //exploitation = child.MCTPlayerScore / (child.VisitCount + 1);
+                //exploration = Math.Sqrt(Math.Log((child.Parent?.VisitCount ?? 0) + 1) / (child.VisitCount + 1));
+                //uctValue = exploitation + BEST_MOVE_EXPLORATION_WEIGHT * exploration;
+                uctValue = child.MCTPlayerScore;
 
                 if (uctValue > bestUCT)
                 {
