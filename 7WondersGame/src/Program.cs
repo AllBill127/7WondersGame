@@ -25,15 +25,16 @@ namespace _7WondersGame.src
 
             string? programPath = GetProgramFilePath();
             Log.Information("Program File Path: {programPath}", programPath);
-            Filer.InitFiler(programPath, "7WondersGameResults.xlsx");
+            Filer.InitFiler(programPath, "7WondersGameResults.xlsx", 2);
 
             Log.Information("Starting game simulations");
 
-            int gameCount = 1;
-            string resultsSheetName = "Test";
+            int gameCount = 4;
+            string resultsSheetName = "TestRun4";
 
             RunGamesParallel(gameCount, resultsSheetName);
             await Filer.FlushMatchLogBuffer(resultsSheetName);
+            await Filer.AwaitAllLoggingTasksAsync();
 
             Log.Information("Full run complete!");
         }
@@ -73,20 +74,20 @@ namespace _7WondersGame.src
         {
             int counter = 0;
 
-            Parallel.For(0, numGames, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+            Parallel.For(0, numGames, new ParallelOptions { MaxDegreeOfParallelism = 2 }, i =>
             {
-                //Log.Information("Processing iteration {iterationNr}", i);
+                Log.Information("Processing iteration {iterationNr}", i);
 
                 // create each games players
                 List<Player> players = new()
                 {
-                    new RandomChoiceAI(0),
-                    new RandomChoiceAI(1),
+                    new DeterministicAI(0),
+                    new DeterministicAI(1),
                     new MCTSAI(2),
-                    new RandomChoiceAI(3),
-                    new RandomChoiceAI(4),
-                    new RandomChoiceAI(5),
-                    new RandomChoiceAI(6),
+                    new DeterministicAI(3),
+                    new DeterministicAI(4),
+                    //new DeterministicAI(5),
+                    //new RandomChoiceAI(6),
                 };
 
                 // create game
@@ -106,7 +107,7 @@ namespace _7WondersGame.src
                     Log.Information("{counter} Games complete! curr game: {gameNr} ", counter, i);
                 }
 
-                //Log.Information("Completed iteration  {iterationNr}", i);
+                Log.Information("Completed iteration  {iterationNr}", i);
             });
         }
         static string? GetProgramFilePath()
