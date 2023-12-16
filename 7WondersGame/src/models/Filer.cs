@@ -14,6 +14,7 @@ namespace _7WondersGame.src.models
     internal static class Filer
     {
         private static readonly int MAX_PLAYERS = 7;
+        private static int maxLogBuffer = 2;
         private static string _filepath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         private static string _fileName = "Game_results.xlsx";
 
@@ -22,8 +23,10 @@ namespace _7WondersGame.src.models
         private static List<List<Player>> playerResultsBuffer = new List<List<Player>>();
         private static List<Task> runningTasks = new List<Task>();
 
-        public static void InitFiler(string? filepath, string fileName)
+        public static void InitFiler(string? filepath, string fileName, int maxBuggerSize)
         {
+            maxLogBuffer = maxBuggerSize;
+
             if (filepath is not null)
             {
                 _filepath = filepath;
@@ -136,7 +139,7 @@ namespace _7WondersGame.src.models
         {
             lock(_logBufferLock)
             {
-                if (playerResultsBuffer.Count < 9)
+                if (playerResultsBuffer.Count < maxLogBuffer)
                 {
                     playerResultsBuffer.Add(players);
                 }
