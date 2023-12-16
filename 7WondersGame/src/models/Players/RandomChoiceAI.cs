@@ -26,6 +26,7 @@ namespace _7WondersGame.src.models.Players
                 // Babylon B stage 2
                 PlaySeventh = this.PlaySeventh,
                 // Olympia B stage 1
+                WonderRawCheap = this.WonderRawCheap,
                 RawCheapEast = this.RawCheapEast,
                 RawCheapWest = this.RawCheapWest,
                 // Marketplace card effect

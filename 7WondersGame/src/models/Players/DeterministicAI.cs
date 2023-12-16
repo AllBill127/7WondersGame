@@ -29,6 +29,7 @@ namespace _7WondersGame.src.models.Players
                 // Babylon B stage 2
                 PlaySeventh = this.PlaySeventh,
                 // Olympia B stage 1
+                WonderRawCheap = this.WonderRawCheap,
                 RawCheapEast = this.RawCheapEast,
                 RawCheapWest = this.RawCheapWest,
                 // Marketplace card effect
@@ -104,9 +105,7 @@ namespace _7WondersGame.src.models.Players
 
         public override Card? ChooseMoveCard(Game game, string commandStr, List<Card> cardsList)
         {
-            int seed = (int)(DateTime.Now.Ticks & 0xFFFFFFFF);
-            Random rng = new Random(seed);
-            Card? chosenCard;
+            Card? chosenCard = null;
 
             // choose random card for move
             if (cardsList.Count == 0)
@@ -116,20 +115,15 @@ namespace _7WondersGame.src.models.Players
 
             if (game.Era == 3)
             {
-                chosenCard = Age3BuildHeuristic(game, cardsList);
+                chosenCard = Age3BuildHeuristic(cardsList);
             }
             else if (game.Era == 2)
             {
-                chosenCard = Age2BuildHeuristic(game, cardsList);
+                chosenCard = Age2BuildHeuristic(cardsList);
             }
             else if (game.Era == 1)
             {
-                chosenCard = Age1BuildHeuristic(game, cardsList);
-            }
-            else
-            {
-                int choice = rng.Next(cardsList.Count);
-                chosenCard =  cardsList[choice];
+                chosenCard = Age1BuildHeuristic(cardsList);
             }
 
             if (chosenCard == null)
