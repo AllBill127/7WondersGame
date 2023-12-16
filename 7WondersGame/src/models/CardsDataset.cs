@@ -80,7 +80,7 @@ namespace _7WondersGame.src.models
                 { CardId.Fortifications,       new Card(CardId.Fortifications,        "Fortifications",        CardType.Military,     3,   CardId.Walls,           new int[]{ 0, 3, 0, 1, 0, 0, 0, 0 }, new int[]{ 1, 1, 1, 1, 2 }, numPlayers) },
                 { CardId.Circus,               new Card(CardId.Circus,                "Circus",                CardType.Military,     3,   CardId.TrainingGround,  new int[]{ 0, 1, 0, 3, 0, 0, 0, 0 }, new int[]{ 0, 1, 2, 3, 3 }, numPlayers) },
                 { CardId.Arsenal,              new Card(CardId.Arsenal,               "Arsenal",               CardType.Military,     3,   CardId.None,            new int[]{ 2, 1, 0, 0, 1, 0, 0, 0 }, new int[]{ 1, 2, 2, 2, 3 }, numPlayers) },
-                { CardId.SiegeWorkshop,        new Card(CardId.SiegeWorkshop,         "Siege Workshop",        CardType.Military,     3,   CardId.Laboratory,      new int[]{ 1, 0, 3, 0, 0, 0, 0, 0 }, new int[]{ 1, 1, 2, 2, 2 }, numPlayers)    },
+                { CardId.SiegeWorkshop,        new Card(CardId.SiegeWorkshop,         "Siege Workshop",        CardType.Military,     3,   CardId.Laboratory,      new int[]{ 1, 0, 3, 0, 0, 0, 0, 0 }, new int[]{ 1, 1, 2, 2, 2 }, numPlayers) },
                 // Scientific Structure
                 { CardId.Apothecary,           new Card(CardId.Apothecary,            "Apothecary",            CardType.Scientific,   1,   CardId.None,            new int[]{ 0, 0, 0, 0, 1, 0, 0, 0 }, new int[]{ 1, 1, 2, 2, 2 }, numPlayers) },
                 { CardId.Workshop,             new Card(CardId.Workshop,              "Workshop",              CardType.Scientific,   1,   CardId.None,            new int[]{ 0, 0, 0, 0, 0, 1, 0, 0 }, new int[]{ 1, 1, 1, 1, 2 }, numPlayers) },
@@ -91,7 +91,7 @@ namespace _7WondersGame.src.models
                 { CardId.School,               new Card(CardId.School,                "School",                CardType.Scientific,   2,   CardId.None,            new int[]{ 1, 0, 0, 0, 0, 0, 1, 0 }, new int[]{ 1, 1, 1, 1, 2 }, numPlayers) },
                 { CardId.Lodge,                new Card(CardId.Lodge,                 "Lodge",                 CardType.Scientific,   3,   CardId.Dispensary,      new int[]{ 0, 0, 2, 0, 1, 0, 1, 0 }, new int[]{ 1, 1, 1, 2, 2 }, numPlayers) },
                 { CardId.Observatory,          new Card(CardId.Observatory,           "Observatory",           CardType.Scientific,   3,   CardId.Laboratory,      new int[]{ 0, 2, 0, 0, 1, 1, 0, 0 }, new int[]{ 1, 1, 1, 1, 2 }, numPlayers) },
-                { CardId.University,           new Card(CardId.University,            "University",            CardType.Scientific,   3,   CardId.Library,         new int[]{ 2, 0, 0, 0, 0, 1, 1, 0 }, new int[]{ 1, 1, 2, 2, 2 }, numPlayers) },
+                { CardId.University,           new Card(CardId.University,            "University",            CardType.Scientific,   3,   CardId.Library,         new int[]{ 2, 0, 0, 0, 0, 1, 1, 0 }, new int[]{ 1, 2, 2, 2, 2 }, numPlayers) },
                 { CardId.Academy,              new Card(CardId.Academy,               "Academy",               CardType.Scientific,   3,   CardId.School,          new int[]{ 0, 0, 0, 3, 0, 1, 0, 0 }, new int[]{ 1, 1, 1, 1, 2 }, numPlayers) },
                 { CardId.Study,                new Card(CardId.Study,                 "Study",                 CardType.Scientific,   3,   CardId.School,          new int[]{ 1, 0, 0, 0, 1, 0, 1, 0 }, new int[]{ 1, 1, 2, 2, 2 }, numPlayers) },
             };
@@ -99,8 +99,8 @@ namespace _7WondersGame.src.models
             // Guild
             GuildCards = new()
             {
-                { CardId.Craftsmens,           new Card(CardId.Craftsmens,            "Craftmens Guild",       CardType.Guild,        3,   CardId.None,            new int[]{ 0, 2, 0, 2, 0, 0, 0, 0 }, new int[]{ 0, 0, 0, 0, 0 }, numPlayers) },
                 { CardId.Workers,              new Card(CardId.Workers,               "Workers Guild",         CardType.Guild,        3,   CardId.None,            new int[]{ 1, 2, 1, 1, 0, 0, 0, 0 }, new int[]{ 0, 0, 0, 0, 0 }, numPlayers) },
+                { CardId.Craftsmens,           new Card(CardId.Craftsmens,            "Craftmens Guild",       CardType.Guild,        3,   CardId.None,            new int[]{ 0, 2, 0, 2, 0, 0, 0, 0 }, new int[]{ 0, 0, 0, 0, 0 }, numPlayers) },
                 { CardId.Traders,              new Card(CardId.Traders,               "Traders Guild",         CardType.Guild,        3,   CardId.None,            new int[]{ 0, 0, 0, 0, 1, 1, 1, 0 }, new int[]{ 0, 0, 0, 0, 0 }, numPlayers) },
                 { CardId.Philosophers,         new Card(CardId.Philosophers,          "Philosophers Guild",    CardType.Guild,        3,   CardId.None,            new int[]{ 0, 0, 3, 0, 1, 0, 1, 0 }, new int[]{ 0, 0, 0, 0, 0 }, numPlayers) },
                 { CardId.Spies,                new Card(CardId.Spies,                 "Spies Guild",           CardType.Guild,        3,   CardId.None,            new int[]{ 0, 0, 3, 0, 0, 1, 0, 0 }, new int[]{ 0, 0, 0, 0, 0 }, numPlayers) },
