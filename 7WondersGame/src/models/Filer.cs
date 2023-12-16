@@ -23,9 +23,9 @@ namespace _7WondersGame.src.models
         private static List<List<Player>> playerResultsBuffer = new List<List<Player>>();
         private static List<Task> runningTasks = new List<Task>();
 
-        public static void InitFiler(string? filepath, string fileName, int maxBuggerSize)
+        public static void InitFiler(string? filepath, string fileName, int maxBufferSize)
         {
-            maxLogBuffer = maxBuggerSize;
+            maxLogBuffer = maxBufferSize;
 
             if (filepath is not null)
             {
@@ -34,7 +34,7 @@ namespace _7WondersGame.src.models
             }
             else
             {
-                Log.Error("Filer initialized with default path because given path was null.\n Default file path: {filePath}", _filepath);
+                Log.Warning("Filer initialized with default path because given path was null.\n Default file path: {filePath}", _filepath);
                 _fileName = fileName;
             }
 
