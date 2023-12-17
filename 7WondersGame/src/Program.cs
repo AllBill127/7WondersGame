@@ -11,6 +11,7 @@ namespace _7WondersGame.src
 {
     internal class Program
     {
+        private static int parallelCount = 2;
         static async Task Main(string[] args)
         {
             // Configure excel license for logging match results into excell
@@ -29,6 +30,7 @@ namespace _7WondersGame.src
             int gameCount = 4;
             string resultsExcelName = "7WondersGameResults.xlsx";
             string resultsSheetName = "TestRun6";
+            parallelCount = 2;
 
             if (args.Length > 0 && !int.TryParse(args[0], out maxLogBufferSize))
                 maxLogBufferSize = 2;
@@ -38,11 +40,13 @@ namespace _7WondersGame.src
                 resultsExcelName = args[2];
             if (args.Length > 3 && !string.IsNullOrEmpty(args[3]))
                 resultsSheetName = args[3];
+            if (args.Length > 4 && !int.TryParse(args[4], out parallelCount))
+                parallelCount = 2;
 
             string? programPath = GetProgramFilePath();
             Log.Information("Program File Path: {programPath}", programPath);
-            Log.Information("Log buffer size: {maxBufferSize} | game count: {gameCount}\nLoog excel name: {resultsExcelName} | log sheet name: {resultsSheetName}",
-                maxLogBufferSize, gameCount, resultsExcelName, resultsSheetName);
+            Log.Information("Log buffer size: {maxBufferSize} | game count: {gameCount}\nLog excel name: {resultsExcelName} | Log sheet name: {resultsSheetName}\nParallel count: {parallelCount}",
+                maxLogBufferSize, gameCount, resultsExcelName, resultsSheetName, parallelCount);
 
             Filer.InitFiler(programPath, resultsExcelName, maxLogBufferSize);
 
@@ -90,7 +94,7 @@ namespace _7WondersGame.src
         {
             int counter = 0;
 
-            Parallel.For(0, numGames, new ParallelOptions { MaxDegreeOfParallelism = 2 }, i =>
+            Parallel.For(0, numGames, new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
             {
                 Log.Information("Processing iteration {iterationNr}", i);
 
