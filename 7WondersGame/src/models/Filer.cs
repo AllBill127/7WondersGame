@@ -139,7 +139,7 @@ namespace _7WondersGame.src.models
         {
             lock(_logBufferLock)
             {
-                if (playerResultsBuffer.Count < maxLogBuffer)
+                if (playerResultsBuffer.Count < maxLogBuffer - 1)
                 {
                     playerResultsBuffer.Add(players);
                 }
@@ -150,7 +150,7 @@ namespace _7WondersGame.src.models
                     playerResultsBuffer.Clear();
                     foreach (var results in tempBuffer)
                     {
-                        _ = WriteMatchLogAsync(sheetName, results.Select(e => e).ToList());
+                        _ = WriteMatchLogAsync(sheetName, results.Select(e => (Player)e.DeepCopy()).ToList());
                     }
                 }
             }
