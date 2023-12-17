@@ -27,18 +27,24 @@ namespace _7WondersGame.src
 
             int maxLogBufferSize = 2;
             int gameCount = 4;
-            string resultsSheetName = "TestRun4";
+            string resultsExcelName = "7WondersGameResults.xlsx";
+            string resultsSheetName = "TestRun6";
 
             if (args.Length > 0 && !int.TryParse(args[0], out maxLogBufferSize))
                 maxLogBufferSize = 2;
             if (args.Length > 1 && !int.TryParse(args[1], out gameCount))
                 gameCount = 4;
             if (args.Length > 2 && !string.IsNullOrEmpty(args[2]))
-                resultsSheetName = args[2];
+                resultsExcelName = args[2];
+            if (args.Length > 3 && !string.IsNullOrEmpty(args[3]))
+                resultsSheetName = args[3];
 
             string? programPath = GetProgramFilePath();
             Log.Information("Program File Path: {programPath}", programPath);
-            Filer.InitFiler(programPath, "7WondersGameResults.xlsx", maxLogBufferSize);
+            Log.Information("Log buffer size: {maxBufferSize} | game count: {gameCount}\nLoog excel name: {resultsExcelName} | log sheet name: {resultsSheetName}",
+                maxLogBufferSize, gameCount, resultsExcelName, resultsSheetName);
+
+            Filer.InitFiler(programPath, resultsExcelName, maxLogBufferSize);
 
             Log.Information("Starting game simulations");
 
