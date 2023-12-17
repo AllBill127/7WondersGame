@@ -78,6 +78,7 @@ namespace _7WondersGame.src.models
                         worksheet.Cells[1, MAX_PLAYERS + 2].Value = "Winner Wonder";
                         worksheet.Cells[1, MAX_PLAYERS + 3].Value = "WinnerId";
                         worksheet.Cells[1, MAX_PLAYERS + 4].Value = "Score";
+                        worksheet.Cells[1, MAX_PLAYERS + 5].Value = "p2 Rank";
                     }
 
                     // Find the next available row in the worksheet
@@ -102,6 +103,12 @@ namespace _7WondersGame.src.models
                     worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
                     worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
                     worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
+
+                    // log player 2 rank (scoring place)
+                    worksheet.Cells[row, MAX_PLAYERS + 5].Value = sortedPlayers
+                        .OrderByDescending(x => x.VictoryPoints)
+                        .Select((entry, i) => new { entry.Id, Index = i })
+                        .FirstOrDefault(x => x.Id == 2)?.Index + 1 ?? -1;
 
                     // Save changes to the Excel file
                     excelPackage.Save();
