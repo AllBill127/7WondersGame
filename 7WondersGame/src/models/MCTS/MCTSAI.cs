@@ -148,9 +148,9 @@ namespace _7WondersGame.src.models.MCTS
                 turnEnded = false;
             // if current nodes player is a player with extra turn effect, the turn number is considered possible extra turn and player is not ready
             // then turn is not complete as extra move has to be done before simulation
-            if (expandedNode.CurrentPlayer.DiscardFree == true && 
-                expandedNode.GameState.Turn % 7 == 0 &&
-                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayer.Id] == false)
+            if (expandedNode.GameState.Players[expandedNode.CurrentPlayer.Id].DiscardFree == true && 
+                (expandedNode.GameState.Turn % 7 == 0 &&
+                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayer.Id] == false))
                 turnEnded = false;
 
             return turnEnded;
