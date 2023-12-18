@@ -27,10 +27,10 @@ namespace _7WondersGame.src
             // get main arguments log buffer size, game count to simulate, log sheet name
 
             int maxLogBufferSize = 2;
-            int gameCount = 4;
+            int gameCount = 10;
             string resultsExcelName = "7WondersGameResults.xlsx";
             string resultsSheetName = "TestRun6";
-            parallelCount = 2;
+            parallelCount = 1;
 
             if (args.Length > 0 && !int.TryParse(args[0], out maxLogBufferSize))
                 maxLogBufferSize = 2;
@@ -116,6 +116,12 @@ namespace _7WondersGame.src
                     Players = players,
                 };
                 newGame.InitGame();
+
+                // Log player wondes
+                foreach (Player player in newGame.Players)
+                {
+                    Log.Information("Player {playerId} wonder: {playerBoardName}", player.Id, player.Board.Name);
+                }
 
                 // run game and log results
                 newGame.Loop(logSheetName);
