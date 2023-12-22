@@ -122,6 +122,78 @@ namespace _7WondersGame.src.models
             }
         }
 
+        public static void WriteMatchLogBuffer(string sheetName, List<List<Player>> playersBuffer)
+        {
+            String fileName = Path.Combine(_filepath, _fileName);
+            FileInfo file = new FileInfo(fileName);
+
+            try
+            {
+                using (ExcelPackage excelPackage = new ExcelPackage(file))
+                {
+                    ExcelWorksheet? worksheet = excelPackage.Workbook.Worksheets.SingleOrDefault(sheet => sheet.Name == sheetName);
+
+                    // If the worksheet already exists, use it; otherwise, create a new one
+                    if (worksheet == null)
+                    {
+                        excelPackage.Workbook.Worksheets.Add(sheetName);
+                        worksheet = excelPackage.Workbook.Worksheets.SingleOrDefault(sheet => sheet.Name == sheetName);
+                        for (int i = 0; i < playersBuffer[0].Count; i++)
+                        {
+                            worksheet.Cells[1, i + 1].Value = $"Player_{i}";
+                        }
+                        //worksheet.Cells[1, players.Count + 1].Value = "LogedAt";
+                        worksheet.Cells[1, MAX_PLAYERS + 1].Value = "p2 Wonder";
+                        worksheet.Cells[1, MAX_PLAYERS + 2].Value = "Winner Wonder";
+                        worksheet.Cells[1, MAX_PLAYERS + 3].Value = "WinnerId";
+                        worksheet.Cells[1, MAX_PLAYERS + 4].Value = "Score";
+                        worksheet.Cells[1, MAX_PLAYERS + 5].Value = "p2 Rank";
+                    }
+
+                    foreach (var players in playersBuffer)
+                    {
+                        // Find the next available row in the worksheet
+                        int row = worksheet.Dimension?.End.Row + 1 ?? 1;
+
+                        if (row % 1 == 0)
+                            Log.Information("Logging row: {rowNr}", row);
+
+                        // Write player scores to the worksheet
+                        for (int i = 0; i < players.Count; i++)
+                        {
+                            worksheet.Cells[row, i + 1].Value = players[i].VictoryPoints;
+                        }
+                        // save time of writing this log
+                        //worksheet.Cells[row, players.Count + 1].Value = logTimestamp.ToOADate();
+
+                        // log player 2 wonder names
+                        worksheet.Cells[row, MAX_PLAYERS + 1].Value = players[2].Board.Name;
+
+                        // log winning player wonder name, id and score
+                        List<Player> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
+                        worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
+                        worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
+                        worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
+
+                        // log player 2 rank (scoring place)
+                        worksheet.Cells[row, MAX_PLAYERS + 5].Value = sortedPlayers
+                            .OrderByDescending(x => x.VictoryPoints)
+                            .Select((entry, i) => new { entry.Id, Index = i })
+                            .FirstOrDefault(x => x.Id == 2)?.Index + 1 ?? -1;
+                    }
+
+                    // Save changes to the Excel file
+                    excelPackage.Save();
+                }
+
+                Log.Debug("Results written to {fileName}.", fileName);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("{exType}: {exMessage}", ex.GetType(), ex.Message);
+            }
+        }
+
         public static void WriteMatchLogThreadSafe(string sheetName, List<Player> players)
         {
             lock (_logFileLock)
@@ -153,14 +225,36 @@ namespace _7WondersGame.src.models
                 else
                 {
                     playerResultsBuffer.Add(players);
-                    List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.ToList()).ToList();
+                    //List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.ToList()).ToList();
+                    List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.Select(e => (Player)e.DeepCopy()).ToList()).ToList();
                     playerResultsBuffer.Clear();
-                    foreach (var results in tempBuffer)
-                    {
-                        _ = WriteMatchLogAsync(sheetName, results.Select(e => (Player)e.DeepCopy()).ToList());
-                    }
+                    //foreach (var results in tempBuffer)
+                    //{
+                    //    _ = WriteMatchLogAsync(sheetName, results.Select(e => (Player)e.DeepCopy()).ToList());
+                    //}
+                    _ = WriteMatchLogBufferAsync(sheetName, tempBuffer);
                 }
             }
+        }
+
+        public static void WriteMatchLogBufferThreadSafe(string sheetName, List<List<Player>> playersBuffer)
+        {
+            lock (_logFileLock)
+            {
+                WriteMatchLogBuffer(sheetName, playersBuffer);
+            }
+        }
+
+        public static async Task WriteMatchLogBufferAsync(string sheetName, List<List<Player>> playersBuffer)
+        {
+            // Asynchronously append the log to the file
+            Task task = Task.Run(() =>
+            {
+                WriteMatchLogBufferThreadSafe(sheetName, playersBuffer);
+            });
+
+            // add new task to awaitable running tasks list
+            runningTasks.Add(task);
         }
 
         public static async Task<bool> FlushMatchLogBuffer(string sheetName)
