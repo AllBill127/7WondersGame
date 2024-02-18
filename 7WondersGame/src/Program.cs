@@ -29,8 +29,8 @@ namespace _7WondersGame.src
             int maxLogBufferSize = 2;
             int gameCount = 10;
             string resultsExcelName = "7WondersGameResults.xlsx";
-            string resultsSheetName = "TestRun6";
-            parallelCount = 1;
+            string resultsSheetName = "MCTSv1_vs_2det";
+            parallelCount = 2;
 
             if (args.Length > 0 && !int.TryParse(args[0], out maxLogBufferSize))
                 maxLogBufferSize = 2;
@@ -103,10 +103,10 @@ namespace _7WondersGame.src
                 {
                     new DeterministicAI(0),
                     new DeterministicAI(1),
-                    new MCTSAI(2),
-                    new DeterministicAI(3),
-                    new DeterministicAI(4),
-                    //new DeterministicAI(5),
+                    new MCTSAIv1(2),
+                    //new RandomChoiceAI(3),
+                    //new RandomChoiceAI(4),
+                    //new RandomChoiceAI(5),
                     //new RandomChoiceAI(6),
                 };
 

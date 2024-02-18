@@ -10,9 +10,9 @@ using _7WondersGame.src.models.Wonders;
 
 namespace _7WondersGame.src.models.MCTS
 {
-    public class MCTSAI : Player
+    public class MCTSAI_old : Player
     {
-        private const int MaxIterations = 5000;
+        private int MaxIterations = 3000;
         private const double EXPLORATION_WEIGHT = 3.6;
         private const double DISCARD_DISCOURAGE = 1;
         private const double BEST_MOVE_EXPLORATION_WEIGHT = 1;
@@ -20,13 +20,13 @@ namespace _7WondersGame.src.models.MCTS
         //      GizahB MCTS won with EXPLORATION_WEIGHT = 3.6 | DISCARD_DISCOURAGE = 1 | BEST_MOVE_EXPLORATION_WEIGHT = 1
         //      
 
-        public MCTSAI(int id) : base(id)
+        public MCTSAI_old(int id) : base(id)
         {
         }
 
         public override object DeepCopy()
         {
-            MCTSAI copy = new MCTSAI(this.Id)
+            MCTSAI_old copy = new MCTSAI_old(this.Id)
             {
                 Board = (Wonder)this.Board.DeepCopy(),
                 HandCards = this.HandCards.Select(e => e).ToList(),
@@ -94,7 +94,9 @@ namespace _7WondersGame.src.models.MCTS
         {
             Node rootNode = new Node(game.DeepCopy(), (Player)game.Players[this.Id].DeepCopy(), null, null); // Create a clone of the game state as the root node and copy root player
 
-            for (int iteration = 0; iteration < MaxIterations;)
+            double ageMultiplier = game.Era / 2d;
+
+            for (int iteration = 0; iteration < (MaxIterations * ageMultiplier); )
             {
                 // TEST:
                 if (iteration == MaxIterations - 1)
@@ -119,6 +121,11 @@ namespace _7WondersGame.src.models.MCTS
                     {
                         simulationResult = simulationResult * DISCARD_DISCOURAGE;
                     }
+
+                    // TEST:
+                    if (iteration == (MaxIterations * ageMultiplier))
+                    { }
+
                     Backpropagation(expandedNode, simulationResult);
 
                     iteration++;
@@ -279,7 +286,7 @@ namespace _7WondersGame.src.models.MCTS
             {
                 Player player = simGame.Players[i];
 
-                if (player.GetType() == typeof(MCTSAI))
+                if (player.GetType() == typeof(MCTSAI_old))
                 {
                     DeterministicAI simPlayer = new DeterministicAI(player.Id)
                     {
