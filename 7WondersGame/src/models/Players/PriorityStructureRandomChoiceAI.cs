@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace _7WondersGame.src.models.Players
 {
-    public class PriorityRandomChoiceAI : Player
+    public class PriorityStructureRandomChoiceAI : Player
     {
-        public PriorityRandomChoiceAI(int id) : base(id)
+        public PriorityStructureRandomChoiceAI(int id) : base(id)
         {
         }
 
         public override object DeepCopy()
         {
-            PriorityRandomChoiceAI copy = new PriorityRandomChoiceAI(this.Id)
+            PriorityStructureRandomChoiceAI copy = new PriorityStructureRandomChoiceAI(this.Id)
             {
                 Board = (Wonder)this.Board.DeepCopy(),
                 HandCards = this.HandCards.Select(e => e).ToList(),
@@ -61,58 +61,14 @@ namespace _7WondersGame.src.models.Players
 
             // choose less random subcomand from available
             //// opt 1 build cards first
-            //if (this.FreeCardOnce)
-            //    subcommand = comandOpt[1];
-            //else if (this.PlayableCards.Count > 0)
-            //    subcommand = comandOpt[0];
-            //else if (this.PlayableCards.Count == 0 && this.CanBuildWonder)
-            //    subcommand = comandOpt[2];
-            //else
-            //    subcommand = comandOpt[3];
-
-            // opt 2 build wonder first
-            if (this.CanBuildWonder)
-                subcommand = comandOpt[2];
-            else if (this.FreeCardOnce)
+            if (this.FreeCardOnce)
                 subcommand = comandOpt[1];
             else if (this.PlayableCards.Count > 0)
                 subcommand = comandOpt[0];
+            else if (this.PlayableCards.Count == 0 && this.CanBuildWonder)
+                subcommand = comandOpt[2];
             else
                 subcommand = comandOpt[3];
-
-            //// opt 3 build wonder first then discard all cards
-            //if (this.FreeCardOnce)
-            //    subcommand = comandOpt[1];
-            //else if (this.CanBuildWonder)
-            //    subcommand = comandOpt[2];
-            //else if (this.PlayableCards.Count > 0 &&
-            //    this.Board.Stage < 2)
-            //    subcommand = comandOpt[0];
-            //else
-            //    subcommand = comandOpt[3];
-
-            //// opt 4 build wonder first but build Babylon B 2 on turn 19
-            //if (this.CanBuildWonder)
-            //{
-            //    if (this.Board.Id == WonderId.BabylonB)
-            //    {
-            //        if (this.Board.Stage < 1 ||
-            //            g.Game.Turn == 19)
-            //            subcommand = comandOpt[2];
-            //        else
-            //            subcommand = comandOpt[3];
-            //    }
-            //    else
-            //    {
-            //        subcommand = comandOpt[2];
-            //    }
-            //}
-            //else if (this.FreeCardOnce)
-            //    subcommand = comandOpt[1];
-            //else if (this.PlayableCards.Count > 0)
-            //    subcommand = comandOpt[0];
-            //else
-            //    subcommand = comandOpt[3];
 
             // choose random card for move
             if (subcommand.Equals(comandOpt[0]))

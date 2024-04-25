@@ -1,0 +1,45 @@
+﻿using _7WondersGame.src.models.Players;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+
+namespace _7WondersGame.src.models.MCTS
+{
+    internal class Node_v3
+    {
+        public Game GameState { get; }
+        public int VisitCount { get; set; } = 0;
+        public double TotalScore { get; set; } = 0;
+        public double MCTPlayerScore { get; set; } = 0;
+        public List<double> TotalScoreVector { get; set; } = new List<double>();
+        public List<double> TotalWLVector { get; set; } = new List<double>();
+        public Node_v3? Parent { get; }
+        public List<List<Command>> LegalJointMoves { get; }
+        public List<List<Command>> ExploredJointMoves { get; set; }
+        public List<Node_v3> Children { get; }
+        public List<Command>? LastJointMove { get; }
+        //public Command? LastMove { get; }
+
+        public Node_v3(Game gameState, Node_v3? parent, List<Command>? lastJointMove)
+        {
+            GameState = gameState;
+            Parent = parent;
+            Children = new List<Node_v3>();
+            LastJointMove = lastJointMove;
+
+            for (int i = 0; i < gameState.Players.Count; i++)
+            {
+                TotalScoreVector.Add(0);
+                TotalWLVector.Add(0);
+            }
+
+            LegalJointMoves = GameState.GetPossibleMovesForAllPlayers();
+
+            // initiate empty explored moves list
+            ExploredJointMoves = new List<List<Command>>();
+        }
+    }
+}

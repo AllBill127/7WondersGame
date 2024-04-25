@@ -83,7 +83,7 @@ namespace _7WondersGameTests
             // create players
             for (int i = 0; i < numPlayers; i++)
             {
-                player = new PriorityRandomChoiceAI(i);
+                player = new PriorityWonderRandomChoiceAI(i);
                 player.Board = wonders[i];
                 playerList.Add(player);
             }

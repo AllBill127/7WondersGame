@@ -240,6 +240,10 @@ namespace _7WondersGame.src.models.Players
                 PlayerWest.ResetUsed();
             }
 
+            resourcesBckp.Clear();
+            resourcesEastBckp.Clear();
+            resourcesWestBckp.Clear();
+
             // Return the playable cards list
             return playableCards;
         }

@@ -19,17 +19,14 @@ namespace _7WondersGame.src.models.MCTS
         public List<Command> LegalMoves { get; }
         public List<Command> ExploredMoves { get; set; }
         public List<Node> Children { get; }
-        //public List<Command>? LastJointMove { get; }
         public Command? LastMove { get; }
 
-        //public Node(Game gameState, Node? parent = null, List<Command>? lastJointMove = null)
         public Node(Game gameState, Player currentPlayer, Node? parent, Command? lastMove)
         {
             GameState = gameState;
             CurrentPlayer = currentPlayer;
             Parent = parent;
             Children = new List<Node>();
-            //LastJointMove = lastJointMove;
             LastMove = lastMove;
 
             // get legal moves for nodes current player based on current game state

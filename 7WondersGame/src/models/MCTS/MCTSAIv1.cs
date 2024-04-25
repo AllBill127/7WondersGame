@@ -12,7 +12,7 @@ namespace _7WondersGame.src.models.MCTS
 {
     public class MCTSAIv1 : Player
     {
-        private int MaxIterations = 7000;
+        private int MaxIterations = 10000;
         private const double EXPLORATION_WEIGHT = 1.02;
         private const int SCORE_NORMALIZATION = 50;
 
@@ -85,6 +85,10 @@ namespace _7WondersGame.src.models.MCTS
 
 
         // =============== MCTS ===============
+        // IMPROVEMENTS: 
+        //                  * new best move evaluation function
+        //                  * DDK implementation in simulations
+        //                  * backpropagating game result scores
         
         public Command FindBestMove(Game game)
         {
