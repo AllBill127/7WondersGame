@@ -15,10 +15,7 @@ namespace _7WondersGame.src.models.MCTS
         private int MaxIterations = 3000;
         private const double EXPLORATION_WEIGHT = 3.6;
         private const double DISCARD_DISCOURAGE = 1;
-        private const double BEST_MOVE_EXPLORATION_WEIGHT = 1;
-        // NOTE:
-        //      GizahB MCTS won with EXPLORATION_WEIGHT = 3.6 | DISCARD_DISCOURAGE = 1 | BEST_MOVE_EXPLORATION_WEIGHT = 1
-        //      
+        private const double SCORE_NORMALIZATION = 50;
 
         public MCTSAI_old(int id) : base(id)
         {
@@ -89,10 +86,16 @@ namespace _7WondersGame.src.models.MCTS
 
 
         // =============== MCTS ===============
-        
+        // IMPROVEMENTS: 
+        //                  * new best move evaluation function
+        //                  * DDK implementation in simulations
+        //                  * backpropagating game result scores
+        //                  * normalizing game score by x=50 to aproach close to 1 for better exploration
+
+
         public Command FindBestMove(Game game)
         {
-            Node rootNode = new Node(game.DeepCopy(), (Player)game.Players[this.Id].DeepCopy(), null, null); // Create a clone of the game state as the root node and copy root player
+            Node rootNode = new Node(game.DeepCopy(), this.Id, null, null); // Create a clone of the game state as the root node and copy root player
 
             double ageMultiplier = game.Era / 2d;
 
@@ -136,7 +139,10 @@ namespace _7WondersGame.src.models.MCTS
             Command? bestMove = BestUCTChild(rootNode).LastMove;
 
             if (bestMove != null)
+            {
+                rootNode.ReleaseMemory();
                 return bestMove;
+            }
             else
                 return new Command("skip_move", null);
         }
@@ -149,15 +155,15 @@ namespace _7WondersGame.src.models.MCTS
                 return turnEnded;
             if (expandedNode.Parent.GameState.CompletedTurn(expandedNode.GameState))
                 turnEnded = true;
-            if (expandedNode.CurrentPlayer.PlaySeventh == true &&
+            if (expandedNode.GameState.Players[expandedNode.CurrentPlayerId].PlaySeventh == true &&
                 (expandedNode.GameState.Turn + 1) % 7 == 0 &&
-                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayer.Id] == false)
+                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayerId] == false)
                 turnEnded = false;
             // if current nodes player is a player with extra turn effect, the turn number is considered possible extra turn and player is not ready
             // then turn is not complete as extra move has to be done before simulation
-            if (expandedNode.GameState.Players[expandedNode.CurrentPlayer.Id].DiscardFree == true && 
+            if (expandedNode.GameState.Players[expandedNode.CurrentPlayerId].DiscardFree == true && 
                 (expandedNode.GameState.Turn % 7 == 0 &&
-                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayer.Id] == false))
+                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayerId] == false))
                 turnEnded = false;
 
             return turnEnded;
@@ -234,7 +240,7 @@ namespace _7WondersGame.src.models.MCTS
             // create child node with new game state after selected move
             // apply move to new state
             Game newState = node.GameState.DeepCopy();
-            Player? nextPlayer = newState.ApplyMove(node.CurrentPlayer, selectedMove);
+            int nextPlayerId = newState.ApplyMove(node.CurrentPlayerId, selectedMove);
 
             // TEST:
             if (newState.Players[0].HandCards.Count == 0 && newState.Era < 4 && newState.Turn % 7 != 0)
@@ -245,15 +251,15 @@ namespace _7WondersGame.src.models.MCTS
             //          In this situation nextPlayer can be set to MCST main player - this.Id
             
             // if nextPlayer is null, then game has ended
-            if (nextPlayer is null)
+            if (nextPlayerId == -1)
             {
                 // NOTE:    unsure if current player as next player is the correct assumption in end of game situation
-                Node newChild = new Node(newState, node.CurrentPlayer, node, selectedMove);
+                Node newChild = new Node(newState, node.CurrentPlayerId, node, selectedMove);
                 node.Children.Add(newChild);
             }
             else
             {
-                Node newChild = new Node(newState, nextPlayer, node, selectedMove);
+                Node newChild = new Node(newState, nextPlayerId, node, selectedMove);
                 node.Children.Add(newChild);
             }
 
@@ -321,80 +327,6 @@ namespace _7WondersGame.src.models.MCTS
                 }
             }
 
-            /* // cast this MCTS player to Deterministic and all other players to RandomChoice
-            for (int i = 0; i < simGame.Players.Count; i++)
-            {
-                Player player = simGame.Players[i];
-
-                if (player.Id == this.Id)
-                {
-                    DeterministicAI simPlayer = new DeterministicAI(player.Id)
-                    {
-                        Board = (Wonder)player.Board.DeepCopy(),
-                        HandCards = player.HandCards.Select(e => e).ToList(),
-                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
-                        PlayableCards = player.PlayableCards.Select(e => e).ToList(),
-
-                        VictoryTokens = player.VictoryTokens,
-                        DefeatTokens = player.DefeatTokens,
-                        VictoryPoints = player.VictoryPoints,
-                        // Babylon B stage 2
-                        PlaySeventh = player.PlaySeventh,
-                        // Olympia B stage 1
-                        RawCheapEast = player.RawCheapEast,
-                        RawCheapWest = player.RawCheapWest,
-                        // Marketplace card effect
-                        ManufCheap = player.ManufCheap,
-                        // Olympia A stage 2
-                        FreeCardOnce = player.FreeCardOnce,
-                        // Halikarnassos A stage 2 & B stage 1-3
-                        DiscardFree = player.DiscardFree,
-                        // Science guild effect
-                        ExtraScience = player.ExtraScience,
-                        CanBuildWonder = player.CanBuildWonder,
-
-                        // flags used to check multichoice materials only once
-                        UsedOnDemandResource = player.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                    };
-                    simGame.Players[player.Id] = simPlayer;
-                }
-                else
-                {
-                    RandomChoiceAI simPlayer = new RandomChoiceAI(player.Id)
-                    {
-                        Board = (Wonder)player.Board.DeepCopy(),
-                        HandCards = player.HandCards.Select(e => e).ToList(),
-                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
-                        PlayableCards = player.PlayableCards.Select(e => e).ToList(),
-
-                        VictoryTokens = player.VictoryTokens,
-                        DefeatTokens = player.DefeatTokens,
-                        VictoryPoints = player.VictoryPoints,
-                        // Babylon B stage 2
-                        PlaySeventh = player.PlaySeventh,
-                        // Olympia B stage 1
-                        RawCheapEast = player.RawCheapEast,
-                        RawCheapWest = player.RawCheapWest,
-                        // Marketplace card effect
-                        ManufCheap = player.ManufCheap,
-                        // Olympia A stage 2
-                        FreeCardOnce = player.FreeCardOnce,
-                        // Halikarnassos A stage 2 & B stage 1-3
-                        DiscardFree = player.DiscardFree,
-                        // Science guild effect
-                        ExtraScience = player.ExtraScience,
-                        CanBuildWonder = player.CanBuildWonder,
-
-                        // flags used to check multichoice materials only once
-                        UsedOnDemandResource = player.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                    };
-                    simGame.Players[player.Id] = simPlayer;
-                }
-            }
-            */
-
             // set neighbors for recasted players
             simGame.SetPlayerNeighbors();
 
@@ -422,17 +354,15 @@ namespace _7WondersGame.src.models.MCTS
         private void Backpropagation(Node node, double result)
         {
             Node currentNode = node;
-            double childMCTSPlayerScore = 0;
 
             // traverse the tree updating values until root 
             while (currentNode.Parent != null)
             {
                 // update leaf node with simulation results only for the main mcts player
-                if (currentNode.CurrentPlayer.Id == this.Id)
+                if (currentNode.CurrentPlayerId == this.Id)
                 {
                     currentNode.TotalScore += result;
                     currentNode.MCTPlayerScore = currentNode.TotalScore;
-                    childMCTSPlayerScore = currentNode.MCTPlayerScore;
                 }
                 else
                 {
@@ -452,7 +382,7 @@ namespace _7WondersGame.src.models.MCTS
             }
 
             // update root node with simulation results only for the main mcts player
-            if (currentNode.CurrentPlayer.Id == this.Id)
+            if (currentNode.CurrentPlayerId == this.Id)
             {
                 currentNode.TotalScore += result;
                 currentNode.MCTPlayerScore = result;
@@ -470,9 +400,8 @@ namespace _7WondersGame.src.models.MCTS
             foreach (Node child in node.Children)
             {
                 // calculate uct based on passed through mcts player score
-                //exploitation = child.MCTPlayerScore / (child.VisitCount + 1);
-                //exploration = Math.Sqrt(Math.Log((child.Parent?.VisitCount ?? 0) + 1) / (child.VisitCount + 1));
-                //uctValue = exploitation + BEST_MOVE_EXPLORATION_WEIGHT * exploration;
+                // MCTS IMPROVEMENT: new best move evaluation function
+                uctValue = child.TotalScore / child.VisitCount / SCORE_NORMALIZATION + child.MCTPlayerScore / 32;
                 uctValue = child.MCTPlayerScore;
 
                 if (uctValue > bestUCT)

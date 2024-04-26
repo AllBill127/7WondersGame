@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace _7WondersGameTests.GameTests
 {
@@ -37,7 +38,9 @@ namespace _7WondersGameTests.GameTests
             Player expNextPlayer = testGame.Players[2]; // test player idx - 1;
 
             // Act
-            Player? nextPlayer = testGame.ApplyMove(testPlayer, testCommand);
+            Player? nextPlayer = testGame.Players[
+                testGame.ApplyMove(testPlayer.Id, testCommand)
+                ];
 
             // Evaluate
             Assert.IsTrue(testGame.PlayersReady[0]);
@@ -81,7 +84,9 @@ namespace _7WondersGameTests.GameTests
             Player expNextPlayer = testGame.Players[2]; // test player idx - 1;
 
             // Act
-            Player? nextPlayer = testGame.ApplyMove(testPlayer, testCommand);
+            Player? nextPlayer = testGame.Players[
+                testGame.ApplyMove(testPlayer.Id, testCommand)
+                ];
 
             // Evaluate
             Assert.IsFalse(testGame.PlayersReady[0]);
@@ -127,7 +132,9 @@ namespace _7WondersGameTests.GameTests
             Player expNextPlayer = testGame.Players[0]; // uncertain if correct but returns Players[0];
 
             // Act
-            Player? nextPlayer = testGame.ApplyMove(testPlayer, testCommand);
+            Player? nextPlayer = testGame.Players[
+                testGame.ApplyMove(testPlayer.Id, testCommand)
+                ];
 
             // Evaluate
             Assert.IsFalse(testGame.PlayersReady[0]);
@@ -174,7 +181,9 @@ namespace _7WondersGameTests.GameTests
             Player expNextPlayer = testGame.Players[0]; // uncertain if correct but returns Players[0];
 
             // Act
-            Player? nextPlayer = testGame.ApplyMove(testPlayer, testCommand);
+            Player? nextPlayer = testGame.Players[
+                testGame.ApplyMove(testPlayer.Id, testCommand)
+                ];
 
             // Evaluate
             Assert.IsFalse(testGame.PlayersReady[0]);
@@ -227,7 +236,9 @@ namespace _7WondersGameTests.GameTests
             Player expNextPlayer = testGame.Players[0];
 
             // Act
-            Player? nextPlayer = testGame.ApplyMove(testPlayer, testCommand);
+            Player? nextPlayer = testGame.Players[
+                testGame.ApplyMove(testPlayer.Id, testCommand)
+                ];
 
             // Evaluate
             Assert.IsFalse(testGame.PlayersReady[0]);

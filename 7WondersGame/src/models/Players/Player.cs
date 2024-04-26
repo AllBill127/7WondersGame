@@ -106,6 +106,10 @@ namespace _7WondersGame.src.models.Players
             PlayerEast.ResetUsed();
             PlayerWest.ResetUsed();
 
+            resourcesBckp.Clear();
+            resourcesEastBckp.Clear();
+            resourcesWestBckp.Clear();
+
             return CanBuildWonder;
         }
 
@@ -162,6 +166,10 @@ namespace _7WondersGame.src.models.Players
             PlayerEast.ResetUsed();
             PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
             PlayerWest.ResetUsed();
+
+            resourcesBckp.Clear();
+            resourcesEastBckp.Clear();
+            resourcesWestBckp.Clear();
 
             Log.Error("SHOULD NOT HAPPEN");
 
@@ -312,6 +320,11 @@ namespace _7WondersGame.src.models.Players
                                 PlayerEast.ResetUsed();
                                 PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
                                 PlayerWest.ResetUsed();
+
+                                resourcesBckp.Clear();
+                                resourcesEastBckp.Clear();
+                                resourcesWestBckp.Clear();
+
                                 return false;
                             }
                         }
@@ -321,6 +334,10 @@ namespace _7WondersGame.src.models.Players
                     ResetUsed();
                     PlayerEast.ResetUsed();
                     PlayerWest.ResetUsed();
+
+                    resourcesBckp.Clear();
+                    resourcesEastBckp.Clear();
+                    resourcesWestBckp.Clear();
                 }
             }
 
@@ -1044,6 +1061,12 @@ namespace _7WondersGame.src.models.Players
             PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
             Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
 
+            usedResourcesEastBckp.Clear();
+            usedResourcesWestBckp.Clear();
+            resourcesBckp.Clear();
+            resourcesEastBckp.Clear();
+            resourcesWestBckp.Clear();
+
             Log.Debug("FAILURE -> Player {PlayerId} couldn't buy enough {resource}.", Id, resource);
             return false; // Couldn't buy
         }
@@ -1641,6 +1664,7 @@ namespace _7WondersGame.src.models.Players
 
                     // reset usedOnDemandResource map
                     this.UsedOnDemandResource = usedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    usedResourceBckp.Clear();
                 }
                 else if (card.Id == CardId.Caravansery)
                 {
@@ -1661,6 +1685,9 @@ namespace _7WondersGame.src.models.Players
                     neededWood = neededWood - producedWoodThis - producedWoodWest - producedWoodEast;
 
                     // reset usedOnDemandResource map for next resource calculation
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1671,6 +1698,9 @@ namespace _7WondersGame.src.models.Players
                     neededStone = neededStone - producedStoneThis - producedStoneWest - producedStoneEast;
 
                     // reset usedOnDemandResource map for next resource calculation
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1681,6 +1711,9 @@ namespace _7WondersGame.src.models.Players
                     neededClay = neededClay - producedClayThis - producedClayWest - producedClayEast;
 
                     // reset usedOnDemandResource map for next resource calculation
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1691,9 +1724,15 @@ namespace _7WondersGame.src.models.Players
                     neededOre = neededOre - producedOreThis - producedOreWest - producedOreEast;
 
                     // reset usedOnDemandResource map 
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    thisUsedResourceBckp.Clear();
+                    westUsedResourceBckp.Clear();
+                    eastUsedResourceBckp.Clear();
 
                     if (neededWood > 0 || (producedWoodThis + producedWoodWest + producedWoodEast) < 2 ||
                         neededStone > 0 || (producedStoneThis + producedStoneWest + producedStoneEast) < 2 ||
@@ -1722,6 +1761,9 @@ namespace _7WondersGame.src.models.Players
                     neededWood = neededWood - producedWoodThis - producedWoodWest - producedWoodEast;
 
                     // reset usedOnDemandResource map for next resource calculation
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1732,6 +1774,9 @@ namespace _7WondersGame.src.models.Players
                     neededStone = neededStone - producedStoneThis - producedStoneWest - producedStoneEast;
 
                     // reset usedOnDemandResource map for next resource calculation
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1742,6 +1787,9 @@ namespace _7WondersGame.src.models.Players
                     neededClay = neededClay - producedClayThis - producedClayWest - producedClayEast;
 
                     // reset usedOnDemandResource map for next resource calculation
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -1752,9 +1800,15 @@ namespace _7WondersGame.src.models.Players
                     neededOre = neededOre - producedOreThis - producedOreWest - producedOreEast;
 
                     // reset usedOnDemandResource map 
+                    this.UsedOnDemandResource.Clear();
+                    this.PlayerWest.UsedOnDemandResource.Clear();
+                    this.PlayerEast.UsedOnDemandResource.Clear();
                     this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                     this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    thisUsedResourceBckp.Clear();
+                    westUsedResourceBckp.Clear();
+                    eastUsedResourceBckp.Clear();
 
                     if (neededWood > 0 ||
                         neededStone > 0 ||
@@ -1839,6 +1893,7 @@ namespace _7WondersGame.src.models.Players
 
                     // reset usedOnDemandResource map
                     this.UsedOnDemandResource = usedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    usedResourceBckp.Clear();
 
                     if (card.Name.Equals("Loom"))
                     {
@@ -1992,6 +2047,9 @@ namespace _7WondersGame.src.models.Players
                         neededWood = neededWood - producedWoodThis - producedWoodWest - producedWoodEast;
 
                         // reset usedOnDemandResource map for next resource calculation
+                        this.UsedOnDemandResource.Clear();
+                        this.PlayerWest.UsedOnDemandResource.Clear();
+                        this.PlayerEast.UsedOnDemandResource.Clear();
                         this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -2002,6 +2060,9 @@ namespace _7WondersGame.src.models.Players
                         neededStone = neededStone - producedStoneThis - producedStoneWest - producedStoneEast;
 
                         // reset usedOnDemandResource map for next resource calculation
+                        this.UsedOnDemandResource.Clear();
+                        this.PlayerWest.UsedOnDemandResource.Clear();
+                        this.PlayerEast.UsedOnDemandResource.Clear();
                         this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -2012,6 +2073,9 @@ namespace _7WondersGame.src.models.Players
                         neededClay = neededClay - producedClayThis - producedClayWest - producedClayEast;
 
                         // reset usedOnDemandResource map for next resource calculation
+                        this.UsedOnDemandResource.Clear();
+                        this.PlayerWest.UsedOnDemandResource.Clear();
+                        this.PlayerEast.UsedOnDemandResource.Clear();
                         this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -2022,9 +2086,15 @@ namespace _7WondersGame.src.models.Players
                         neededOre = neededOre - producedOreThis - producedOreWest - producedOreEast;
 
                         // reset usedOnDemandResource map 
+                        this.UsedOnDemandResource.Clear();
+                        this.PlayerWest.UsedOnDemandResource.Clear();
+                        this.PlayerEast.UsedOnDemandResource.Clear();
                         this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                        thisUsedResourceBckp.Clear();
+                        westUsedResourceBckp.Clear();
+                        eastUsedResourceBckp.Clear();
                     }
 
                     int eastRawAmount = this.PlayerEast.AmountOfType(CardType.Materials);
@@ -2273,6 +2343,7 @@ namespace _7WondersGame.src.models.Players
 
                     // reset usedOnDemandResource map
                     this.UsedOnDemandResource = usedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    usedResourceBckp.Clear();
 
                     if (card.Name.Equals("Loom"))
                     {
@@ -2370,6 +2441,9 @@ namespace _7WondersGame.src.models.Players
             this.Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
             this.PlayedCards = playedCardsBckp.Select(e => e).ToList();
             this.ExtraScience = extraScienceBckp;
+
+            resourcesBckp.Clear();
+            playedCardsBckp.Clear();
 
             return score;
         }

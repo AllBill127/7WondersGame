@@ -32,15 +32,15 @@ namespace _7WondersGame.src
         private static async Task RunGameTests(string[] args)
         {
             // get main arguments log buffer size, game count to simulate, log excel file and sheet names, multithread amount and game dataset presets
-            int maxLogBufferSize = 1;
-            int gameCount = 10;
-            string resultsExcelName = "7WondersGameResults.xlsx";
-            string resultsSheetName = "MCTSv10_10k_optC_det2";
-            string gameDatasetFileName = "gameDataset_3p_100g.txt";
-            parallelCount = 1;
+            int maxLogBufferSize = 3;
+            int gameCount = 1000;
+            string resultsExcelName = "memTest.xlsx";
+            string resultsSheetName = "rng_det";
+            string gameDatasetFileName = null;
+            parallelCount = 3;
             double minC = 0, maxC = 100;
             int iterCount = 100;
-            Dictionary<int, List<int>[]> gameDatasets;
+            Dictionary<int, List<int>[]> gameDatasets = null;
 
             // read and log program cli run or default arguments
             Log.Information("input: [maxLogBufferSize], [gameCount], [resultsExcelName], [resultsSheetName], [parallelCount], [minC], [maxC], [iterCount], [gameDatasetFileName]");
@@ -86,6 +86,7 @@ namespace _7WondersGame.src
 
             //RunGamesParallel(gameCount, resultsSheetName, gameDatasets);
             SearchOptimalCParallel(gameCount, minC, maxC, iterCount, resultsSheetName);
+
             await Filer.FlushMatchLogBuffer(resultsSheetName);
             await Filer.AwaitAllLoggingTasksAsync();
 
@@ -195,11 +196,11 @@ namespace _7WondersGame.src
                 {
                     new DeterministicAI(0),
                     new DeterministicAI(1),
-                    new MCTSAIv10(2),
-                    //new DeterministicAI(3),
-                    //new RandomChoiceAI(4),
-                    //new RandomChoiceAI(5),
-                    //new RandomChoiceAI(6),
+                    new DeterministicAI(2),
+                    new DeterministicAI(3),
+                    new RandomChoiceAI(4),
+                    new RandomChoiceAI(5),
+                    new RandomChoiceAI(6),
                 };
 
                 // create game
@@ -254,7 +255,7 @@ namespace _7WondersGame.src
                         {
                             new DeterministicAI(0),
                             new DeterministicAI(1),
-                            new MCTSAIv11(2, minC+(gameCounter/numGames+1)*iteratorC, 1),
+                            new MCTSAIv3(2, minC+(gameCounter/numGames+1)*iteratorC, 1),
                             //new DeterministicAI(3),
                             //new RandomChoiceAI(4),
                             //new RandomChoiceAI(5),

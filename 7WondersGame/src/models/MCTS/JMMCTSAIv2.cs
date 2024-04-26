@@ -131,7 +131,10 @@ namespace _7WondersGame.src.models.MCTS
             Command? bestMove = BestUCTChild(rootNode).LastJointMove?[this.Id];
 
             if (bestMove != null)
+            {
+                rootNode.ReleaseMemory();
                 return bestMove;
+            }
             else
                 return new Command("skip_move", null);
         }
@@ -144,15 +147,15 @@ namespace _7WondersGame.src.models.MCTS
         //        return turnEnded;
         //    if (expandedNode.Parent.GameState.CompletedTurn(expandedNode.GameState))
         //        turnEnded = true;
-        //    if (expandedNode.CurrentPlayer.PlaySeventh == true &&
+        //    if (expandedNode.CurrentPlayerId.PlaySeventh == true &&
         //        (expandedNode.GameState.Turn + 1) % 7 == 0 &&
-        //        expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayer.Id] == false)
+        //        expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayerId.Id] == false)
         //        turnEnded = false;
         //    // if current nodes player is a player with extra turn effect, the turn number is considered possible extra turn and player is not ready
         //    // then turn is not complete as extra move has to be done before simulation
-        //    if (expandedNode.GameState.Players[expandedNode.CurrentPlayer.Id].DiscardFree == true && 
+        //    if (expandedNode.GameState.Players[expandedNode.CurrentPlayerId.Id].DiscardFree == true && 
         //        (expandedNode.GameState.Turn % 7 == 0 &&
-        //        expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayer.Id] == false))
+        //        expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayerId.Id] == false))
         //        turnEnded = false;
 
         //    return turnEnded;
@@ -206,7 +209,7 @@ namespace _7WondersGame.src.models.MCTS
             double exploitation = node.TotalScore / (node.VisitCount + 1);
             double exploration = Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            //// MCTS IMPROVEMENT: deminishing exploration
+            //// --- MCTS IMPROVEMENT: deminishing exploration
             //exploration *= (1.0 / (1.0 + node.VisitCount));
 
             return exploitation + EXPLORATION_WEIGHT * exploration;
@@ -319,6 +322,7 @@ namespace _7WondersGame.src.models.MCTS
 
             // simulate game until the end
             Dictionary<int, int> scores = simGame.Loop();
+            simGame.ReleaseGameMemory();
 
             // Return the results of the simulation
             //return simulationResults;
@@ -341,46 +345,6 @@ namespace _7WondersGame.src.models.MCTS
                     ] += 1;
                 foreach (var result in results)
                     currentNode.TotalScoreVector[result.Key] += result.Value;
-
-                /*// update leaf node with simulation results only for the main mcts player
-                if (currentNode.CurrentPlayer.Id == this.Id)
-                {
-                    // determine what place this player scored in the game
-                    double rank = 1 + results
-                        .OrderByDescending(x => x.Value)
-                        .Select((entry, i) => new { entry.Key, Index = i })
-                        .FirstOrDefault(x => x.Key == this.Id)?.Index ?? -1;
-
-                    if (rank == 1)
-                    {
-                        // IMPROVEMENT: discourage discard
-                        //if (currentNode.LastMove is not null && currentNode.LastMove.Subcommand.Equals("discard"))
-                        //    rank *= DISCOURAGE_DISCARD;
-                        currentNode.TotalWLVector[this.Id] += rank;
-                    }
-                }
-                else
-                {
-                    currentNode.TotalScore += results[currentNode.CurrentPlayer.Id];
-                    if (currentNode.MCTPlayerScore < results[this.Id])
-                    {
-                        currentNode.MCTPlayerScore = results[this.Id];
-                    }
-
-                    // determine what place current node player scored in the game
-                    double rank = 1 + results
-                        .OrderByDescending(x => x.Value)
-                        .Select((entry, i) => new { entry.Key, Index = i })
-                        .FirstOrDefault(x => x.Key == currentNode.CurrentPlayer.Id)?.Index ?? -1;
-
-                    if (rank == 1)
-                    {
-                        // IMPROVEMENT: discourage discard
-                        //if (currentNode.LastMove is not null && currentNode.LastMove.Subcommand.Equals("discard"))
-                        //    rank *= DISCOURAGE_DISCARD;
-                        currentNode.TotalScoreWL += rank;
-                    }
-                }*/
                 
                 // update visit count for each visited node in path
                 currentNode.VisitCount++;
@@ -401,27 +365,6 @@ namespace _7WondersGame.src.models.MCTS
                 currentNode.TotalScoreVector[result.Key] += result.Value;
 
             currentNode.VisitCount++;
-            /*if (currentNode.CurrentPlayer.Id == this.Id)
-            {
-                currentNode.TotalScore += results[this.Id];
-                currentNode.MCTPlayerScore = currentNode.TotalScore;
-
-                // determine what place this player scored in the game
-                double rank = 1 + results
-                    .OrderByDescending(x => x.Value)
-                    .Select((entry, i) => new { entry.Key, Index = i })
-                    .FirstOrDefault(x => x.Key == currentNode.CurrentPlayer.Id)?.Index ?? -1;
-
-                if (rank == 1)
-                {
-                    // IMPROVEMENT: discourage discard
-                    //if (currentNode.LastMove is not null && currentNode.LastMove.Subcommand.Equals("discard"))
-                    //    rank *= DISCOURAGE_DISCARD;
-                    currentNode.TotalScoreWL += rank;
-                }
-            }
-            // update visit count 
-            currentNode.VisitCount++;*/
         }
 
         private Node_v4 BestUCTChild(Node_v4 node)
@@ -432,7 +375,7 @@ namespace _7WondersGame.src.models.MCTS
 
             foreach (Node_v4 child in node.Children)
             {
-                // MCTS IMPROVEMENT: new best move evaluation function
+                // --- MCTS IMPROVEMENT: new best move evaluation function
                 // calculate uct based on passed through mcts player score
                 //uctValue = child.TotalScore / child.VisitCount / SCORE_NORMALIZATION + child.MCTPlayerScore / 32;
                 uctValue = child.TotalScore;

@@ -11,6 +11,7 @@ using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace _7WondersGame.src.models
 {
@@ -21,7 +22,6 @@ namespace _7WondersGame.src.models
         public int Era { get; set; } = 1;
         // 0, 7 , 14, 21 are new era turns (0 being the start of the game)
         public int Turn { get; set; } = 0;
-        List<Wonder> Wonders { get; set; }
         public List<Card>[] Decks { get; set; } 
         public List<Card> DiscardedCards { get; set; }
 
@@ -32,7 +32,6 @@ namespace _7WondersGame.src.models
         public Game()
         {
             Players = new();
-            Wonders = new();
             Decks = new List<Card>[3];
             for (int i = 0; i < Decks.Length; ++i)
                 Decks[i] = new List<Card>();
@@ -57,9 +56,6 @@ namespace _7WondersGame.src.models
 
             copy.Era = this.Era;
             copy.Turn = this.Turn;
-
-            foreach (Wonder w in Wonders)
-                copy.Wonders.Add((Wonder)w.DeepCopy());
 
             // copy decks
             copy.Decks[0] = this.Decks[0].Select(e => e).ToList();
@@ -90,7 +86,6 @@ namespace _7WondersGame.src.models
 
             CreateDecks();
             GiveCards();
-            CreateWonders();
             GiveWonders();
         }
 
@@ -117,10 +112,9 @@ namespace _7WondersGame.src.models
             }
             GiveCards();
 
-            CreateWonders();
             for (int i = 0; i < Players.Count; i++)
             {
-                Players[i].Board = Wonders[gameDataset[3][i]];
+                Players[i].Board = CreateWonders(gameDataset[3][i]);
             }
         }
 
@@ -197,22 +191,58 @@ namespace _7WondersGame.src.models
             }
         }
 
-        private void CreateWonders()
+        private Wonder CreateWonders(int wonderId)
         {
-            Wonders.Add(new GizahA());
-            Wonders.Add(new BabylonA());
-            Wonders.Add(new OlympiaA());
-            Wonders.Add(new RhodosA());
-            Wonders.Add(new EphesosA());
-            Wonders.Add(new AlexandriaA());
-            Wonders.Add(new HalikarnassosA());
-            Wonders.Add(new GizahB());
-            Wonders.Add(new BabylonB());
-            Wonders.Add(new OlympiaB());
-            Wonders.Add(new RhodosB());
-            Wonders.Add(new EphesosB());
-            Wonders.Add(new AlexandriaB());
-            Wonders.Add(new HalikarnassosB());
+            Wonder wonder = null;
+            switch (wonderId)
+            {
+                case 0:
+                    wonder = new GizahA();
+                    break;
+                case 1:
+                    wonder = new BabylonA();
+                    break;
+                case 2:
+                    wonder = new OlympiaA();
+                    break;
+                case 3:
+                    wonder = new RhodosA();
+                    break;
+                case 4:
+                    wonder = new EphesosA();
+                    break;
+                case 5:
+                    wonder = new AlexandriaA();
+                    break;
+                case 6:
+                    wonder = new HalikarnassosA();
+                    break;
+                case 7:
+                    wonder = new GizahB();
+                    break;
+                case 8:
+                    wonder = new BabylonB();
+                    break;
+                case 9:
+                    wonder = new OlympiaB();
+                    break;
+                case 10:
+                    wonder = new RhodosB();
+                    break;
+                case 11:
+                    wonder = new EphesosB();
+                    break;
+                case 12:
+                    wonder = new AlexandriaB();
+                    break;
+                case 13:
+                    wonder = new HalikarnassosB();
+                    break;
+                default:
+                    break;
+            }
+
+            return wonder;
         }
 
         private void GiveWonders()
@@ -229,7 +259,7 @@ namespace _7WondersGame.src.models
                     int n = rng.Next(14);
                     if (wonder_availability[n % 7])
                     {
-                        player.Board = Wonders[n];
+                        player.Board = CreateWonders(n);
                         player.Resources[player.Board.Production] = 1;
                         wonder_availability[n % 7] = false;
                         break;
@@ -359,7 +389,7 @@ namespace _7WondersGame.src.models
                 neighbor;
             p1 = p = Players.First();
             List<Card> neighbor_deck,
-                player_deck = p1.HandCards.Select(e => e).ToList();
+                player_deck = p1.HandCards;
 
             bool clockwise = (Era == 1 || Era == 3);
             do
@@ -371,7 +401,7 @@ namespace _7WondersGame.src.models
                 // Continue until you reach the first player again
                 neighbor = clockwise ? p.PlayerWest : p.PlayerEast;
                 // backup neighbor card list
-                neighbor_deck = neighbor.HandCards.Select(e => e).ToList();
+                neighbor_deck = neighbor.HandCards;
                 // change card list references
                 neighbor.HandCards = player_deck;
                 // go to next player
@@ -470,18 +500,27 @@ namespace _7WondersGame.src.models
             // match_log_results after end game
             if (!matchLogSheet.Equals(""))
             {
-                //Filer.WriteMatchLog(matchLogSheet, Players);
-                //Filer.WriteMatchLogThreadSafe(matchLogSheet, Players);
-                //_ = Filer.WriteMatchLogAsync(matchLogSheet, Players.Select(e => e).ToList());
-                Filer.WriteMatchLogBuffered(matchLogSheet, Players.Select(e => (Player)e.DeepCopy()).ToList());
+                List<PlayerResults> results = new List<PlayerResults>();
+                foreach(var player in Players)
+                {
+                    results.Add(new PlayerResults()
+                    {
+                        Id = player.Id,
+                        Board = (Wonder)player.Board.DeepCopy(),
+                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
+                        VictoryPoints = player.VictoryPoints,
+                        VictoryTokens = player.VictoryTokens,
+                        DefeatTokens = player.DefeatTokens,
+                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    });
+                }
+                Filer.WriteMatchLogBuffered(matchLogSheet, results);
             }
 
-            // NOTE:
-            //      maybe consider releasing all used memmory except player scores
-            //      save player scores to a separate list and release everything else in game state
-            //      changes need applying in MCTS to account for player score 
-            var scores =  Players.Select(p => new { Key = p.Id, Value = p.VictoryPoints }).ToList();
-            return scores.ToDictionary(e => e.Key, e => e.Value);
+            var scores = new Dictionary<int, int>();
+            Players.ForEach(p => scores.Add(p.Id, p.VictoryPoints));
+            ReleaseGameMemory();
+            return scores;
         }
 
         public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false, string matchLogSheet = "")
@@ -818,9 +857,15 @@ namespace _7WondersGame.src.models
             return groupedLegalMoves;
         }
 
-        public Player? ApplyMove(Player player, Command playerMove)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="playerId"></param>
+        /// <param name="playerMove"></param>
+        /// <returns>-1 when game is finished</returns>
+        public int ApplyMove(int playerId, Command playerMove)
         {
-            Player? newPlayer = null;
+            int newPlayer = -1;
 
             // TEST:
             if ((Turn + 2) % 7 == 0)
@@ -829,8 +874,8 @@ namespace _7WondersGame.src.models
             // if not all players are ready then simply set move and player ready
             if (PlayersReady.Contains(false))
             {
-                PlayerCommands[player.Id] = playerMove;
-                PlayersReady[player.Id] = true;
+                PlayerCommands[playerId] = playerMove;
+                PlayersReady[playerId] = true;
             }
 
             // if all players ready apply their moves
@@ -858,7 +903,7 @@ namespace _7WondersGame.src.models
                 if ((Turn == 6 || Turn == 13 || Turn == 20) &&
                     PlayersReady[playSeventhPlayer.Id] == false)
                 {
-                    return playSeventhPlayer;
+                    return playSeventhPlayer.Id;
                 }
             }
             // increment turn even if playSeventh effect not active but 6, 13, 20 turn (technically a 7th turn which is considered an extra turn)
@@ -868,14 +913,14 @@ namespace _7WondersGame.src.models
             // apply PlaySeventh extra move if current player from mcts expansion has this effect and its time to play it out
             if (Turn == 6 || Turn == 13 || Turn == 20)
             {
-                if (PlayersReady[player.Id] == true && 
-                    player.PlaySeventh == true)
+                if (PlayersReady[playerId] == true && 
+                    Players[playerId].PlaySeventh == true)
                 {
                     // handle command for player
-                    HandlePlayerCommand(Players[player.Id], playerMove, Players[player.Id].HandCards);
+                    HandlePlayerCommand(Players[playerId], playerMove, Players[playerId].HandCards);
 
                     // reset PlayersReady status for player
-                    PlayersReady[player.Id] = false;
+                    PlayersReady[playerId] = false;
 
                     Turn++;
                 }
@@ -895,14 +940,14 @@ namespace _7WondersGame.src.models
             }
 
             // apply DiscrdFree extra move if current player from mcts expansion has this effect and its time to play it out
-            if (PlayersReady[player.Id] == true &&
-                player.DiscardFree == true)
+            if (PlayersReady[playerId] == true &&
+                Players[playerId].DiscardFree == true)
             {
                 Card? cardPlayed = playerMove.Argument;
                 if (cardPlayed != null)
                 {
                     // build the card for free
-                    if (Players[player.Id].BuildDiscardFree(cardPlayed, DiscardedCards))
+                    if (Players[playerId].BuildDiscardFree(cardPlayed, DiscardedCards))
                     {
                         Log.Debug("<BuildDiscardFree OK>");
                     }
@@ -916,11 +961,11 @@ namespace _7WondersGame.src.models
                 {
                     Log.Debug("No cards in Discarded Cards list");
                     // disable discardFree effect even if no card were played
-                    Players[player.Id].DiscardFree = false;
+                    Players[playerId].DiscardFree = false;
                 }
 
                 // reset player ready status
-                PlayersReady[player.Id] = false;
+                PlayersReady[playerId] = false;
             }
 
             // if at the end of a turn discardFree effect active for some player and the player hasnt chosen a move return current state and set new player to the DiscardFree player
@@ -929,7 +974,7 @@ namespace _7WondersGame.src.models
                 //Turn % 7 == 0 && Turn != 0 &&
                 PlayersReady[discardFreePlayer.Id] == false)
             {
-                return discardFreePlayer;
+                return discardFreePlayer.Id;
             }
 
             // if end of an era (turns 7 14 and 21) and all player moves were handled (PlayersReady all false)
@@ -951,7 +996,7 @@ namespace _7WondersGame.src.models
                 if (Era >= 4)
                 {
                     // return next player in turn cycle as null because the game has ended
-                    return null;
+                    return -1;
                 }
 
                 // give new Era cards to players 
@@ -967,15 +1012,15 @@ namespace _7WondersGame.src.models
             // NOTE:    not sure if this is valid because this should be reset to root node player, but the turn cycle will still be completed so at that point we should calculate the uct
             if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
             {
-                newPlayer = (Player)Players[0].DeepCopy();
+                newPlayer = Players[0].Id;
             }
             // return next player in turn cycle 
             else
             {
-                int newPlayerIdx = player.Id - 1 < 0 ? Players.Count - 1 : player.Id - 1;
+                int newPlayerIdx = playerId - 1 < 0 ? Players.Count - 1 : playerId - 1;
                 // deep copy player without his neighbors
                 // neighbors arent used with this variable so it isnt neccessary
-                newPlayer = (Player)Players[newPlayerIdx].DeepCopy();
+                newPlayer = Players[newPlayerIdx].Id;
             }
             
             return newPlayer;
@@ -1247,6 +1292,26 @@ namespace _7WondersGame.src.models
                 GetAllCombinationsRecursive(arrayOfLists, currentIndex + 1, currentCombination, allCombinations);
                 currentCombination.RemoveAt(currentCombination.Count - 1);
             }
+        }
+
+        public void ReleaseGameMemory()
+        {
+            foreach (var player in Players)
+            {
+                player.HandCards.Clear();
+                player.PlayableCards.Clear();
+                player.PlayedCards.Clear();
+                player.UsedOnDemandResource.Clear();
+                player.Resources.Clear();
+                player.PlayerEast = null;
+                player.PlayerWest = null;
+                player.Board = null;
+            }
+            this.Players.Clear();
+            Decks[0].Clear();
+            Decks[0].Clear();
+            Decks[0].Clear();
+            DiscardedCards.Clear();
         }
     }
 }

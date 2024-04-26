@@ -22,7 +22,7 @@ namespace _7WondersGame.src.models
 
         private static readonly object _logFileLock = new object();
         private static readonly object _logBufferLock = new object();
-        private static List<List<Player>> playerResultsBuffer = new List<List<Player>>();
+        private static List<List<PlayerResults>> playerResultsBuffer = new List<List<PlayerResults>>();
         private static List<Task> runningTasks = new List<Task>();
 
         public static void InitFiler(string? filepath, string fileName, int maxBufferSize = 2)
@@ -70,7 +70,7 @@ namespace _7WondersGame.src.models
             }
         }
 
-        public static void WriteMatchLog(string sheetName, List<Player> players)
+        public static void WriteMatchLog(string sheetName, List<PlayerResults> players)
         {
             String fileName = Path.Combine(_filepath, _fileName);
             FileInfo file = new FileInfo(fileName);
@@ -116,7 +116,7 @@ namespace _7WondersGame.src.models
                     worksheet.Cells[row, MAX_PLAYERS + 1].Value = players[2].Board.Name;
 
                     // log winning player wonder name, id and score
-                    List<Player> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
+                    List<PlayerResults> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
                     worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
                     worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
                     worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
@@ -139,7 +139,7 @@ namespace _7WondersGame.src.models
             }
         }
 
-        public static void WriteMatchLogBuffer(string sheetName, List<List<Player>> playersBuffer)
+        public static void WriteMatchLogBuffer(string sheetName, List<List<PlayerResults>> playersBuffer)
         {
             String fileName = Path.Combine(_filepath, _fileName);
             FileInfo file = new FileInfo(fileName);
@@ -187,7 +187,7 @@ namespace _7WondersGame.src.models
                         worksheet.Cells[row, MAX_PLAYERS + 1].Value = players[2].Board.Name;
 
                         // log winning player wonder name, id and score
-                        List<Player> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
+                        List<PlayerResults> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
                         worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
                         worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
                         worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
@@ -211,7 +211,7 @@ namespace _7WondersGame.src.models
             }
         }
 
-        public static void WriteMatchLogThreadSafe(string sheetName, List<Player> players)
+        public static void WriteMatchLogThreadSafe(string sheetName, List<PlayerResults> players)
         {
             lock (_logFileLock)
             {
@@ -219,7 +219,7 @@ namespace _7WondersGame.src.models
             }
         }
 
-        public static async Task WriteMatchLogAsync(string sheetName, List<Player> players)
+        public static async Task WriteMatchLogAsync(string sheetName, List<PlayerResults> players)
         {
             // Asynchronously append the log to the file
             Task task = Task.Run(() =>
@@ -231,7 +231,7 @@ namespace _7WondersGame.src.models
             runningTasks.Add(task);
         }
 
-        public static void WriteMatchLogBuffered(string sheetName, List<Player> players)
+        public static void WriteMatchLogBuffered(string sheetName, List<PlayerResults> players)
         {
             lock(_logBufferLock)
             {
@@ -242,19 +242,15 @@ namespace _7WondersGame.src.models
                 else
                 {
                     playerResultsBuffer.Add(players);
-                    //List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.ToList()).ToList();
-                    List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.Select(e => (Player)e.DeepCopy()).ToList()).ToList();
+                    //List<List<Player>> tempBuffer = playerResultsBuffer.Select(x => x.Select(e => (Player)e.DeepCopy()).ToList()).ToList();
+                    List<List<PlayerResults>> tempBuffer = playerResultsBuffer.Select(x => x.Select(e => e).ToList()).ToList();
                     playerResultsBuffer.Clear();
-                    //foreach (var results in tempBuffer)
-                    //{
-                    //    _ = WriteMatchLogAsync(sheetName, results.Select(e => (Player)e.DeepCopy()).ToList());
-                    //}
                     _ = WriteMatchLogBufferAsync(sheetName, tempBuffer);
                 }
             }
         }
 
-        public static void WriteMatchLogBufferThreadSafe(string sheetName, List<List<Player>> playersBuffer)
+        public static void WriteMatchLogBufferThreadSafe(string sheetName, List<List<PlayerResults>> playersBuffer)
         {
             lock (_logFileLock)
             {
@@ -262,7 +258,7 @@ namespace _7WondersGame.src.models
             }
         }
 
-        public static async Task WriteMatchLogBufferAsync(string sheetName, List<List<Player>> playersBuffer)
+        public static async Task WriteMatchLogBufferAsync(string sheetName, List<List<PlayerResults>> playersBuffer)
         {
             // Asynchronously append the log to the file
             Task task = Task.Run(() =>
