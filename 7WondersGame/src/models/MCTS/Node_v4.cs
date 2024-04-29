@@ -56,7 +56,6 @@ namespace _7WondersGame.src.models.MCTS
                     Parent = null;
                     LegalJointMoves.Clear();
                     ExploredJointMoves.Clear();
-                    Children.Clear();
                     LastJointMove = null;
                 }
                 else

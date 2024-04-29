@@ -60,7 +60,6 @@ namespace _7WondersGame.src.models.MCTS
                     Parent = null;
                     LegalMoves.Clear();
                     ExploredMoves.Clear();
-                    Children.Clear();
                     LastMove = null;
                 }
                 else

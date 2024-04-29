@@ -85,7 +85,7 @@ namespace _7WondersGame.src
             Log.Information("Starting game simulations");
 
             //RunGamesParallel(gameCount, resultsSheetName, gameDatasets);
-            SearchOptimalCParallel(gameCount, minC, maxC, iterCount, resultsSheetName);
+            SearchOptimalCParallel(gameCount, minC, maxC, iterCount, resultsSheetName, gameDatasets);
 
             await Filer.FlushMatchLogBuffer(resultsSheetName);
             await Filer.AwaitAllLoggingTasksAsync();
@@ -270,7 +270,7 @@ namespace _7WondersGame.src
                             Players = players,
                         };
                         if (gameDatasets != null)
-                            newGame.InitGameNotRandom(gameDatasets[i]);
+                            newGame.InitGameNotRandom(gameDatasets[gameCounter%30]);
                         else
                             newGame.InitGame();
 
