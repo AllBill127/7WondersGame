@@ -218,11 +218,11 @@ namespace _7WondersGame.src.models.MCTS
 
             //// --- MCTS IMPROVEMENT: deminishing exploration
             //double uct = (node.TotalScore / (node.VisitCount + 1)) +
-            //    (EXPLORATION_WEIGHT / Math.Log(1 + node.VisitCount)) *
+            //    (EXPLORATION_WEIGHT / (1 + Math.Log(1 + node.VisitCount))) *
             //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
             //
             //double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
-            //    (EXPLORATION_WEIGHT_WL / Math.Log(1 + node.VisitCount)) *
+            //    (EXPLORATION_WEIGHT_WL / (1 + Math.Log(1 + node.VisitCount))) *
             //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
 

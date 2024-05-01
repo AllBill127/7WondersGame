@@ -12,17 +12,17 @@ namespace _7WondersGame.src.models.MCTS
 {
     public class JMMCTSAIv2 : Player
     {
-        private int MaxIterations = 10000;
-        private const double EXPLORATION_WEIGHT = 50;
-        private const double DISCOURAGE_DISCARD = 0.6;
+        private int MaxIterations = 20000;
+        private double EXPLORATION_WEIGHT = 50;
 
-        public JMMCTSAIv2(int id) : base(id)
+        public JMMCTSAIv2(int id, double explorationC) : base(id)
         {
+            EXPLORATION_WEIGHT = explorationC;
         }
 
         public override object DeepCopy()
         {
-            JMMCTSAIv2 copy = new JMMCTSAIv2(this.Id)
+            JMMCTSAIv2 copy = new JMMCTSAIv2(this.Id, this.EXPLORATION_WEIGHT)
             {
                 Board = (Wonder)this.Board.DeepCopy(),
                 HandCards = this.HandCards.Select(e => e).ToList(),
@@ -87,19 +87,17 @@ namespace _7WondersGame.src.models.MCTS
         // =============== MCTS ===============
         // IMPROVEMENTS: 
         //                  JOINT MOVES
-        //                  * Progressive widening
-        //                  // * Discourage 'discard' moves
-        //                  // * DDK implementation in simulations
+        //                  // * Progressive widening
         //                  * rng simulations
         //                  * backpropagating game scores
-        //                  // * UCT with deminishing exploration
+        //                  * UCT with deminishing exploration
 
         public Command FindBestMove(Game game)
         {
             Node_v4 rootNode = new Node_v4(game.DeepCopy(), null, null); // Create a clone of the game state as the root node and copy root player
 
-            // MCTS IMPROVEMENT: Progressive widening
-            double ageMultiplier = game.Era / 2d;
+            // --- MCTS IMPROVEMENT: Progressive widening
+            double ageMultiplier = 1; // game.Era / 2d;
 
             for (int iteration = 0; iteration < (MaxIterations * ageMultiplier); )
             {
@@ -206,13 +204,16 @@ namespace _7WondersGame.src.models.MCTS
         private double UCTValue(Node_v4 node)
         {
             // Upper Confidence Bound applied to Trees (UCT) formula
-            double exploitation = node.TotalScore / (node.VisitCount + 1);
-            double exploration = Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
+            //double uct = (node.TotalScore / (node.VisitCount + 1)) + 
+            //    EXPLORATION_WEIGHT * 
+            //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
             //// --- MCTS IMPROVEMENT: deminishing exploration
-            //exploration *= (1.0 / (1.0 + node.VisitCount));
+            double uct = (node.TotalScore / (node.VisitCount + 1)) +
+                (EXPLORATION_WEIGHT / (1 + Math.Log(1 + node.VisitCount))) *
+                Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            return exploitation + EXPLORATION_WEIGHT * exploration;
+            return uct;
         }
 
         /// <summary>
