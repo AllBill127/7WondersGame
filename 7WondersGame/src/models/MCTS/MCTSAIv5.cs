@@ -12,7 +12,7 @@ namespace _7WondersGame.src.models.MCTS
 {
     public class MCTSAIv5 : Player
     {
-        private int MaxIterations = 10000;
+        private int MaxIterations = 20000;
         private double EXPLORATION_WEIGHT = 50;
         private double EXPLORATION_WEIGHT_WL = 1.41;
 
