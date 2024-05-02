@@ -85,6 +85,7 @@ namespace _7WondersGame.src
             Log.Information("Starting game simulations");
 
             //RunGamesParallel(gameCount, resultsSheetName, gameDatasets);
+            //await GenerateGameDatasets(3, 100);
             SearchOptimalCParallel(gameCount, minC, maxC, iterCount, resultsSheetName, gameDatasets);
 
             await Filer.FlushMatchLogBuffer(resultsSheetName);
