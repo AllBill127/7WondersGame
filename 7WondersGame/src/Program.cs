@@ -243,7 +243,7 @@ namespace _7WondersGame.src
 
             try
             {
-                Parallel.For(0, (numGames * iterations), new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
+                Parallel.For(0, (numGames * (iterations + 1)), new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
                 {
                     Log.Information("Processing iteration {iterationNr}", i);
 
@@ -255,16 +255,14 @@ namespace _7WondersGame.src
                         players = new()
                         {
                             new DeterministicAI(0),
-                            //new JMMCTSAIv2(1, minC+(gameCounter/numGames+1)*iteratorC),
+                            //new JMMCTSAIv2(1, minC+(gameCounter/numGames)*iteratorC),
                             new RandomChoiceAI(1),
-                            new MCTSAIv5(2, minC+(gameCounter/numGames+1)*iteratorC, 1),
+                            new MCTSAIv5(2, minC+(gameCounter/numGames)*iteratorC, 1),
                             //new DeterministicAI(3),
                             //new RandomChoiceAI(4),
                             //new RandomChoiceAI(5),
                             //new RandomChoiceAI(6),
                         };
-                        gameCounter++;
-                        Log.Information("gameCounter: {gameCounter}", gameCounter);
 
                         // create game
                         newGame = new Game
@@ -272,9 +270,12 @@ namespace _7WondersGame.src
                             Players = players,
                         };
                         if (gameDatasets != null)
-                            newGame.InitGameNotRandom(gameDatasets[gameCounter%30]);
+                            newGame.InitGameNotRandom(gameDatasets[gameCounter % numGames]);
                         else
                             newGame.InitGame();
+
+                        gameCounter++;
+                        Log.Information("gameCounter: {gameCounter} | C = {cValue}", gameCounter, minC + (gameCounter / numGames) * iteratorC);
 
                         // Log player wondes
                         foreach (Player player in newGame.Players)
