@@ -12,7 +12,7 @@ namespace _7WondersGame.src.models.MCTS
 {
     public class MCTSAIv4 : Player
     {
-        private int MaxIterations = 10000;
+        private int MaxIterations = 20000;
         private double EXPLORATION_WEIGHT = 50;
         private double EXPLORATION_WEIGHT_WL = 1.41;
 
@@ -91,7 +91,7 @@ namespace _7WondersGame.src.models.MCTS
         //                  // * Progressive widening
         //                  * rng simulations
         //                  * backpropagating win/loss scores
-        //                  // * UCT with deminishing exploration
+        //                  * UCT with deminishing exploration
         //                  * pruned discards
 
         public Command FindBestMove(Game game)
@@ -208,22 +208,22 @@ namespace _7WondersGame.src.models.MCTS
         private double UCTValue(Node_v6 node)
         {
             // Upper Confidence Bound applied to Trees (UCT) formula
-            double uct = (node.TotalScore / (node.VisitCount + 1)) + 
-                EXPLORATION_WEIGHT * 
-                Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
+            //double uct = (node.TotalScore / (node.VisitCount + 1)) + 
+            //    EXPLORATION_WEIGHT * 
+            //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
-                EXPLORATION_WEIGHT_WL *
-                Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
+            //double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
+            //    EXPLORATION_WEIGHT_WL *
+            //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            //// --- MCTS IMPROVEMENT: deminishing exploration
+            // MCTS IMPROVEMENT: deminishing exploration
             //double uct = (node.TotalScore / (node.VisitCount + 1)) +
             //    (EXPLORATION_WEIGHT / (1 + Math.Log(1 + node.VisitCount))) *
             //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
-            //
-            //double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
-            //    (EXPLORATION_WEIGHT_WL / (1 + Math.Log(1 + node.VisitCount))) *
-            //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
+
+            double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
+                (EXPLORATION_WEIGHT_WL / (1 + Math.Log(1 + node.VisitCount))) *
+                Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
 
             // TEST:
@@ -288,9 +288,8 @@ namespace _7WondersGame.src.models.MCTS
                 return node;
         }
 
-        private Dictionary<int, int> Simulation(Node_v6 node)
+        private static Dictionary<int, int> Simulation(Node_v6 node)
         {
-            double simulationResults = 0;
             Game simGame = node.GameState.DeepCopy();
 
             // TEST:
