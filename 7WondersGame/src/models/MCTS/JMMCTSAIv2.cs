@@ -91,6 +91,7 @@ namespace _7WondersGame.src.models.MCTS
         //                  * rng simulations
         //                  * backpropagating game scores
         //                  * UCT with deminishing exploration
+        //                  * pruned discards
 
         public Command FindBestMove(Game game)
         {
@@ -208,7 +209,7 @@ namespace _7WondersGame.src.models.MCTS
             //    EXPLORATION_WEIGHT * 
             //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            //// --- MCTS IMPROVEMENT: deminishing exploration
+            // MCTS IMPROVEMENT: deminishing exploration
             double uct = (node.TotalScore / (node.VisitCount + 1)) +
                 (EXPLORATION_WEIGHT / (1 + Math.Log(1 + node.VisitCount))) *
                 Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
