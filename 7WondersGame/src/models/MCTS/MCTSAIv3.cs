@@ -12,7 +12,7 @@ namespace _7WondersGame.src.models.MCTS
 {
     public class MCTSAIv3 : Player
     {
-        private int MaxIterations = 10000;
+        private int MaxIterations = 20000;
         private double EXPLORATION_WEIGHT = 50;
         private double EXPLORATION_WEIGHT_WL = 1.41;
 
@@ -91,7 +91,7 @@ namespace _7WondersGame.src.models.MCTS
         //                  // * Progressive widening
         //                  * rng simulations
         //                  * backpropagating game scores
-        //                  // * UCT with deminishing exploration
+        //                  // --- * UCT with deminishing exploration
         //                  * pruned discards
 
         public Command FindBestMove(Game game)
@@ -212,9 +212,9 @@ namespace _7WondersGame.src.models.MCTS
                 EXPLORATION_WEIGHT *
                 Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
-                EXPLORATION_WEIGHT_WL *
-                Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
+            //double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
+            //    EXPLORATION_WEIGHT_WL *
+            //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
             //// --- MCTS IMPROVEMENT: deminishing exploration
             //double uct = (node.TotalScore / (node.VisitCount + 1)) +
