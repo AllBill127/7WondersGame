@@ -254,10 +254,13 @@ namespace _7WondersGame.src
                         // create each games players
                         players = new()
                         {
-                            new DeterministicAI(0),
+                            //new DeterministicAI(0),
+                            new MCTSAIv5(0, minC+(gameCounter/numGames)*iteratorC, 1),
                             //new JMMCTSAIv2(1, minC+(gameCounter/numGames)*iteratorC),
                             new RandomChoiceAI(1),
-                            new MCTSAIv5(2, minC+(gameCounter/numGames)*iteratorC, 1),
+                            //new DeterministicAI(2),
+                            new MCTSAIv3(2, minC+(gameCounter/numGames)*iteratorC, 1),
+                            //new JMMCTSAIv2(2, minC+(gameCounter/numGames)*iteratorC),
                             //new DeterministicAI(3),
                             //new RandomChoiceAI(4),
                             //new RandomChoiceAI(5),
