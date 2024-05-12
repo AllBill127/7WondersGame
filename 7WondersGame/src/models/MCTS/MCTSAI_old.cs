@@ -15,7 +15,8 @@ namespace _7WondersGame.src.models.MCTS
         private int MaxIterations = 3000;
         private const double EXPLORATION_WEIGHT = 3.6;
         private const double DISCARD_DISCOURAGE = 1;
-        private const double SCORE_NORMALIZATION = 50;
+        private const double SCORE_NORMALIZATION = 60;
+        private const int TOP_SCORE_NORMALIZATION = 30;
 
         public MCTSAI_old(int id) : base(id)
         {
@@ -401,7 +402,7 @@ namespace _7WondersGame.src.models.MCTS
             {
                 // calculate uct based on passed through mcts player score
                 // MCTS IMPROVEMENT: new best move evaluation function
-                uctValue = child.TotalScore / child.VisitCount / SCORE_NORMALIZATION + child.MCTPlayerScore / 32;
+                uctValue = child.TotalScore / child.VisitCount / SCORE_NORMALIZATION + child.MCTPlayerScore / TOP_SCORE_NORMALIZATION;
                 uctValue = child.MCTPlayerScore;
 
                 if (uctValue > bestUCT)
