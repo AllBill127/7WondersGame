@@ -243,7 +243,7 @@ namespace _7WondersGame.src
 
             try
             {
-                Parallel.For(0, (numGames * (iterations + 1)), new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
+                Parallel.For(0, (numGames * (iterations==1 ? 1 : (iterations + 1))), new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
                 {
                     Log.Information("Processing iteration {iterationNr}", i);
 
@@ -259,7 +259,7 @@ namespace _7WondersGame.src
                             //new JMMCTSAIv2(1, minC+(gameCounter/numGames)*iteratorC),
                             new RandomChoiceAI(1),
                             //new DeterministicAI(2),
-                            new MCTSAIv3(2, minC+(gameCounter/numGames)*iteratorC, 1),
+                            new MCTSAIv7(2, minC+(gameCounter/numGames)*iteratorC, 1),
                             //new JMMCTSAIv2(2, minC+(gameCounter/numGames)*iteratorC),
                             //new DeterministicAI(3),
                             //new RandomChoiceAI(4),
