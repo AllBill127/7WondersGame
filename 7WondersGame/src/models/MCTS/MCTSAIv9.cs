@@ -409,7 +409,7 @@ namespace _7WondersGame.src.models.MCTS
             foreach (Node_v7 child in node.Children)
             {
                 // calculate uct based on passed through mcts player score
-                // MCTS IMPROVEMENT: new best move evaluation function
+                // --- MCTS IMPROVEMENT: new best move evaluation function
                 //uctValue = child.TotalScore / child.VisitCount / SCORE_NORMALIZATION + child.MCTPlayerScore / TOP_SCORE_NORMALIZATION;
                 uctValue = child.TotalScore;
 
