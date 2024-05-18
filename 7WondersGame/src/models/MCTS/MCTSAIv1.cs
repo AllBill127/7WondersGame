@@ -90,7 +90,7 @@ namespace _7WondersGame.src.models.MCTS
         //                  * new best move evaluation function
         //                  * DDK implementation in simulations
         //                  * backpropagating game result scores
-        //                  * normalizing game score by x=50 to aproach close to 1 for better exploration
+        //                  * normalizing game score by x=60 to aproach close to 1 for better exploration
 
         public Command FindBestMove(Game game)
         {
