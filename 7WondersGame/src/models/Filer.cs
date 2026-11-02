@@ -19,6 +19,9 @@ namespace _7WondersGame.src.models
         private static int maxLogBuffer = 2;
         private static string _filepath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         private static string _fileName = "Game_results.xlsx";
+        // Test run outputs go here (git ignored). Game datasets stay in _filepath since they are inputs.
+        private static readonly string ResultsDirName = "results";
+        private static string ResultsFilePath => Path.Combine(_filepath, ResultsDirName, _fileName);
 
         private static readonly object _logFileLock = new object();
         private static readonly object _logBufferLock = new object();
@@ -43,7 +46,9 @@ namespace _7WondersGame.src.models
             // check for file access errors
             try
             {
-                FileInfo file = new FileInfo(Path.Combine(_filepath, _fileName));
+                Directory.CreateDirectory(Path.Combine(_filepath, ResultsDirName));
+                FileInfo file = new FileInfo(ResultsFilePath);
+                Log.Information("Results file: {resultsFile}", file.FullName);
 
                 // Check if the file exists
                 if (!file.Exists)
@@ -72,7 +77,7 @@ namespace _7WondersGame.src.models
 
         public static void WriteMatchLog(string sheetName, List<PlayerResults> players)
         {
-            String fileName = Path.Combine(_filepath, _fileName);
+            String fileName = ResultsFilePath;
             FileInfo file = new FileInfo(fileName);
 
             try
@@ -141,7 +146,7 @@ namespace _7WondersGame.src.models
 
         public static void WriteMatchLogBuffer(string sheetName, List<List<PlayerResults>> playersBuffer)
         {
-            String fileName = Path.Combine(_filepath, _fileName);
+            String fileName = ResultsFilePath;
             FileInfo file = new FileInfo(fileName);
 
             try
