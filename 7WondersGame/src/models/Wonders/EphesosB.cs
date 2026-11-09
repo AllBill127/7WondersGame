@@ -57,6 +57,7 @@ namespace _7WondersGame.src.models.Wonders
                     if (player.ProduceResource(Resource.Wood, Cost[Resource.Wood]))
                     {
                         Stage++;
+                        WonderPoints += 3;
                         player.Resources[Resource.Coins] += 4;
                         Cost[Resource.Glass] = 1;
                         Cost[Resource.Loom] = 1;
