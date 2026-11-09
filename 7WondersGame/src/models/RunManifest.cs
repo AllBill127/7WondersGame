@@ -26,6 +26,9 @@ namespace _7WondersGame.src.models
             File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
         }
 
+        public static RunManifest? Load(string path) =>
+            File.Exists(path) ? JsonSerializer.Deserialize<RunManifest>(File.ReadAllText(path)) : null;
+
         /// <summary>
         /// The commit the program was built from (stamped in at build time, with "-dirty" if there were
         /// uncommitted changes), or "unknown".

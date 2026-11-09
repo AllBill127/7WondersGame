@@ -89,6 +89,52 @@ namespace _7WondersGame.src.models
                 ? "\"" + field.Replace("\"", "\"\"") + "\""
                 : field;
 
+        /// <summary>
+        /// Reads a results CSV back as one dictionary (column → value) per row.
+        /// Handles the quoting <see cref="Escape"/> writes (no line breaks inside fields, which this writer never produces).
+        /// </summary>
+        public static IEnumerable<Dictionary<string, string>> ReadRows(string filePath)
+        {
+            string[]? header = null;
+            foreach (string line in File.ReadLines(filePath))
+            {
+                if (line.Length == 0)
+                    continue;
+                List<string> fields = SplitRow(line);
+                if (header == null)
+                {
+                    header = fields.ToArray();
+                    continue;
+                }
+                var row = new Dictionary<string, string>(StringComparer.Ordinal);
+                for (int i = 0; i < header.Length && i < fields.Count; i++)
+                    row[header[i]] = fields[i];
+                yield return row;
+            }
+        }
+
+        public static List<string> SplitRow(string line)
+        {
+            var fields = new List<string>();
+            var sb = new StringBuilder();
+            bool quoted = false;
+            for (int i = 0; i < line.Length; i++)
+            {
+                char ch = line[i];
+                if (quoted)
+                {
+                    if (ch == '"' && i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i++; }
+                    else if (ch == '"') quoted = false;
+                    else sb.Append(ch);
+                }
+                else if (ch == '"') quoted = true;
+                else if (ch == ',') { fields.Add(sb.ToString()); sb.Clear(); }
+                else sb.Append(ch);
+            }
+            fields.Add(sb.ToString());
+            return fields;
+        }
+
         public void Dispose()
         {
             lock (_lock)
