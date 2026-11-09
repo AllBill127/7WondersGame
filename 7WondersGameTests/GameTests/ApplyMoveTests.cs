@@ -24,7 +24,7 @@ namespace _7WondersGameTests.GameTests
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
+            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = testGame.Turn;
@@ -61,15 +61,15 @@ namespace _7WondersGameTests.GameTests
             testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
+            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = testGame.Turn + 1;
@@ -108,15 +108,15 @@ namespace _7WondersGameTests.GameTests
             testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
+            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 7;
@@ -156,15 +156,15 @@ namespace _7WondersGameTests.GameTests
             testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
+            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 14;
@@ -210,15 +210,15 @@ namespace _7WondersGameTests.GameTests
             testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_wonder", CardsDataset.GameCards[CardId.Baths]);
+            Command testCommand = new Command(ActionType.BuildWonder, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 7;

@@ -73,8 +73,8 @@ namespace _7WondersGameTests.GameTests
 
             CollectionAssert.AreEqual(Draw(untouched.AgentRandom(0)), Draw(searched.AgentRandom(0)), "agent stream");
             CollectionAssert.AreEqual(
-                untouched.GetLegalMovesPrunedDiscards(0).Select(m => $"{m.Subcommand}:{m.Argument?.Name}").ToList(),
-                searched.GetLegalMovesPrunedDiscards(0).Select(m => $"{m.Subcommand}:{m.Argument?.Name}").ToList(),
+                untouched.GetLegalMovesPrunedDiscards(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
+                searched.GetLegalMovesPrunedDiscards(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
                 "pruning stream");
         }
 

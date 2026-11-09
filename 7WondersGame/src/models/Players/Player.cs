@@ -1496,16 +1496,16 @@ namespace _7WondersGame.src.models.Players
         /// <summary>
         /// Choose a card for the turn from the list <br/>
         /// * caller is responsible that all cards in the list are playable <br/>
-        /// - game and commandStr are used to evaluate card choice <br/>
+        /// - game and action are used to evaluate card choice <br/>
         /// - if return is null the move should be skipped!
         /// </summary>
         /// <param name="game"></param>
-        /// <param name="commandStr"></param>
+        /// <param name="action"></param>
         /// <param name="cardsList"></param>
         /// <returns>
         /// chosen Card for the turn or null if cardList was empty
         /// </returns>
-        public abstract Card? ChooseMoveCard(Game game, string commandStr, List<Card> cardsList);
+        public abstract Card? ChooseMoveCard(Game game, ActionType action, List<Card> cardsList);
 
         /// <summary>
         /// Choose a move for the turn <br/>

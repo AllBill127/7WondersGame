@@ -592,7 +592,7 @@ namespace _7WondersGame.src.models
             else if (discardFree && !playSeventh)
             {
                 // choose a card from playable cards
-                Card? cardPlayed = player.ChooseMoveCard(this, "build_structure", player.PlayableCards);
+                Card? cardPlayed = player.ChooseMoveCard(this, ActionType.Build, player.PlayableCards);
 
                 if(cardPlayed != null)
                 {
@@ -617,38 +617,38 @@ namespace _7WondersGame.src.models
 
         public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList)
         {
-            string command = playerCommand.Subcommand;
-            Card? cardPlayed = playerCommand.Argument;
+            ActionType command = playerCommand.Action;
+            Card? cardPlayed = playerCommand.Card;
             TraceSnapshot? before = Tracing ? TraceSnapshot.Of(player) : null;
 
-            if (!command.Equals("skip_move") && cardPlayed != null)
+            if (command != ActionType.Skip && cardPlayed != null)
             {
-                if (command.Equals("build_structure"))
+                if (command == ActionType.Build)
                 {
                     if (!player.BuildStructure(cardPlayed, cardsList, false))
                     {
                         Log.Error("SHOULD NOT HAPPEN");
-                        command = "discard";
+                        command = ActionType.Discard;
                     }
                 }
-                else if (command.Equals("build_hand_free"))
+                else if (command == ActionType.BuildFreeOnce)
                 {
                     if (!player.BuildHandFree(cardPlayed, cardsList))
                     {
                         Log.Error("SHOULD NOT HAPPEN");
-                        command = "discard";
+                        command = ActionType.Discard;
                     }
                 }
-                else if (command.Equals("build_wonder"))
+                else if (command == ActionType.BuildWonder)
                 {
                     if (!player.BuildWonder(cardPlayed, cardsList))
                     {
                         Log.Error("SHOULD NOT HAPPEN");
-                        command = "discard";
+                        command = ActionType.Discard;
                     }
                 }
 
-                if (command.Equals("discard"))
+                if (command == ActionType.Discard)
                 {
                     player.Discard(cardPlayed); //Gives player 3 coins.
                     DiscardedCards.Add(cardPlayed);
@@ -690,20 +690,20 @@ namespace _7WondersGame.src.models
         private void TraceChoice(Player p)
         {
             Command c = PlayerCommands[p.Id];
-            Trace.Debug("Seat {Seat} chooses {Action} {Card}", p.Id, c.Subcommand, c.Argument?.Name ?? "-");
+            Trace.Debug("Seat {Seat} chooses {Action} {Card}", p.Id, c.Action, c.Card?.Name ?? "-");
         }
 
         /// <summary>What a move changed: coins (own and paid to each neighbour), wonder stage and effect flags.</summary>
-        private void TraceResult(Player p, string command, Card? card, TraceSnapshot before)
+        private void TraceResult(Player p, ActionType command, Card? card, TraceSnapshot before)
         {
             TraceSnapshot after = TraceSnapshot.Of(p);
             string name = card?.Name ?? "";
             string move = command switch
             {
-                "build_structure" => $"builds {name}",
-                "build_hand_free" => $"builds {name} for free (Olympia A)",
-                "build_wonder" => $"builds wonder stage {after.Stage} using {name}",
-                "discard" => $"discards {name}",
+                ActionType.Build => $"builds {name}",
+                ActionType.BuildFreeOnce => $"builds {name} for free (Olympia A)",
+                ActionType.BuildWonder => $"builds wonder stage {after.Stage} using {name}",
+                ActionType.Discard => $"discards {name}",
                 _ => "skips the move",
             };
 
@@ -767,7 +767,6 @@ namespace _7WondersGame.src.models
         // ================= MCTS related =================
         public List<Command> GetLegalMoves(int playerId, bool playSeventh = false, bool discardFree = false)
         {
-            List<string> actionOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard", "skip_move" };
             List<Command> legalMoves = new();
             Player player = Players[playerId];
 
@@ -782,25 +781,25 @@ namespace _7WondersGame.src.models
                 if (player.PlayableCards.Count > 0)
                 {
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[0], c));
+                        legalMoves.Add(new Command(ActionType.Build, c));
                 }
                 // add build wonder moves with any of hand cards
                 if (player.CanBuildWonder)
                 {
                     foreach (Card c in player.HandCards)
-                        legalMoves.Add(new Command(actionOpt[2], c));
+                        legalMoves.Add(new Command(ActionType.BuildWonder, c));
                 }
                 // add build hand free moves with all playable cards when all hand cards are free
                 if (player.FreeCardOnce)
                 {
                     player.PlayableCards = player.GetPlayableCards(player.HandCards, playAllFree: true);
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[1], c));
+                        legalMoves.Add(new Command(ActionType.BuildFreeOnce, c));
                 }
 
                 // add discard moves
                 foreach (Card c in player.HandCards)
-                    legalMoves.Add(new Command(actionOpt[3], c));
+                    legalMoves.Add(new Command(ActionType.Discard, c));
             }
             // get possible actions for PlaySeventh effect situation
             else if (playSeventh && !discardFree)
@@ -809,18 +808,18 @@ namespace _7WondersGame.src.models
                 if (player.PlayableCards.Count > 0)
                 {
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[0], c));
+                        legalMoves.Add(new Command(ActionType.Build, c));
                 }
                 // add build wonder moves with any of hand cards
                 if (player.CanBuildWonder)
                 {
                     foreach (Card c in player.HandCards)
-                        legalMoves.Add(new Command(actionOpt[2], c));
+                        legalMoves.Add(new Command(ActionType.BuildWonder, c));
                 }
 
                 // add discard moves
                 foreach (Card c in player.HandCards)
-                    legalMoves.Add(new Command(actionOpt[3], c));
+                    legalMoves.Add(new Command(ActionType.Discard, c));
             }
             // get legal build moves for DiscardFree effect situation
             else if (discardFree && player.DiscardFree && !playSeventh)
@@ -831,13 +830,13 @@ namespace _7WondersGame.src.models
                 if (player.PlayableCards.Count > 0)
                 {
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[0], c));
+                        legalMoves.Add(new Command(ActionType.Build, c));
                 }
             }
 
             // add single skip move when no moves available (should only happen on extra loop for FreeCardOnce or DiscardFree)
             if (legalMoves.Count < 1)
-                legalMoves.Add(new Command(actionOpt[4], null));
+                legalMoves.Add(new Command(ActionType.Skip, null));
 
             // group duplicate moves (occurs when duplicate cards in hand)
             List<Command> groupedLegalMoves = legalMoves
@@ -853,7 +852,6 @@ namespace _7WondersGame.src.models
         {
             Random rng = _rng;
             int discardCardIdx;
-            List<string> actionOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard", "skip_move" };
             List<Command> legalMoves = new();
             Player player = Players[playerId];
 
@@ -868,7 +866,7 @@ namespace _7WondersGame.src.models
                 if (player.PlayableCards.Count > 0)
                 {
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[0], c));
+                        legalMoves.Add(new Command(ActionType.Build, c));
                 }
                 // add build wonder moves with any of hand cards
                 if (player.CanBuildWonder)
@@ -877,7 +875,7 @@ namespace _7WondersGame.src.models
                     if (player.HandCards.Count > 0)
                     {
                         discardCardIdx = rng.Next(player.HandCards.Count);
-                        legalMoves.Add(new Command(actionOpt[2], player.HandCards[discardCardIdx]));
+                        legalMoves.Add(new Command(ActionType.BuildWonder, player.HandCards[discardCardIdx]));
                     }
                 }
                 // add build hand free moves with all playable cards when all hand cards are free
@@ -885,14 +883,14 @@ namespace _7WondersGame.src.models
                 {
                     player.PlayableCards = player.GetPlayableCards(player.HandCards, playAllFree: true);
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[1], c));
+                        legalMoves.Add(new Command(ActionType.BuildFreeOnce, c));
                 }
 
                 // add single random discard move
                 if (player.HandCards.Count > 0)
                 {
                     discardCardIdx = rng.Next(player.HandCards.Count);
-                    legalMoves.Add(new Command(actionOpt[3], player.HandCards[discardCardIdx]));
+                    legalMoves.Add(new Command(ActionType.Discard, player.HandCards[discardCardIdx]));
                 }
             }
             // get possible actions for PlaySeventh effect situation
@@ -902,7 +900,7 @@ namespace _7WondersGame.src.models
                 if (player.PlayableCards.Count > 0)
                 {
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[0], c));
+                        legalMoves.Add(new Command(ActionType.Build, c));
                 }
                 // add build wonder moves with any of hand cards
                 if (player.CanBuildWonder)
@@ -911,7 +909,7 @@ namespace _7WondersGame.src.models
                     if (player.HandCards.Count > 0)
                     {
                         discardCardIdx = rng.Next(player.HandCards.Count);
-                        legalMoves.Add(new Command(actionOpt[2], player.HandCards[discardCardIdx]));
+                        legalMoves.Add(new Command(ActionType.BuildWonder, player.HandCards[discardCardIdx]));
                     }
                 }
 
@@ -919,7 +917,7 @@ namespace _7WondersGame.src.models
                 if (player.HandCards.Count > 0)
                 {
                     discardCardIdx = rng.Next(player.HandCards.Count);
-                    legalMoves.Add(new Command(actionOpt[3], player.HandCards[discardCardIdx]));
+                    legalMoves.Add(new Command(ActionType.Discard, player.HandCards[discardCardIdx]));
                 }
             }
             // get legal build moves for DiscardFree effect situation
@@ -931,13 +929,13 @@ namespace _7WondersGame.src.models
                 if (player.PlayableCards.Count > 0)
                 {
                     foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(actionOpt[0], c));
+                        legalMoves.Add(new Command(ActionType.Build, c));
                 }
             }
 
             // add single skip move when no moves available (should only happen on extra loop for FreeCardOnce or DiscardFree)
             if (legalMoves.Count < 1)
-                legalMoves.Add(new Command(actionOpt[4], null));
+                legalMoves.Add(new Command(ActionType.Skip, null));
 
             // group duplicate moves (occurs when duplicate cards in hand)
             List<Command> groupedLegalMoves = legalMoves
@@ -1030,7 +1028,7 @@ namespace _7WondersGame.src.models
             if (PlayersReady[playerId] == true &&
                 Players[playerId].DiscardFree == true)
             {
-                Card? cardPlayed = playerMove.Argument;
+                Card? cardPlayed = playerMove.Card;
                 if (cardPlayed != null)
                 {
                     // build the card for free
@@ -1140,7 +1138,7 @@ namespace _7WondersGame.src.models
                     discardFreePlayer.DiscardFree == true &&
                     p.Id == discardFreePlayer.Id)
                 {
-                    Card? cardPlayed = playerCommand.Argument;
+                    Card? cardPlayed = playerCommand.Card;
                     if (cardPlayed != null)
                     {
                         // build the card for free
@@ -1282,7 +1280,6 @@ namespace _7WondersGame.src.models
 
         public List<List<Command>> GetPossibleMovesForAllPlayers()
         {
-            List<string> actionOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard", "skip_move" };
             List<Command>[] playersLegalMoves = new List<Command>[this.Players.Count];
             List<List<Command>> legalMoves = new();
 
@@ -1295,7 +1292,7 @@ namespace _7WondersGame.src.models
 
                 for (int i = 0; i < Players.Count; i++)
                     if (i != discardFreePlayer.Id)
-                        playersLegalMoves[i] = new List<Command>() { new Command(actionOpt[4], null), };
+                        playersLegalMoves[i] = new List<Command>() { new Command(ActionType.Skip, null), };
             }
             else if (playSeventhPlayer != null &&
                     (this.Turn == 6 ||
@@ -1306,7 +1303,7 @@ namespace _7WondersGame.src.models
 
                 for (int i = 0; i < Players.Count; i++)
                     if (i != playSeventhPlayer.Id)
-                        playersLegalMoves[i] = new List<Command>() { new Command(actionOpt[4], null), };
+                        playersLegalMoves[i] = new List<Command>() { new Command(ActionType.Skip, null), };
             }
             else
             {

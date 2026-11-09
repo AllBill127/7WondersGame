@@ -42,13 +42,13 @@ namespace _7WondersGameTests.PlayerTests
             players[1].HandCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // Expected values
-            string expP1Subcommand = "discard";
+            ActionType expP1Action = ActionType.Discard;
 
             // Test
             players[1].ChooseMoveCommand(testGame);
 
             // Evaluate
-            Assert.AreEqual(expP1Subcommand, testGame.PlayerCommands[players[1].Id].Subcommand);
+            Assert.AreEqual(expP1Action, testGame.PlayerCommands[players[1].Id].Action);
         }
 
         [TestMethod]
@@ -77,13 +77,13 @@ namespace _7WondersGameTests.PlayerTests
             players[1].HandCards.Add(CardsDataset.GameCards[CardId.Palace]);
 
             // Expected values
-            string expP1Subcommand = "build_hand_free";
+            ActionType expP1Action = ActionType.BuildFreeOnce;
 
             // Test
             players[1].ChooseMoveCommand(testGame);
 
             // Evaluate
-            Assert.AreEqual(expP1Subcommand, testGame.PlayerCommands[players[1].Id].Subcommand);
+            Assert.AreEqual(expP1Action, testGame.PlayerCommands[players[1].Id].Action);
         }
     }
 }

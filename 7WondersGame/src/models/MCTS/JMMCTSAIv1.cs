@@ -53,10 +53,10 @@ namespace _7WondersGame.src.models.MCTS
             Command bestCommand = FindBestMove(game);
 
             // set the command and ready status in game
-            if (bestCommand.Argument != null)
+            if (bestCommand.Card != null)
                 game.PlayerCommands[this.Id] = bestCommand;
             else
-                game.PlayerCommands[this.Id] = new Command("skip_move", null);
+                game.PlayerCommands[this.Id] = new Command(ActionType.Skip, null);
             game.PlayersReady[this.Id] = true;
         }
         
@@ -64,14 +64,14 @@ namespace _7WondersGame.src.models.MCTS
         /// chooses both move and card in MCTS case
         /// </summary>
         /// <param name="game"></param>
-        /// <param name="commandStr"></param>
+        /// <param name="action"></param>
         /// <param name="cardsList"></param>
         /// <returns></returns>
-        public override Card? ChooseMoveCard(Game game, string commandStr, List<Card> cardsList)
+        public override Card? ChooseMoveCard(Game game, ActionType action, List<Card> cardsList)
         {
             Command bestCommand = FindBestMove(game);
             // extract move card
-            Card? bestCard = bestCommand.Argument;
+            Card? bestCard = bestCommand.Card;
             return bestCard;
         }
 
@@ -124,7 +124,7 @@ namespace _7WondersGame.src.models.MCTS
                 return bestMove;
             }
             else
-                return new Command("skip_move", null);
+                return new Command(ActionType.Skip, null);
         }
 
         //private bool TurnEnded(Node_v3 expandedNode)

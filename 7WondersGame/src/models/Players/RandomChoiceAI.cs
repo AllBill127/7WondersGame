@@ -46,29 +46,29 @@ namespace _7WondersGame.src.models.Players
         {
             Random rng = g.AgentRandom(this.Id);
 
-            List<string> comandOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard" };
+            List<ActionType> comandOpt = new List<ActionType> { ActionType.Build, ActionType.BuildFreeOnce, ActionType.BuildWonder, ActionType.Discard };
             int choice;
-            string subcommand;
+            ActionType subcommand;
             Card? argument;
 
             // remove impossible subcommands
             if (!(this.PlayableCards.Count > 0))
-                comandOpt.Remove("build_structure");
+                comandOpt.Remove(ActionType.Build);
             if (!this.CanBuildWonder)
-                comandOpt.Remove("build_wonder");
+                comandOpt.Remove(ActionType.BuildWonder);
             if (!this.FreeCardOnce)
-                comandOpt.Remove("build_hand_free");
+                comandOpt.Remove(ActionType.BuildFreeOnce);
 
             // choose random subcomand from available
             choice = rng.Next(comandOpt.Count);
             subcommand = comandOpt[choice];
 
             // choose card for the move
-            if (subcommand.Equals("build_structure"))
+            if (subcommand == ActionType.Build)
             {
                 argument = ChooseMoveCard(g, subcommand, this.PlayableCards);
             }
-            else if (subcommand.Equals("build_hand_free"))
+            else if (subcommand == ActionType.BuildFreeOnce)
             {
                 // get new playable cards using wonder effect
                 this.PlayableCards = this.GetPlayableCards(this.HandCards, playAllFree: true);
@@ -78,7 +78,7 @@ namespace _7WondersGame.src.models.Players
                     argument = ChooseMoveCard(g, subcommand, this.PlayableCards);
                 else
                 {
-                    subcommand = "discard";
+                    subcommand = ActionType.Discard;
                     argument = ChooseMoveCard(g, subcommand, this.HandCards);
                 }
             }
@@ -91,11 +91,11 @@ namespace _7WondersGame.src.models.Players
             if (argument != null)
                 g.PlayerCommands[this.Id] = new Command(subcommand, argument);
             else
-                g.PlayerCommands[this.Id] = new Command("skip_move", null);
+                g.PlayerCommands[this.Id] = new Command(ActionType.Skip, null);
             g.PlayersReady[this.Id] = true;
         }
 
-        public override Card? ChooseMoveCard(Game game, string commandStr, List<Card> cardsList)
+        public override Card? ChooseMoveCard(Game game, ActionType action, List<Card> cardsList)
         {
             Random rng = game.AgentRandom(this.Id);
 
