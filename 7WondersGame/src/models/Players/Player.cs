@@ -208,8 +208,6 @@ namespace _7WondersGame.src.models.Players
             resourcesEastBckp.Clear();
             resourcesWestBckp.Clear();
 
-            Log.Error("SHOULD NOT HAPPEN");
-
             return false;
         }
 
@@ -306,7 +304,6 @@ namespace _7WondersGame.src.models.Players
             if (HasPlayedCard(card))
             {
                 Trace.Verbose(" -> FAILURE: Card Already played but was an option in cards_playable.");
-                Log.Error("SHOULD NOT HAPPEN -> Trying to build card that has already been build");
                 return false;
             }
 
@@ -322,7 +319,6 @@ namespace _7WondersGame.src.models.Players
             {
                 // ERROR: Card played was not found in the vector
                 Trace.Verbose(" -> FAILURE: Card not found in vector.");
-                Log.Error("SHOULD NOT HAPPEN -> Trying to build card that is not in provided cards list");
                 return false;
             }
 
@@ -350,7 +346,6 @@ namespace _7WondersGame.src.models.Players
                             if (!couldProduce)
                             {
                                 Trace.Verbose("Player {PlayerId} -> FAILURE -> couldn't produce resources.", Id);
-                                Log.Error("SHOULD NOT HAPPEN -> If CanPlayCard() = true, then building must be possible");
                                 Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
                                 ResetUsed();
                                 PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
@@ -646,15 +641,9 @@ namespace _7WondersGame.src.models.Players
         /// <param name="card"></param>
         public void Discard(Card card)
         {
+            if (!HandCards.Remove(card))
+                throw new InvalidOperationException($"Seat {Id} can't discard {card.Name}: it isn't in their hand.");
             Resources[Resource.Coins] += 3;
-
-            int i;
-            for (i = 0; i < HandCards.Count; i++)
-            {
-                if (HandCards[i].Equals(card))
-                    break;
-            }
-            HandCards.RemoveAt(i);
         }
 
         // =========== Wonder effect related ===========
@@ -675,15 +664,11 @@ namespace _7WondersGame.src.models.Players
             if (id == WonderId.HalikarnassosA && stage == 2 ||
                 id == WonderId.HalikarnassosB && stage >= 1)
             {
-                if (DiscardFree)
+                if (DiscardFree && BuildStructure(card, discardedCards, true))
                 {
-                    // disable flag after using this effect
+                    // the effect is used up
                     DiscardFree = false;
-                    bool buildSuccess = BuildStructure(card, discardedCards, true);
-                    if (buildSuccess)
-                        return true;
-                    else
-                        Log.Error("SHOULD NOT HAPPEN");
+                    return true;
                 }
             }
             return false;
@@ -703,16 +688,11 @@ namespace _7WondersGame.src.models.Players
 
             if (id == WonderId.OlympiaA && stage >= 2)
             {
-                if (FreeCardOnce)
+                if (FreeCardOnce && BuildStructure(card, cardList, true))
                 {
-                    // disable flag so the player won't be able to build for free in the same game era
-                    // should be reenabled if applicable when starting the next game era
+                    // used up for this era; re-armed at the start of the next one
                     FreeCardOnce = false;
-                    bool buildSuccess = BuildStructure(card, cardList, true);
-                    if (buildSuccess)
-                        return true;
-                    else
-                        Log.Error("SHOULD NOT HAPPEN");
+                    return true;
                 }
             }
             return false;

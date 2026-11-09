@@ -23,8 +23,8 @@ namespace _7WondersGameTests.GameTests
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
-            // any random command
-            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
+            // any legal command (a build that can't be paid for throws, E8)
+            Command testCommand = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = testGame.Turn;
@@ -68,8 +68,8 @@ namespace _7WondersGameTests.GameTests
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
-            // any random command
-            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
+            // any legal command (a build that can't be paid for throws, E8)
+            Command testCommand = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = testGame.Turn + 1;
@@ -115,8 +115,8 @@ namespace _7WondersGameTests.GameTests
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
-            // any random command
-            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
+            // any legal command (a build that can't be paid for throws, E8)
+            Command testCommand = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 7;
@@ -163,8 +163,8 @@ namespace _7WondersGameTests.GameTests
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
-            // any random command
-            Command testCommand = new Command(ActionType.Build, CardsDataset.GameCards[CardId.Baths]);
+            // any legal command (a build that can't be paid for throws, E8)
+            Command testCommand = new Command(ActionType.Discard, CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 14;

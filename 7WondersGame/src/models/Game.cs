@@ -597,14 +597,9 @@ namespace _7WondersGame.src.models
                 if(cardPlayed != null)
                 {
                     // build the card for free
-                    if (player.BuildDiscardFree(cardPlayed, cardsList))
-                    {
-                        Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Id, cardPlayed.Name);
-                    }
-                    else
-                    {
-                        Log.Error("SHOULD NOT HAPPEN");
-                    }
+                    if (!player.BuildDiscardFree(cardPlayed, cardsList))
+                        throw MoveFailed(player, "build from the discard pile", cardPlayed);
+                    Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Id, cardPlayed.Name);
                 }
                 else
                 {
@@ -615,6 +610,14 @@ namespace _7WondersGame.src.models
             }
         }
 
+        /// <summary>
+        /// A chosen move that the rules don't allow (E8). The game stops here instead of carrying on in a state
+        /// that shouldn't exist; the message has what is needed to replay it.
+        /// </summary>
+        private InvalidOperationException MoveFailed(Player player, string move, Card card) =>
+            new($"Seat {player.Id} ({player.GetType().Name}) could not {move} {card.Name} on turn {Turn} " +
+                $"(era {Era}, game seed {Seed}).");
+
         public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList)
         {
             ActionType command = playerCommand.Action;
@@ -623,30 +626,16 @@ namespace _7WondersGame.src.models
 
             if (command != ActionType.Skip && cardPlayed != null)
             {
-                if (command == ActionType.Build)
+                bool done = command switch
                 {
-                    if (!player.BuildStructure(cardPlayed, cardsList, false))
-                    {
-                        Log.Error("SHOULD NOT HAPPEN");
-                        command = ActionType.Discard;
-                    }
-                }
-                else if (command == ActionType.BuildFreeOnce)
-                {
-                    if (!player.BuildHandFree(cardPlayed, cardsList))
-                    {
-                        Log.Error("SHOULD NOT HAPPEN");
-                        command = ActionType.Discard;
-                    }
-                }
-                else if (command == ActionType.BuildWonder)
-                {
-                    if (!player.BuildWonder(cardPlayed, cardsList))
-                    {
-                        Log.Error("SHOULD NOT HAPPEN");
-                        command = ActionType.Discard;
-                    }
-                }
+                    ActionType.Build => player.BuildStructure(cardPlayed, cardsList, false),
+                    ActionType.BuildFreeOnce => player.BuildHandFree(cardPlayed, cardsList),
+                    ActionType.BuildWonder => player.BuildWonder(cardPlayed, cardsList),
+                    ActionType.Discard => true,
+                    _ => false,
+                };
+                if (!done)
+                    throw MoveFailed(player, command.ToString(), cardPlayed);
 
                 if (command == ActionType.Discard)
                 {
@@ -1032,15 +1021,8 @@ namespace _7WondersGame.src.models
                 if (cardPlayed != null)
                 {
                     // build the card for free
-                    if (Players[playerId].BuildDiscardFree(cardPlayed, DiscardedCards))
-                    {
-                        Trace.Verbose("<BuildDiscardFree OK>");
-                    }
-                    else
-                    {
-                        Trace.Verbose("<BuildDiscardFree NOK>");
-                        Log.Error("SHOULD NOT HAPPEN");
-                    }
+                    if (!Players[playerId].BuildDiscardFree(cardPlayed, DiscardedCards))
+                        throw MoveFailed(Players[playerId], "build from the discard pile", cardPlayed);
                 }
                 else
                 {
@@ -1142,15 +1124,8 @@ namespace _7WondersGame.src.models
                     if (cardPlayed != null)
                     {
                         // build the card for free
-                        if (Players[discardFreePlayer.Id].BuildDiscardFree(cardPlayed, DiscardedCards))
-                        {
-                            Trace.Verbose("<BuildDiscardFree OK>");
-                        }
-                        else
-                        {
-                            Trace.Verbose("<BuildDiscardFree NOK>");
-                            Log.Error("SHOULD NOT HAPPEN");
-                        }
+                        if (!Players[discardFreePlayer.Id].BuildDiscardFree(cardPlayed, DiscardedCards))
+                            throw MoveFailed(Players[discardFreePlayer.Id], "build from the discard pile", cardPlayed);
                     }
                     else
                     {
