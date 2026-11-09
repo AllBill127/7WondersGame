@@ -2346,9 +2346,6 @@ namespace _7WondersGame.src.models.Players
                 }
             }
 
-            if (bestCard == null && !isNeighbor)
-            { }
-
             return bestCard;
         }
 

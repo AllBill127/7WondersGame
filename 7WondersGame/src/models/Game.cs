@@ -464,10 +464,6 @@ namespace _7WondersGame.src.models
         {
             while (Turn < 21)
             {
-                // TEST:
-                if (Turn == 19)
-                { }
-
                 Log.Debug("\n::: PREPARE FOR TURN {Turn} :::", Turn);
                 // update pre turn game data for players
                 foreach (Player player in Players)
@@ -506,26 +502,8 @@ namespace _7WondersGame.src.models
                 {
                     Command playerCommand = PlayerCommands[player.Id];
 
-                    // TEST:
-                    if (player.FreeCardOnce && player.Board.Id != WonderId.OlympiaA)
-                    { }
-
-                    if (player.DiscardFree &&
-                        (player.Board.Id == WonderId.HalikarnassosA && player.Board.Stage != 2 ||
-                        player.Board.Id == WonderId.HalikarnassosB && player.Board.Stage < 1))
-                    { }
-
                     // handle command for player
                     HandlePlayerCommand(player, playerCommand, player.HandCards);
-
-                    // TEST:
-                    if (player.FreeCardOnce && player.Board.Id != WonderId.OlympiaA)
-                    { }
-
-                    if (player.DiscardFree &&
-                        (player.Board.Id == WonderId.HalikarnassosA && player.Board.Stage < 2 ||
-                        player.Board.Id == WonderId.HalikarnassosB && player.Board.Stage < 1))
-                    { }
 
                     // reset PlayersReady status for player
                     PlayersReady[player.Id] = false;
@@ -899,10 +877,6 @@ namespace _7WondersGame.src.models
         public int ApplyMove(int playerId, Command playerMove)
         {
             int newPlayer = -1;
-
-            // TEST:
-            if ((Turn + 2) % 7 == 0)
-            { }
 
             // if not all players are ready then simply set move and player ready
             if (PlayersReady.Contains(false))

@@ -103,10 +103,6 @@ namespace _7WondersGame.src.models.MCTS
 
             for (int iteration = 0; iteration < (MaxIterations * ageMultiplier); )
             {
-                // TEST:
-                if (iteration == MaxIterations - 1)
-                { }
-
                 Node_v3 selectedNode = Selection(rootNode);
                 Node_v3 expandedNode = Expansion(selectedNode);
 
@@ -197,9 +193,6 @@ namespace _7WondersGame.src.models.MCTS
                 }
             }
 
-            if (bestChild == null)
-            { }
-
             return bestChild;
         }
 
@@ -237,10 +230,6 @@ namespace _7WondersGame.src.models.MCTS
             Game newState = node.GameState.DeepCopy();
             newState = newState.ApplyJointMove(selectedJointMove);
 
-            // TEST:
-            if (newState is not null && newState.Players[0].HandCards.Count == 0 && newState.Era < 4 && newState.Turn % 7 != 0)
-            { }
-            
             // if newState is null, then game has ended
             if (newState.Era >= 4)
             {
@@ -270,11 +259,6 @@ namespace _7WondersGame.src.models.MCTS
         {
             double simulationResults = 0;
             Game simGame = node.GameState.DeepCopy();
-
-            // TEST:
-            if (simGame.Turn % 7 == 0 && simGame.Turn != 0 &&
-                simGame.Players[0].HandCards.Count == 0 && simGame.Era < 4)
-            { }
 
             // --- MCTS IMPROVEMENT: DDK in simulations
             // --- cast any players to deterministicAI player for simulation 
@@ -386,13 +370,6 @@ namespace _7WondersGame.src.models.MCTS
                     bestChild = child;
                 }
             }
-
-            // TEST:
-            if (bestChild == null)
-            { }
-            // TEST:
-            if (bestChild.LastJointMove is not null && bestChild.LastJointMove[this.Id].Subcommand.Equals("discard"))
-            { }
 
             return bestChild;
         }

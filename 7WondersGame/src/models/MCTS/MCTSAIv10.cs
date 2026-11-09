@@ -107,10 +107,6 @@ namespace _7WondersGame.src.models.MCTS
 
             for (int iteration = 0; iteration < (MaxIterations * ageMultiplier); )
             {
-                // TEST:
-                if (iteration == MaxIterations - 1)
-                { }
-
                 Node_v7 selectedNode = Selection(rootNode);
                 Node_v7 expandedNode = Expansion(selectedNode);
 
@@ -202,9 +198,6 @@ namespace _7WondersGame.src.models.MCTS
                 }
             }
 
-            if (bestChild == null)
-            { }
-
             return bestChild;
         }
 
@@ -228,9 +221,6 @@ namespace _7WondersGame.src.models.MCTS
             //    (EXPLORATION_WEIGHT_WL / (1 + Math.Log(1 + node.VisitCount))) *
             //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-
-            // TEST:
-            if (true) { }
 
             return uct;
         }
@@ -256,10 +246,6 @@ namespace _7WondersGame.src.models.MCTS
             // apply move to new state
             Game newState = node.GameState.DeepCopy();
             int nextPlayerId = newState.ApplyMove(node.CurrentPlayerId, selectedMove);
-
-            // TEST:
-            if (newState.Players[0].HandCards.Count == 0 && newState.Era < 4 && newState.Turn % 7 != 0)
-            { }
 
             // NOTE:    can add a check if nextplayer is Players[0] && node.GameState.Turn != newState.Turn
             //          meaning that a turn has been applied and nextPlayer - Player[0] was returned as a ahrd coded choice.
@@ -295,11 +281,6 @@ namespace _7WondersGame.src.models.MCTS
         {
             double simulationResults = 0;
             Game simGame = node.GameState.DeepCopy();
-
-            // TEST:
-            if (simGame.Turn % 7 == 0 && simGame.Turn != 0 &&
-                simGame.Players[0].HandCards.Count == 0 && simGame.Era < 4)
-            { }
 
             // --- MCTS IMPROVEMENT: DDK in simulations
             // --- cast any players to deterministicAI player for simulation 
@@ -421,13 +402,6 @@ namespace _7WondersGame.src.models.MCTS
                     bestChild = child;
                 }
             }
-
-            // TEST:
-            if (bestChild == null)
-            { }
-            // TEST:
-            if (bestChild.LastMove is not null && bestChild.LastMove.Subcommand.Equals("discard"))
-            { }
 
             return bestChild;
         }
