@@ -326,7 +326,7 @@ namespace _7WondersGame.src.models
             return allReady;
         }
 
-        void NextTurn(string matchLogSheet = "")
+        void NextTurn(bool verbose = false)
         {
             Turn++;
 
@@ -341,7 +341,7 @@ namespace _7WondersGame.src.models
                         //          player can play seventh Era card so we need to process 1 default move.
                         //          1. calculate players new playable cards,
                         //          2. read this players command and process it
-                        ExtraLoop(player, playSeventh:true, matchLogSheet:matchLogSheet);
+                        ExtraLoop(player, playSeventh: true, verbose: verbose);
                 }
                 Turn++;
             }
@@ -383,7 +383,7 @@ namespace _7WondersGame.src.models
                     //          player can play card from discarded cards for free.
                     //          1. calculate players new playable cards from discardedCards
                     //          2. read this players command and process it
-                    ExtraLoop(player, discardFree:true, matchLogSheet: matchLogSheet);
+                    ExtraLoop(player, discardFree: true, verbose: verbose);
             }
 
 
@@ -450,7 +450,17 @@ namespace _7WondersGame.src.models
             } while (p1 != p);
         }
 
-        public Dictionary<int, int> Loop(string matchLogSheet = "")
+        /// <summary>
+        /// Final results of the last <see cref="Loop(bool)"/> run with record = true; null otherwise.
+        /// </summary>
+        public List<SeatResult>? Results { get; private set; }
+
+        /// <summary>
+        /// Plays the game to the end and scores it.
+        /// </summary>
+        /// <param name="record">true for a real game (not an MCTS rollout): log progress and keep <see cref="Results"/>.</param>
+        /// <returns>Each seat's final VP.</returns>
+        public Dictionary<int, int> Loop(bool record = false)
         {
             while (Turn < 21)
             {
@@ -522,8 +532,8 @@ namespace _7WondersGame.src.models
                 }
 
                 // Moves the game to the next turn, processes DiscardFree and PlaySeventh effects
-                NextTurn(matchLogSheet);
-                if (!matchLogSheet.Equals(""))
+                NextTurn(record);
+                if (record)
                     Log.Information("Turn {turn} complete", Turn);
             }
 
@@ -536,25 +546,9 @@ namespace _7WondersGame.src.models
                 Log.Debug("results Player {PlayerId} score: {PlayerScore}", player.Id, player.VictoryPoints);
             }
 
-            // match_log_results after end game
-            if (!matchLogSheet.Equals(""))
-            {
-                List<PlayerResults> results = new List<PlayerResults>();
-                foreach(var player in Players)
-                {
-                    results.Add(new PlayerResults()
-                    {
-                        Id = player.Id,
-                        Board = (Wonder)player.Board.DeepCopy(),
-                        PlayedCards = player.PlayedCards.Select(e => e).ToList(),
-                        VictoryPoints = player.VictoryPoints,
-                        VictoryTokens = player.VictoryTokens,
-                        DefeatTokens = player.DefeatTokens,
-                        Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                    });
-                }
-                Filer.WriteMatchLogBuffered(matchLogSheet, results);
-            }
+            // keep the results before the game memory is released
+            if (record)
+                Results = GameResult.ForPlayers(Players);
 
             var scores = new Dictionary<int, int>();
             Players.ForEach(p => scores.Add(p.Id, p.VictoryPoints));
@@ -562,7 +556,7 @@ namespace _7WondersGame.src.models
             return scores;
         }
 
-        public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false, string matchLogSheet = "")
+        public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false, bool verbose = false)
         {
             // update pre turn game data for player
             // set the list of cards from which to play based on effect flag
@@ -633,7 +627,7 @@ namespace _7WondersGame.src.models
                     player.DiscardFree = false;
                 }
             }
-            if (!matchLogSheet.Equals(""))
+            if (verbose)
                 Log.Information("Turn {turn} (Player:{pId} discard:{discardFree} | seventh:{playSeventh}) complete", Turn, player.Id, discardFree, playSeventh);
         }
 

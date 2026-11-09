@@ -1,4 +1,4 @@
-using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.models
 {
@@ -8,6 +8,13 @@ namespace _7WondersGame.src.models
     /// WinShare is 1/k for each of the k players tied for first place, otherwise 0.
     /// </summary>
     public record PlayerStanding(int Id, int VictoryPoints, int Coins, int Rank, double WinShare);
+
+    /// <summary>
+    /// What one seat got in a finished game. One CSV row per seat (B2).
+    /// Wonder is the board name without the side (e.g. "Gizah"); Side is "A" or "B".
+    /// </summary>
+    public record SeatResult(int Seat, string Agent, string ConfigJson, string Wonder, string Side,
+                             int VictoryPoints, int Coins, int Rank, double WinShare);
 
     /// <summary>
     /// Final ranking used everywhere results are judged (R9, rulebook tie-break):
@@ -36,8 +43,20 @@ namespace _7WondersGame.src.models
         public static List<PlayerStanding> Rank(IEnumerable<Player> players) =>
             Rank(players.Select(p => (p.Id, p.VictoryPoints, p.Resources[Resource.Coins])).ToList());
 
-        internal static List<PlayerStanding> Rank(IEnumerable<PlayerResults> players) =>
-            Rank(players.Select(p => (p.Id, p.VictoryPoints, p.Resources[Resource.Coins])).ToList());
+        /// <summary>
+        /// Final results of a scored game, one per seat, in seat order.
+        /// </summary>
+        public static List<SeatResult> ForPlayers(IReadOnlyList<Player> players)
+        {
+            List<PlayerStanding> standings = Rank(players);
+            return players.Select((p, i) =>
+            {
+                string board = p.Board.Id.ToString();
+                return new SeatResult(p.Id, p.GetType().Name, p.ConfigJson(),
+                    board[..^1], board[^1..],
+                    p.VictoryPoints, p.Resources[Resource.Coins], standings[i].Rank, standings[i].WinShare);
+            }).ToList();
+        }
 
         private static bool Beats((int Id, int VictoryPoints, int Coins) a, (int Id, int VictoryPoints, int Coins) b) =>
             a.VictoryPoints > b.VictoryPoints ||

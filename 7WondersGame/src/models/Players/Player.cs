@@ -86,6 +86,31 @@ namespace _7WondersGame.src.models.Players
         /// <returns></returns>
         public abstract object DeepCopy();
 
+        /// <summary>
+        /// The agent's settings as JSON, logged with every result row (B2).
+        /// By default these are the simple-valued instance fields declared by the agent class itself
+        /// (for example an MCTS agent's exploration constant and iteration count), sorted by name.
+        /// </summary>
+        public virtual string ConfigJson()
+        {
+            var config = new SortedDictionary<string, object?>(StringComparer.Ordinal);
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public |
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
+            for (Type? t = GetType(); t != null && t != typeof(Player); t = t.BaseType)
+            {
+                foreach (var field in t.GetFields(flags))
+                {
+                    Type ft = field.FieldType;
+                    if (!(ft.IsPrimitive || ft.IsEnum || ft == typeof(string) || ft == typeof(decimal)))
+                        continue;
+                    // auto-property backing fields are named "<Name>k__BackingField"
+                    string name = field.Name.StartsWith("<") ? field.Name[1..field.Name.IndexOf('>')] : field.Name;
+                    config.TryAdd(name, ft.IsEnum ? field.GetValue(this)?.ToString() : field.GetValue(this));
+                }
+            }
+            return System.Text.Json.JsonSerializer.Serialize(config);
+        }
+
 
         // =========== Build related functions ===========
         // =========== Wonder related ===========

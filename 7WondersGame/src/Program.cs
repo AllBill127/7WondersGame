@@ -1,117 +1,156 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Serilog;
-using System.Security.Authentication.ExtendedProtection;
+﻿using Serilog;
+using System.Globalization;
 using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.MCTS;
-using OfficeOpenXml;
-using System.Reflection;
 
 namespace _7WondersGame.src
 {
     internal class Program
     {
-        private static int parallelCount = 2;
-        static async Task Main(string[] args)
-        {
-            // Configure excel license for logging match results into excell
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        private const string Usage =
+            "args: <gameCount> <results.csv> <parallelCount> <minC> <maxC> <iterCount> <runSeed> [datasetFile]";
 
-            // Configure glopbal Serilog logger
+        /// <summary>One run: its id and seed, and the single writer all its games append to.</summary>
+        private sealed record RunContext(string RunId, ulong RunSeed, ResultsCsvWriter Writer);
+
+        static async Task<int> Main(string[] args)
+        {
+            // Configure global Serilog logger
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 //.MinimumLevel.Debug()
                 .WriteTo.Console()
                 .CreateLogger();
 
-            //await GenerateGameDatasets(5, 100);
+            //await GenerateGameDatasets(runSeed: 0, numPlayers: 5, gameCount: 100);
 
-            await RunGameTests(args);
+            return await RunGameTests(args);
         }
 
-        private static async Task RunGameTests(string[] args)
+        private static async Task<int> RunGameTests(string[] args)
         {
-            // get main arguments log buffer size, game count to simulate, log excel file and sheet names, multithread amount and game dataset presets
-            int maxLogBufferSize = 3;
+            // defaults, used when an argument is left out
             int gameCount = 1000;
-            string resultsExcelName = "memTest.xlsx";
-            string resultsSheetName = "rng_det";
-            string gameDatasetFileName = null;
-            parallelCount = 3;
+            string resultsCsvName = "results.csv";
+            int parallelCount = 3;
             double minC = 0, maxC = 100;
             int iterCount = 100;
-            ulong runSeed = 0;
-            Dictionary<int, List<int>[]> gameDatasets = null;
+            ulong? runSeedArg = null;
+            string? gameDatasetFileName = null;
 
-            // read and log program cli run or default arguments
-            Log.Information("input: [maxLogBufferSize], [gameCount], [resultsExcelName], [resultsSheetName], [parallelCount], [minC], [maxC], [iterCount], [gameDatasetFileName], [runSeed]");
+            Log.Information(Usage);
             if (args.Length == 0)
+                Log.Warning("No arguments given; using the defaults.");
+            try
             {
-                args = Console.ReadLine().Split(", ");
+                if (args.Length > 0) gameCount = int.Parse(args[0], CultureInfo.InvariantCulture);
+                if (args.Length > 1 && args[1] != "") resultsCsvName = args[1];
+                if (args.Length > 2) parallelCount = int.Parse(args[2], CultureInfo.InvariantCulture);
+                if (args.Length > 3) minC = double.Parse(args[3], CultureInfo.InvariantCulture);
+                if (args.Length > 4) maxC = double.Parse(args[4], CultureInfo.InvariantCulture);
+                if (args.Length > 5) iterCount = int.Parse(args[5], CultureInfo.InvariantCulture);
+                if (args.Length > 6) runSeedArg = ParseSeed(args[6]);
+                if (args.Length > 7 && args[7] != "") gameDatasetFileName = args[7];
             }
-            if (args.Length > 0 && !int.TryParse(args[0], out maxLogBufferSize))
-                maxLogBufferSize = 2;
-            if (args.Length > 1 && !int.TryParse(args[1], out gameCount))
-                gameCount = 4;
-            if (args.Length > 2 && !string.IsNullOrEmpty(args[2]))
-                resultsExcelName = args[2];
-            if (args.Length > 3 && !string.IsNullOrEmpty(args[3]))
-                resultsSheetName = args[3];
-            if (args.Length > 4 && !int.TryParse(args[4], out parallelCount))
-                parallelCount = 2; ;
-            if (args.Length > 5 && !double.TryParse(args[5], out minC))
-                minC = 0;
-            if (args.Length > 6 && !double.TryParse(args[6], out maxC))
-                maxC = 100;
-            if (args.Length > 7 && !int.TryParse(args[7], out iterCount))
-                iterCount = 10;
-            if (args.Length > 8 && !string.IsNullOrEmpty(args[8]))
-                gameDatasetFileName = args[8];
-            else 
-                gameDatasetFileName = null;
-            if (args.Length > 9 && !string.IsNullOrEmpty(args[9]))
-                runSeed = ulong.Parse(args[9]);
-            Log.Information("Run seed: {runSeed}", runSeed);
+            catch (FormatException ex)
+            {
+                Log.Error("Bad argument: {message}\n{usage}", ex.Message, Usage);
+                return 2;
+            }
 
-            string? programPath = GetProgramFilePath();
-            Log.Information("Program File Path: {programPath}", programPath);
-            Log.Information("Log buffer size: {maxBufferSize} | game count: {gameCount}\nLog excel name: {resultsExcelName} | Log sheet name: {resultsSheetName}\nParallel count: {parallelCount}",
-                maxLogBufferSize, gameCount, resultsExcelName, resultsSheetName, parallelCount);
+            // a missing seed is made from the clock, and recorded, so the run can still be repeated
+            ulong runSeed = runSeedArg ?? (ulong)DateTime.UtcNow.Ticks;
+            DateTime started = DateTime.UtcNow;
+            string runId = RunManifest.NewRunId(started, runSeed);
 
-            // init filer
-            Filer.InitFiler(programPath, resultsExcelName, maxLogBufferSize);
-            
+            string programPath = AppDomain.CurrentDomain.BaseDirectory;
+            Filer.SetDataPath(programPath);
+            string csvPath = Path.IsPathRooted(resultsCsvName)
+                ? resultsCsvName
+                : Path.Combine(programPath, "results", resultsCsvName);
+            string manifestPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(csvPath))!, $"{runId}.run.json");
+
+            var manifest = new RunManifest
+            {
+                RunId = runId,
+                RunSeed = runSeed,
+                Args = args,
+                Settings = new Dictionary<string, string>
+                {
+                    ["experiment"] = nameof(SearchOptimalCParallel),
+                    ["gameCount"] = gameCount.ToString(CultureInfo.InvariantCulture),
+                    ["parallelCount"] = parallelCount.ToString(CultureInfo.InvariantCulture),
+                    ["minC"] = minC.ToString(CultureInfo.InvariantCulture),
+                    ["maxC"] = maxC.ToString(CultureInfo.InvariantCulture),
+                    ["iterCount"] = iterCount.ToString(CultureInfo.InvariantCulture),
+                    ["dataset"] = gameDatasetFileName ?? "",
+                },
+                ResultsCsv = Path.GetFullPath(csvPath),
+                StartedUtc = started,
+            };
+            manifest.Save(manifestPath);
+
+            Log.Information("Run {runId} | seed {runSeed} | commit {commit}", runId, runSeed, manifest.GitCommit);
+            Log.Information("Results: {csv}\nManifest: {manifest}", manifest.ResultsCsv, manifestPath);
+
             // read game presets dataset
+            Dictionary<int, List<int>[]>? gameDatasets = null;
             if (gameDatasetFileName != null)
                 gameDatasets = await Filer.ReadGameDatasetFromFile(gameDatasetFileName);
 
-            // run games
             Log.Information("Starting game simulations");
+            (int completed, int failed) outcome;
+            using (var writer = new ResultsCsvWriter(csvPath))
+            {
+                var run = new RunContext(runId, runSeed, writer);
+                //outcome = RunGamesParallel(run, gameCount, parallelCount, gameDatasets);
+                outcome = SearchOptimalCParallel(run, gameCount, minC, maxC, iterCount, parallelCount, gameDatasets);
+            }
 
-            //RunGamesParallel(gameCount, runSeed, resultsSheetName, gameDatasets);
-            //await GenerateGameDatasets(runSeed, 3, 100);
-            SearchOptimalCParallel(gameCount, minC, maxC, iterCount, runSeed, resultsSheetName, gameDatasets);
+            manifest.FinishedUtc = DateTime.UtcNow;
+            manifest.GamesCompleted = outcome.completed;
+            manifest.GamesFailed = outcome.failed;
+            manifest.Save(manifestPath);
 
-            await Filer.FlushMatchLogBuffer(resultsSheetName);
-            await Filer.AwaitAllLoggingTasksAsync();
+            Log.Information("Full run complete! {completed} games, {failed} failed", outcome.completed, outcome.failed);
+            return outcome.failed == 0 ? 0 : 1;
+        }
 
-            Log.Information("Full run complete!");
+        /// <summary>Accepts a decimal number or 0x-prefixed hex.</summary>
+        private static ulong ParseSeed(string text) =>
+            text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? ulong.Parse(text[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture)
+                : ulong.Parse(text, CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// Plays one game to the end and appends its rows to the results CSV.
+        /// Returns false (and logs the seed so the game can be replayed) if the game throws.
+        /// </summary>
+        private static bool PlayAndRecord(RunContext run, Game game, long gameIndex, long dealIndex)
+        {
+            try
+            {
+                game.Loop(record: true);
+                run.Writer.WriteGame(run.RunId, gameIndex, dealIndex, game.Seed, game.Results!);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Game {gameIndex} (seed {seed}) failed: {ex}", gameIndex, game.Seed, ex);
+                return false;
+            }
         }
 
         private static async Task GenerateGameDatasets(ulong runSeed, int numPlayers = 3, int gameCount = 100)
         {
-            // get main arguments log buffer size, game count to simulate, log excel file and sheet names, multithread amount and game dataset presets
-            int maxLogBufferSize = 2;
-            string resultsExcelName = "7WondersGameResults.xlsx";
-            parallelCount = 3;
             Dictionary<int, List<int>[]> gameDatasets = new();
 
-            string? programPath = GetProgramFilePath();
+            string programPath = AppDomain.CurrentDomain.BaseDirectory;
+            Filer.SetDataPath(programPath);
             Log.Information("Program File Path: {programPath}", programPath);
-            Log.Information("numPlayers: {numPlayers} | game count: {gameCount}",
-                numPlayers, gameCount);
-
-            Filer.InitFiler(programPath, resultsExcelName, maxLogBufferSize);
+            Log.Information("numPlayers: {numPlayers} | game count: {gameCount} | seed: {runSeed}",
+                numPlayers, gameCount, runSeed);
 
             for (int i = 0; i < gameCount; ++i)
             {
@@ -157,8 +196,9 @@ namespace _7WondersGame.src
             Log.Information("Full run complete!");
         }
 
-        private static void RunGames(int numGames, ulong runSeed, string logSheetName = "testRun")
+        private static (int completed, int failed) RunGames(RunContext run, int numGames)
         {
+            int completed = 0, failed = 0;
             for (int i = 0; i < numGames; ++i)
             {
                 // create each games players
@@ -174,23 +214,25 @@ namespace _7WondersGame.src
                 };
 
                 // create game
-                Game newGame = new Game(Seeding.GameSeed(runSeed, i))
+                Game newGame = new Game(Seeding.GameSeed(run.RunSeed, i))
                 {
                     Players = players,
                 };
                 newGame.InitGame();
 
                 // run game and log results
-                newGame.Loop(logSheetName);
+                if (PlayAndRecord(run, newGame, i, i)) completed++; else failed++;
 
                 if (i % 10 == 0)
                     Log.Information("Game {gameNr} complete!", i);
             }
+            return (completed, failed);
         }
 
-        private static void RunGamesParallel(int numGames, ulong runSeed, string logSheetName = "testRun", Dictionary<int, List<int>[]> gameDatasets = null)
+        private static (int completed, int failed) RunGamesParallel(RunContext run, int numGames, int parallelCount,
+            Dictionary<int, List<int>[]>? gameDatasets = null)
         {
-            int counter = 0;
+            int completed = 0, failed = 0;
 
             Parallel.For(0, numGames, new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
             {
@@ -209,7 +251,7 @@ namespace _7WondersGame.src
                 };
 
                 // create game
-                Game newGame = new Game(Seeding.GameSeed(runSeed, i))
+                Game newGame = new Game(Seeding.GameSeed(run.RunSeed, i))
                 {
                     Players = players,
                 };
@@ -218,105 +260,97 @@ namespace _7WondersGame.src
                 else
                     newGame.InitGame();
 
-                // Log player wondes
+                // Log player wonders
                 foreach (Player player in newGame.Players)
                 {
                     Log.Information("Player {playerId} wonder: {playerBoardName}", player.Id, player.Board.Name);
                 }
 
                 // run game and log results
-                newGame.Loop(logSheetName);
+                bool ok = PlayAndRecord(run, newGame, i, i);
+                int done = ok ? Interlocked.Increment(ref completed) : Interlocked.Increment(ref failed);
 
-                counter++;
-
-                if (counter % 10 == 0)
+                if (ok && done % 10 == 0)
                 {
-                    Log.Information("{counter} Games complete! curr game: {gameNr} ", counter, i);
+                    Log.Information("{counter} Games complete! curr game: {gameNr} ", done, i);
                 }
 
                 Log.Information("Completed iteration  {iterationNr}", i);
             });
+
+            return (completed, failed);
         }
 
-        private static void SearchOptimalCParallel(int numGames, double minC, double maxC, int iterations, ulong runSeed, string logSheetName = "testRun", Dictionary<int, List<int>[]> gameDatasets = null)
+        private static (int completed, int failed) SearchOptimalCParallel(RunContext run, int numGames, double minC, double maxC,
+            int iterations, int parallelCount, Dictionary<int, List<int>[]>? gameDatasets = null)
         {
-            int counter = 0;
+            int completed = 0, failed = 0;
             Object setupLock = new();
             double iteratorC = (maxC - minC) / iterations;
 
-            try
+            Parallel.For(0, (numGames * (iterations==1 ? 1 : (iterations + 1))), new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
             {
-                Parallel.For(0, (numGames * (iterations==1 ? 1 : (iterations + 1))), new ParallelOptions { MaxDegreeOfParallelism = parallelCount }, i =>
+                Log.Information("Processing iteration {iterationNr}", i);
+
+                // game i always gets the same seed, deal and C, whatever the thread timing
+                int gameIndex = i;
+                int dealIndex = gameDatasets != null ? gameIndex % numGames : gameIndex;
+                double c = minC + (gameIndex / numGames) * iteratorC;
+
+                List<Player> players;
+                Game newGame;
+                lock (setupLock)
                 {
-                    Log.Information("Processing iteration {iterationNr}", i);
-
-                    List<Player> players;
-                    Game newGame;
-                    // game i always gets the same seed, deal and C, whatever the thread timing
-                    int gameIndex = i;
-                    double c = minC + (gameIndex / numGames) * iteratorC;
-                    lock (setupLock)
+                    // create each games players
+                    players = new()
                     {
-                        // create each games players
-                        players = new()
-                        {
-                            new DeterministicAI(0),
-                            //new MCTSAIv4(0, c, 1),
-                            //new MCTSAIv4(0, 136, 5),
-                            //new JMMCTSAIv2(1, c),
-                            new RandomChoiceAI(1),
-                            //new DeterministicAI(2),
-                            new MCTSAIv10(2, c, 1),
-                            //new MCTSAIv5(2, 136, 5),
-                            //new JMMCTSAIv2(2, c),
-                            //new DeterministicAI(3),
-                            //new RandomChoiceAI(4),
-                            //new RandomChoiceAI(5),
-                            //new RandomChoiceAI(6),
-                        };
+                        new DeterministicAI(0),
+                        //new MCTSAIv4(0, c, 1),
+                        //new MCTSAIv4(0, 136, 5),
+                        //new JMMCTSAIv2(1, c),
+                        new RandomChoiceAI(1),
+                        //new DeterministicAI(2),
+                        new MCTSAIv10(2, c, 1),
+                        //new MCTSAIv5(2, 136, 5),
+                        //new JMMCTSAIv2(2, c),
+                        //new DeterministicAI(3),
+                        //new RandomChoiceAI(4),
+                        //new RandomChoiceAI(5),
+                        //new RandomChoiceAI(6),
+                    };
 
-                        // create game
-                        newGame = new Game(Seeding.GameSeed(runSeed, gameIndex))
-                        {
-                            Players = players,
-                        };
-                        if (gameDatasets != null)
-                            newGame.InitGameNotRandom(gameDatasets[gameIndex % numGames]);
-                        else
-                            newGame.InitGame();
-
-                        Log.Information("game: {gameIndex} | seed: {seed} | C = {cValue}", gameIndex, newGame.Seed, c);
-
-                        // Log player wondes
-                        foreach (Player player in newGame.Players)
-                        {
-                            Log.Information("Player {playerId} wonder: {playerBoardName}", player.Id, player.Board.Name);
-                        }
-                    }
-
-                    // run game and log results
-                    newGame.Loop(logSheetName);
-
-                    counter++;
-
-                    if (counter % 10 == 0)
+                    // create game
+                    newGame = new Game(Seeding.GameSeed(run.RunSeed, gameIndex))
                     {
-                        Log.Information("{counter} Games complete! curr game: {gameNr} ", counter, i);
+                        Players = players,
+                    };
+                    if (gameDatasets != null)
+                        newGame.InitGameNotRandom(gameDatasets[dealIndex]);
+                    else
+                        newGame.InitGame();
+
+                    Log.Information("game: {gameIndex} | seed: {seed} | C = {cValue}", gameIndex, newGame.Seed, c);
+
+                    // Log player wonders
+                    foreach (Player player in newGame.Players)
+                    {
+                        Log.Information("Player {playerId} wonder: {playerBoardName}", player.Id, player.Board.Name);
                     }
+                }
 
-                    Log.Information("Completed iteration  {iterationNr}", i);
-                });
-            }
-            catch (Exception ex)
-            {
-                Log.Error("PARALLEL FAILED: {ex}", ex.Message);
-            }
-        }
+                // run game and log results
+                bool ok = PlayAndRecord(run, newGame, gameIndex, dealIndex);
+                int done = ok ? Interlocked.Increment(ref completed) : Interlocked.Increment(ref failed);
 
-        static string? GetProgramFilePath()
-        {
-            string executablePath = AppDomain.CurrentDomain.BaseDirectory;
-            return executablePath;
+                if (ok && done % 10 == 0)
+                {
+                    Log.Information("{counter} Games complete! curr game: {gameNr} ", done, i);
+                }
+
+                Log.Information("Completed iteration  {iterationNr}", i);
+            });
+
+            return (completed, failed);
         }
     }
 }
