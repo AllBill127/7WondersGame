@@ -114,7 +114,7 @@ namespace _7WondersGame.src.models
 
             for (int i = 0; i < Players.Count; i++)
             {
-                Players[i].Board = CreateWonders(gameDataset[3][i]);
+                AssignWonder(Players[i], gameDataset[3][i]);
             }
         }
 
@@ -245,6 +245,15 @@ namespace _7WondersGame.src.models
             return wonder;
         }
 
+        /// <summary>
+        /// Give a player a wonder board and its starting resource. Used by both setup paths.
+        /// </summary>
+        private void AssignWonder(Player player, int wonderId)
+        {
+            player.Board = CreateWonders(wonderId);
+            player.Resources[player.Board.Production] += 1;
+        }
+
         private void GiveWonders()
         {
             Random rng = new Random();
@@ -259,8 +268,7 @@ namespace _7WondersGame.src.models
                     int n = rng.Next(14);
                     if (wonder_availability[n % 7])
                     {
-                        player.Board = CreateWonders(n);
-                        player.Resources[player.Board.Production] = 1;
+                        AssignWonder(player, n);
                         wonder_availability[n % 7] = false;
                         break;
                     }
