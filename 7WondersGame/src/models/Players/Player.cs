@@ -1401,62 +1401,29 @@ namespace _7WondersGame.src.models.Players
                 sci_extra++;
             }
 
-            // Choose the most advantageous scientific piece for extra piece:
-            // First complete the set if possible as it gives 7 + typeAmount^2 - typeAmount.
-            // The pieces left over after completing sets are added to type that has most typeAmount.
-            // If remaining type sum is > (extra = 2) then adding extra to the most typeAmount gives highest VP
-            // NOTE:    not implemented yet. Do testing to find out the need for this. (extra:1 gear:3 compass:2 tablet:1 = 31 (not 28))
-            // If remainingTypeSum is > (extra = 1) AND remainingTypeSum % 2 = 1 AND most typeAmount = 3
-            //      then 1 set can be completed and it gives more VP than adding to most typeAmount
-            int remaining_tablets,
-                remaining_compasses,
-                remaining_gears,
-                extra = sci_extra;
-            if (tablet >= compass && tablet >= gear)
-            {
-                remaining_compasses = tablet - compass;
-                remaining_gears = tablet - gear;
-                if (remaining_compasses + remaining_gears <= extra)
-                {
-                    compass += remaining_compasses;
-                    gear += remaining_gears;
-                    extra -= remaining_compasses + remaining_gears;
-                }
-                tablet += extra;
-            }
-            else if (compass >= tablet && compass >= gear)
-            {
-                remaining_tablets = compass - tablet;
-                remaining_gears = compass - gear;
-                if (remaining_tablets + remaining_gears <= extra)
-                {
-                    tablet += remaining_tablets;
-                    gear += remaining_gears;
-                    extra -= remaining_tablets + remaining_gears;
-                }
-                compass += extra;
-            }
-            else if (gear >= tablet && gear >= compass)
-            {
-                remaining_tablets = gear - tablet;
-                remaining_compasses = gear - compass;
-                if (remaining_compasses + remaining_tablets <= extra)
-                {
-                    compass += remaining_compasses;
-                    tablet += remaining_tablets;
-                    extra -= remaining_compasses + remaining_tablets;
-                }
-                gear += extra;
-            }
+            return BestScienceScore(gear, compass, tablet, sci_extra);
+        }
 
-            // The smallest value among the three is the amount of completed sets
-            int completed_sets = 0;
-            if (gear <= tablet && gear <= compass) completed_sets = gear;
-            if (tablet <= gear && tablet <= compass) completed_sets = tablet;
-            if (compass <= gear && compass <= tablet) completed_sets = compass;
+        /// <summary>
+        /// Science VP with each wildcard placed on the best symbol, found by trying every placement (3^k, k &lt;= 2).
+        /// </summary>
+        public static int BestScienceScore(int gear, int compass, int tablet, int wildcards)
+        {
+            if (wildcards == 0)
+                return ScienceScore(gear, compass, tablet);
 
-            int points_per_set_completed = 7;
-            return gear * gear + tablet * tablet + compass * compass + completed_sets * points_per_set_completed;
+            return Math.Max(BestScienceScore(gear + 1, compass, tablet, wildcards - 1),
+                   Math.Max(BestScienceScore(gear, compass + 1, tablet, wildcards - 1),
+                            BestScienceScore(gear, compass, tablet + 1, wildcards - 1)));
+        }
+
+        /// <summary>
+        /// Rulebook science VP: each symbol type scores its count squared, and each complete set of three different symbols scores 7.
+        /// </summary>
+        public static int ScienceScore(int gear, int compass, int tablet)
+        {
+            int completedSets = Math.Min(gear, Math.Min(compass, tablet));
+            return gear * gear + compass * compass + tablet * tablet + 7 * completedSets;
         }
 
         /// <summary>
