@@ -2,7 +2,7 @@
 
 namespace _7WondersGame.src.models
 {
-    public class Card
+    public sealed class Card : IEquatable<Card>
     {
         public CardId Id { get; }
         public string Name { get; }
@@ -44,22 +44,19 @@ namespace _7WondersGame.src.models
         }
 
         /// <summary>
-        /// As defined in the rule book - cards with the same name
+        /// The rulebook's no-duplicates rule: a city can't hold two cards with the same name
+        /// (Loom from age I and Loom from age II are different cards with the same name).
         /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public override bool Equals(object? obj)
-        {
-            if (obj == null || !obj.GetType().Equals(this.GetType()))
-                return false;
+        public bool SameNameAs(Card other) => Name == other.Name;
 
-            Card other = (Card)obj;
-            return this.Name.Equals(other.Name);
-        }
+        /// <summary>Cards are the same card when they have the same <see cref="Id"/> (E6).</summary>
+        public bool Equals(Card? other) => other is not null && Id == other.Id;
+
+        public override bool Equals(object? obj) => Equals(obj as Card);
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Id, Name, Type, Era, FreeWithId, Cost);
+            return Id.GetHashCode();
         }
 
         public override string ToString()

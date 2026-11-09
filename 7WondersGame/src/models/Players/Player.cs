@@ -597,10 +597,11 @@ namespace _7WondersGame.src.models.Players
             return cost;
         }
 
+        /// <summary>The no-duplicates rule: true if the city already has a card with this name.</summary>
         private bool HasPlayedCard(Card card)
         {
             foreach (Card playedCard in PlayedCards)
-                if (playedCard.Equals(card))
+                if (playedCard.SameNameAs(card))
                     return true;
 
             return false;

@@ -22,7 +22,7 @@
             {
                 Command c = (Command)obj;
                 return Subcommand == c.Subcommand &&
-                    Argument == c.Argument;
+                    Equals(Argument, c.Argument);
             }
         }
 
