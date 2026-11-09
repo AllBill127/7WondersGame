@@ -1123,33 +1123,21 @@ namespace _7WondersGame.src.models.Players
             // Battle with east neighbor
             if (this_shields > PlayerEast.Resources[Resource.Shields])
             {
-                //Log.Debug("Player {PlayerId} -> WON battle with Player {EastPlayerId}", Id, PlayerEast.Id);
                 VictoryTokens += current_era_value;
             }
             else if (this_shields < PlayerEast.Resources[Resource.Shields])
             {
-                //Log.Debug("Player {PlayerId} -> LOST battle with Player {EastPlayerId}", Id, PlayerEast.Id);
                 DefeatTokens += 1;
-            }
-            else
-            {
-                //Log.Debug("Player {PlayerId} -> DRAW battle with Player {EastPlayerId}", Id, PlayerEast.Id);
             }
 
             // Battle with west neighbor
             if (this_shields > PlayerWest.Resources[Resource.Shields])
             {
-                //Log.Debug("Player {PlayerId} -> WON battle with Player {EastPlayerId}", Id, PlayerWest.Id);
                 VictoryTokens += current_era_value;
             }
             else if (this_shields < PlayerWest.Resources[Resource.Shields])
             {
-                //Log.Debug("Player {PlayerId} -> LOST battle with Player {EastPlayerId}", Id, PlayerWest.Id);
                 DefeatTokens += 1;
-            }
-            else
-            {
-                //Log.Debug("Player {PlayerId} -> DRAW battle with Player {EastPlayerId}", Id, PlayerWest.Id);
             }
         }
 

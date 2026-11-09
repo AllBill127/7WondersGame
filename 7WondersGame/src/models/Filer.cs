@@ -82,34 +82,6 @@ namespace _7WondersGame.src.models
                         line = await reader.ReadLineAsync();
                         AddIdsToList(wonders, line);
                     }
-                    //else if (!string.IsNullOrWhiteSpace(line))
-                    //{
-                    //    // Assume other lines contain deck or wonder data
-                    //    string[] ids = line.Split(',');
-                    //    foreach (var id in ids)
-                    //    {
-                    //        int parsedId;
-                    //        if (int.TryParse(id.Trim(), out parsedId))
-                    //        {
-                    //            if (deck1 != null)
-                    //            {
-                    //                deck1.Add(parsedId);
-                    //            }
-                    //            else if (deck2 != null)
-                    //            {
-                    //                deck2.Add(parsedId);
-                    //            }
-                    //            else if (deck3 != null)
-                    //            {
-                    //                deck3.Add(parsedId);
-                    //            }
-                    //            else if (wonders != null)
-                    //            {
-                    //                wonders.Add(parsedId);
-                    //            }
-                    //        }
-                    //    }
-                    //}
 
                     if ((deck1 != null && deck1.Count > 0) &&
                         (deck2 != null && deck2.Count > 0) &&

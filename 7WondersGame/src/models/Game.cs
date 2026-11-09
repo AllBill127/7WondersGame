@@ -184,14 +184,10 @@ namespace _7WondersGame.src.models
                 Decks[2].Add(guildCards[i]);
             }
 
-            //Log.Debug("Decks: {deck1}, {deck2}, {deck3}", Decks[0], Decks[1], Decks[2]);
-
             // Shuffle decks
             Decks[0] = Decks[0].OrderBy(a => rng.Next()).ToList();
             Decks[1] = Decks[1].OrderBy(a => rng.Next()).ToList();
             Decks[2] = Decks[2].OrderBy(a => rng.Next()).ToList();
-
-            //Log.Debug("SHUFFELED Decks: {deck1}, {deck2}, {deck3}", Decks[0], Decks[1], Decks[2]);
         }
 
         private void GiveCards()
@@ -769,9 +765,6 @@ namespace _7WondersGame.src.models
                 // add build wonder moves with any of hand cards
                 if (player.CanBuildWonder)
                 {
-                    //foreach (Card c in player.HandCards)
-                    //    legalMoves.Add(new Command(actionOpt[2], c));
-
                     // add single random discard for wonder building if available
                     if (player.HandCards.Count > 0)
                     {
@@ -786,10 +779,6 @@ namespace _7WondersGame.src.models
                     foreach (Card c in player.PlayableCards)
                         legalMoves.Add(new Command(actionOpt[1], c));
                 }
-
-
-                //foreach (Card c in player.HandCards)
-                //    legalMoves.Add(new Command(actionOpt[3], c));
 
                 // add single random discard move
                 if (player.HandCards.Count > 0)
@@ -810,9 +799,6 @@ namespace _7WondersGame.src.models
                 // add build wonder moves with any of hand cards
                 if (player.CanBuildWonder)
                 {
-                    //foreach (Card c in player.HandCards)
-                    //    legalMoves.Add(new Command(actionOpt[2], c));
-
                     // add single random discard for wonder building if available
                     if (player.HandCards.Count > 0)
                     {
@@ -820,9 +806,6 @@ namespace _7WondersGame.src.models
                         legalMoves.Add(new Command(actionOpt[2], player.HandCards[discardCardIdx]));
                     }
                 }
-
-                //foreach (Card c in player.HandCards)
-                //    legalMoves.Add(new Command(actionOpt[3], c));
 
                 // add single random discard move
                 if (player.HandCards.Count > 0)
@@ -1043,7 +1026,6 @@ namespace _7WondersGame.src.models
                     p.PlaySeventh)
                 {
                     HandlePlayerCommand(p, playerCommand, p.HandCards);
-                    //break;
                 }
                 // apply DiscrdFree extra move if current player from mcts expansion has this effect and its time to play it out
                 else if (discardFreePlayer != null &&
