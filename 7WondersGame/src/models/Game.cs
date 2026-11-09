@@ -1175,7 +1175,6 @@ namespace _7WondersGame.src.models
 
         public List<List<Command>> GetPossibleMovesForAllPlayersPruned()
         {
-            List<string> actionOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard", "skip_move" };
             List<Command>[] playersLegalMoves = new List<Command>[this.Players.Count];
             List<List<Command>> legalMoves = new();
 
@@ -1230,26 +1229,6 @@ namespace _7WondersGame.src.models
 
             GetAllCombinationsRecursive(playersLegalMoves, 0, new List<Command>(), legalMoves);
 
-
-            return legalMoves;
-        }
-
-        private List<Command> PlayerLegalMoves(Player player)
-        {
-            List<Command> legalMoves = new();
-
-            if (player.DiscardFree)
-                legalMoves = this.GetLegalMoves(player.Id, discardFree: true);
-            // if currentPlayer PlaySeveth is true and gameState.turn == 6 13 20, then he has to expand on last card all actions
-            else if (player.PlaySeventh &&
-                    (this.Turn == 6 ||
-                    this.Turn == 13 ||
-                    this.Turn == 20))
-                legalMoves = this.GetLegalMoves(player.Id, playSeventh: true);
-            // if currentPlayer FreeCardOnce is true, then he can also expand on building all hand cards free
-            // if regular move, then currentPlayer has to expand on build action with playable cards or discard, build wonder actions with any hand cards
-            else
-                legalMoves = this.GetLegalMoves(player.Id);
 
             return legalMoves;
         }

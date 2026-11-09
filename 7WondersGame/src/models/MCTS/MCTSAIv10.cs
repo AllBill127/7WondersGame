@@ -8,8 +8,6 @@ namespace _7WondersGame.src.models.MCTS
         private int MaxIterations = 20000;
         private double EXPLORATION_WEIGHT = 136;
         private double EXPLORATION_WEIGHT_WL = 5;
-        private const int SCORE_NORMALIZATION = 60;
-        private const int TOP_SCORE_NORMALIZATION = 30;
 
         public MCTSAIv10(int id, double explorationC, double explorationWLC) : base(id)
         {
@@ -272,7 +270,6 @@ namespace _7WondersGame.src.models.MCTS
 
         private Dictionary<int, int> Simulation(Node_v7 node)
         {
-            double simulationResults = 0;
             Game simGame = node.GameState.DeepCopy();
 
             // --- MCTS IMPROVEMENT: DDK in simulations

@@ -52,7 +52,6 @@ namespace _7WondersGame.src.models
             using (StreamReader reader = new StreamReader(filePath))
             {
                 string line;
-                string[] ids;
                 while ((line = await reader.ReadLineAsync()) != null)
                 {
                     if (line.StartsWith("Game"))

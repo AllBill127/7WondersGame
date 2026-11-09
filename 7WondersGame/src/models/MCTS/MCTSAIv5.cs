@@ -198,10 +198,6 @@ namespace _7WondersGame.src.models.MCTS
             //    EXPLORATION_WEIGHT * 
             //    Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
 
-            double uctWL = node.TotalScoreWL / (node.VisitCount + 1) +
-                EXPLORATION_WEIGHT_WL *
-                Math.Sqrt(Math.Log((node.Parent?.VisitCount ?? 0) + 1) / (node.VisitCount + 1));
-
             //// --- MCTS IMPROVEMENT: deminishing exploration
             double uct = (node.TotalScore / (node.VisitCount + 1)) +
                 (EXPLORATION_WEIGHT / (1 + Math.Log(1 + node.VisitCount))) *
@@ -269,7 +265,6 @@ namespace _7WondersGame.src.models.MCTS
 
         private Dictionary<int, int> Simulation(Node_v6 node)
         {
-            double simulationResults = 0;
             Game simGame = node.GameState.DeepCopy();
 
             // --- MCTS IMPROVEMENT: DDK in simulations

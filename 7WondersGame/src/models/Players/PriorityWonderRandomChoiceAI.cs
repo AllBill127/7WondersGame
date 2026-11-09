@@ -46,8 +46,6 @@ namespace _7WondersGame.src.models.Players
 
         override public void ChooseMoveCommand(Game g)
         {
-            Random rng = g.AgentRandom(this.Id);
-
             List<string> comandOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard" };
             string subcommand;
             Card? argument;

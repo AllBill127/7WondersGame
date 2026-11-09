@@ -368,7 +368,7 @@ namespace _7WondersGame.src.models.MCTS
         private Node BestUCTChild(Node node)
         {
             double bestUCT = double.MinValue;
-            double exploitation, exploration, uctValue;
+            double uctValue;
             Node bestChild = null;
 
             foreach (Node child in node.Children)

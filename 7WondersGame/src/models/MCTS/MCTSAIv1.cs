@@ -249,7 +249,6 @@ namespace _7WondersGame.src.models.MCTS
 
         private Dictionary<int, int> Simulation(Node node)
         {
-            double simulationResults = 0;
             Game simGame = node.GameState.DeepCopy();
 
             // MCTS IMPROVEMENT: DDK in simulations
