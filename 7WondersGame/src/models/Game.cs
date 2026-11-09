@@ -29,8 +29,22 @@ namespace _7WondersGame.src.models
         public Command[] PlayerCommands { get; set; }
         public bool[] PlayersReady { get; set; }
 
-        public Game()
+        // randomness (B1): everything random in a game comes from its seed
+        public ulong Seed { get; private set; }
+        private readonly Random _rng;
+        private readonly Dictionary<int, Random> _agentRngs = new();
+        private ulong _copyCount = 0;
+
+        /// <summary>
+        /// A game with seed 0. Use <see cref="Game(ulong)"/> when the game should differ from others.
+        /// </summary>
+        public Game() : this(0) { }
+
+        public Game(ulong seed)
         {
+            Seed = seed;
+            _rng = Seeding.CreateRandom(Seeding.Nth(seed, Seeding.GameStream));
+
             Players = new();
             Decks = new List<Card>[3];
             for (int i = 0; i < Decks.Length; ++i)
@@ -42,9 +56,26 @@ namespace _7WondersGame.src.models
             PlayersReady = new bool[NumPlayers];
         }
 
+        /// <summary>
+        /// The random stream for the player in this seat. Agents draw all their random choices from it.
+        /// </summary>
+        public Random AgentRandom(int seat)
+        {
+            if (!_agentRngs.TryGetValue(seat, out Random? rng))
+            {
+                rng = Seeding.CreateRandom(Seeding.AgentSeed(Seed, seat));
+                _agentRngs[seat] = rng;
+            }
+            return rng;
+        }
+
+        /// <summary>
+        /// Copies the game state. The copy gets its own seed (derived from this game's seed and a copy counter),
+        /// so searching in copies never uses up this game's random streams.
+        /// </summary>
         public Game DeepCopy()
         {
-            Game copy = new Game();
+            Game copy = new Game(Seeding.Nth(Seed, Seeding.CopyStreamBase + ++_copyCount));
 
             // fully copy players
             // copy player data
@@ -143,7 +174,7 @@ namespace _7WondersGame.src.models
 
         public void CreateDecks()
         {
-            Random rng = new Random();
+            Random rng = _rng;
 
             // Add cards to decks
             CardsDataset cardsDS = CardsDataset.GetInstance(NumPlayers);
@@ -256,7 +287,7 @@ namespace _7WondersGame.src.models
 
         private void GiveWonders()
         {
-            Random rng = new Random();
+            Random rng = _rng;
             bool[] wonder_availability = new bool[7];
             for (int i = 0; i < 7; i++)
                 wonder_availability[i] = true;
@@ -755,7 +786,7 @@ namespace _7WondersGame.src.models
 
         public List<Command> GetLegalMovesPrunedDiscards(int playerId, bool playSeventh = false, bool discardFree = false)
         {
-            Random rng = new Random();
+            Random rng = _rng;
             int discardCardIdx;
             List<string> actionOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard", "skip_move" };
             List<Command> legalMoves = new();

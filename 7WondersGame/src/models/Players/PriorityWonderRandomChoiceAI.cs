@@ -52,8 +52,7 @@ namespace _7WondersGame.src.models.Players
 
         override public void ChooseMoveCommand(Game g)
         {
-            int seed = (int)(DateTime.Now.Ticks & 0xFFFFFFFF);
-            Random rng = new Random(seed);
+            Random rng = g.AgentRandom(this.Id);
 
             List<string> comandOpt = new List<string> { "build_structure", "build_hand_free", "build_wonder", "discard" };
             string subcommand;
@@ -106,8 +105,7 @@ namespace _7WondersGame.src.models.Players
 
         public override Card? ChooseMoveCard(Game game, string commandStr, List<Card> cardsList)
         {
-            int seed = (int)(DateTime.Now.Ticks & 0xFFFFFFFF);
-            Random rng = new Random(seed);
+            Random rng = game.AgentRandom(this.Id);
 
             // choose random card for move
             if (cardsList.Count == 0)

@@ -1,4 +1,4 @@
-using _7WondersGame.src.models;
+﻿using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 
 namespace _7WondersGameTests.GameTests
@@ -16,7 +16,7 @@ namespace _7WondersGameTests.GameTests
         {
             for (int repeat = 0; repeat < 20; repeat++)
             {
-                Game random = NewGame();
+                Game random = NewGame((ulong)repeat);
                 random.InitGame();
 
                 List<int>[] dataset = new List<int>[4];
@@ -24,7 +24,7 @@ namespace _7WondersGameTests.GameTests
                     dataset[era] = random.Decks[era].Select(c => (int)c.Id).ToList();
                 dataset[3] = random.Players.Select(p => (int)p.Board.Id).ToList();
 
-                Game fromDataset = NewGame();
+                Game fromDataset = NewGame((ulong)repeat);
                 fromDataset.InitGameNotRandom(dataset);
 
                 for (int i = 0; i < random.Players.Count; i++)
@@ -41,9 +41,9 @@ namespace _7WondersGameTests.GameTests
             }
         }
 
-        private static Game NewGame()
+        private static Game NewGame(ulong seed)
         {
-            Game game = new Game();
+            Game game = new Game(seed);
             for (int i = 0; i < 3; i++)
                 game.Players.Add(new RandomChoiceAI(i));
             return game;

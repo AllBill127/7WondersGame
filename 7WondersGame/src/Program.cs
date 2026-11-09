@@ -40,10 +40,11 @@ namespace _7WondersGame.src
             parallelCount = 3;
             double minC = 0, maxC = 100;
             int iterCount = 100;
+            ulong runSeed = 0;
             Dictionary<int, List<int>[]> gameDatasets = null;
 
             // read and log program cli run or default arguments
-            Log.Information("input: [maxLogBufferSize], [gameCount], [resultsExcelName], [resultsSheetName], [parallelCount], [minC], [maxC], [iterCount], [gameDatasetFileName]");
+            Log.Information("input: [maxLogBufferSize], [gameCount], [resultsExcelName], [resultsSheetName], [parallelCount], [minC], [maxC], [iterCount], [gameDatasetFileName], [runSeed]");
             if (args.Length == 0)
             {
                 args = Console.ReadLine().Split(", ");
@@ -68,6 +69,9 @@ namespace _7WondersGame.src
                 gameDatasetFileName = args[8];
             else 
                 gameDatasetFileName = null;
+            if (args.Length > 9 && !string.IsNullOrEmpty(args[9]))
+                runSeed = ulong.Parse(args[9]);
+            Log.Information("Run seed: {runSeed}", runSeed);
 
             string? programPath = GetProgramFilePath();
             Log.Information("Program File Path: {programPath}", programPath);
@@ -84,9 +88,9 @@ namespace _7WondersGame.src
             // run games
             Log.Information("Starting game simulations");
 
-            //RunGamesParallel(gameCount, resultsSheetName, gameDatasets);
-            //await GenerateGameDatasets(3, 100);
-            SearchOptimalCParallel(gameCount, minC, maxC, iterCount, resultsSheetName, gameDatasets);
+            //RunGamesParallel(gameCount, runSeed, resultsSheetName, gameDatasets);
+            //await GenerateGameDatasets(runSeed, 3, 100);
+            SearchOptimalCParallel(gameCount, minC, maxC, iterCount, runSeed, resultsSheetName, gameDatasets);
 
             await Filer.FlushMatchLogBuffer(resultsSheetName);
             await Filer.AwaitAllLoggingTasksAsync();
@@ -94,7 +98,7 @@ namespace _7WondersGame.src
             Log.Information("Full run complete!");
         }
 
-        private static async Task GenerateGameDatasets(int numPlayers = 3, int gameCount = 100)
+        private static async Task GenerateGameDatasets(ulong runSeed, int numPlayers = 3, int gameCount = 100)
         {
             // get main arguments log buffer size, game count to simulate, log excel file and sheet names, multithread amount and game dataset presets
             int maxLogBufferSize = 2;
@@ -119,7 +123,7 @@ namespace _7WondersGame.src
                 }
 
                 // create game
-                Game newGame = new Game
+                Game newGame = new Game(Seeding.GameSeed(runSeed, i))
                 {
                     Players = players,
                 };
@@ -153,7 +157,7 @@ namespace _7WondersGame.src
             Log.Information("Full run complete!");
         }
 
-        private static void RunGames(int numGames, string logSheetName = "testRun")
+        private static void RunGames(int numGames, ulong runSeed, string logSheetName = "testRun")
         {
             for (int i = 0; i < numGames; ++i)
             {
@@ -170,7 +174,7 @@ namespace _7WondersGame.src
                 };
 
                 // create game
-                Game newGame = new Game
+                Game newGame = new Game(Seeding.GameSeed(runSeed, i))
                 {
                     Players = players,
                 };
@@ -184,7 +188,7 @@ namespace _7WondersGame.src
             }
         }
 
-        private static void RunGamesParallel(int numGames, string logSheetName = "testRun", Dictionary<int, List<int>[]> gameDatasets = null)
+        private static void RunGamesParallel(int numGames, ulong runSeed, string logSheetName = "testRun", Dictionary<int, List<int>[]> gameDatasets = null)
         {
             int counter = 0;
 
@@ -205,7 +209,7 @@ namespace _7WondersGame.src
                 };
 
                 // create game
-                Game newGame = new Game
+                Game newGame = new Game(Seeding.GameSeed(runSeed, i))
                 {
                     Players = players,
                 };
@@ -234,11 +238,10 @@ namespace _7WondersGame.src
             });
         }
 
-        private static void SearchOptimalCParallel(int numGames, double minC, double maxC, int iterations, string logSheetName = "testRun", Dictionary<int, List<int>[]> gameDatasets = null)
+        private static void SearchOptimalCParallel(int numGames, double minC, double maxC, int iterations, ulong runSeed, string logSheetName = "testRun", Dictionary<int, List<int>[]> gameDatasets = null)
         {
             int counter = 0;
-            int gameCounter = 0;
-            Object gameCounterLock = new();
+            Object setupLock = new();
             double iteratorC = (maxC - minC) / iterations;
 
             try
@@ -249,20 +252,23 @@ namespace _7WondersGame.src
 
                     List<Player> players;
                     Game newGame;
-                    lock (gameCounterLock)
+                    // game i always gets the same seed, deal and C, whatever the thread timing
+                    int gameIndex = i;
+                    double c = minC + (gameIndex / numGames) * iteratorC;
+                    lock (setupLock)
                     {
                         // create each games players
                         players = new()
                         {
                             new DeterministicAI(0),
-                            //new MCTSAIv4(0, minC+(gameCounter/numGames)*iteratorC, 1),
+                            //new MCTSAIv4(0, c, 1),
                             //new MCTSAIv4(0, 136, 5),
-                            //new JMMCTSAIv2(1, minC+(gameCounter/numGames)*iteratorC),
+                            //new JMMCTSAIv2(1, c),
                             new RandomChoiceAI(1),
                             //new DeterministicAI(2),
-                            new MCTSAIv10(2, minC+(gameCounter/numGames)*iteratorC, 1),
+                            new MCTSAIv10(2, c, 1),
                             //new MCTSAIv5(2, 136, 5),
-                            //new JMMCTSAIv2(2, minC+(gameCounter/numGames)*iteratorC),
+                            //new JMMCTSAIv2(2, c),
                             //new DeterministicAI(3),
                             //new RandomChoiceAI(4),
                             //new RandomChoiceAI(5),
@@ -270,17 +276,16 @@ namespace _7WondersGame.src
                         };
 
                         // create game
-                        newGame = new Game
+                        newGame = new Game(Seeding.GameSeed(runSeed, gameIndex))
                         {
                             Players = players,
                         };
                         if (gameDatasets != null)
-                            newGame.InitGameNotRandom(gameDatasets[gameCounter % numGames]);
+                            newGame.InitGameNotRandom(gameDatasets[gameIndex % numGames]);
                         else
                             newGame.InitGame();
 
-                        gameCounter++;
-                        Log.Information("gameCounter: {gameCounter} | C = {cValue}", gameCounter, minC + (gameCounter / numGames) * iteratorC);
+                        Log.Information("game: {gameIndex} | seed: {seed} | C = {cValue}", gameIndex, newGame.Seed, c);
 
                         // Log player wondes
                         foreach (Player player in newGame.Players)
