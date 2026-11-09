@@ -341,12 +341,15 @@ namespace _7WondersGame.src.models.Players
                 }
             }
 
-            // Aplly card effects and calculate Coin costs
-            int cost = ApplyCardEffect_GetCost(card);
-
-            // Move played card from card list to players played cards
+            // Move played card from card list to players played cards.
+            // The card is in the city before its effect applies, so the Lighthouse counts itself.
+            // Sources: https://rules.dized.com/7-wonders/rule/question/19075b63-591e-4e99-8dfc-5fa34b726973,
+            //          https://rules.dized.com/7-wonders/rule/symbols/third-age-cards
             cards.RemoveAt(i);
             PlayedCards.Add(card);
+
+            // Apply card effects and calculate Coin costs
+            int cost = ApplyCardEffect_GetCost(card);
 
             // Pay for the card if necessary
             if (!free_card) Resources[Resource.Coins] -= cost;
@@ -2342,8 +2345,9 @@ namespace _7WondersGame.src.models.Players
             // play card
             if (card != null)
             {
-                this.ApplyCardEffect_GetCost(card);
+                // add before applying the effect, like BuildStructure (the Lighthouse counts itself)
                 this.PlayedCards.Add(card);
+                this.ApplyCardEffect_GetCost(card);
             }
 
             // do battle and copy guild
