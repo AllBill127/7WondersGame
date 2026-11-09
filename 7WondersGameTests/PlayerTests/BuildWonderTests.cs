@@ -15,16 +15,15 @@ namespace _7WondersGameTests.PlayerTests
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // give resources for situation
-            players[0].PlayedCards.Add(cardDS.GameCards[CardId.ClayPool]);
+            players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
             players[0].Resources[Resource.Clay] += 1;    // manually add clay from clayPool card (it is done in BuildStructure() which is not called here)
             players[1].Resources[Resource.Coins] = 3;
-            players[1].PlayedCards.Add(cardDS.GameCards[CardId.ClayPit]);
+            players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set hand card for situation
-            Card player1Card = cardDS.GameCards[CardId.Baths];
+            Card player1Card = CardsDataset.GameCards[CardId.Baths];
             players[1].HandCards.Add(player1Card);
 
             // Expected values

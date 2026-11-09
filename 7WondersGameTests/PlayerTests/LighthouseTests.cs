@@ -11,22 +11,21 @@ namespace _7WondersGameTests.PlayerTests
     [TestClass]
     public class LighthouseTests
     {
-        private static (Player player, CardsDataset ds) PlayerWithTwoYellowCards()
+        private static Player PlayerWithTwoYellowCards()
         {
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
                 new List<Wonder> { new GizahA(), new BabylonA(), new OlympiaA() });
-            CardsDataset ds = CardsDataset.GetInstance(players.Count);
             Player player = players[0];
-            player.PlayedCards.Add(ds.GameCards[CardId.Marketplace]);
-            player.PlayedCards.Add(ds.GameCards[CardId.Tavern]);
-            return (player, ds);
+            player.PlayedCards.Add(CardsDataset.GameCards[CardId.Marketplace]);
+            player.PlayedCards.Add(CardsDataset.GameCards[CardId.Tavern]);
+            return player;
         }
 
         [TestMethod]
         public void BuildStructure_Lighthouse_CountsItselfForCoins()
         {
-            var (player, ds) = PlayerWithTwoYellowCards();
-            Card lighthouse = ds.GameCards[CardId.Lighthouse];
+            var player = PlayerWithTwoYellowCards();
+            Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
             Assert.IsTrue(player.BuildStructure(lighthouse, new List<Card> { lighthouse }, true));
 
@@ -38,9 +37,9 @@ namespace _7WondersGameTests.PlayerTests
         [TestMethod]
         public void ScoreAfterPlayingCard_Lighthouse_CountsItselfForCoins()
         {
-            var (player, ds) = PlayerWithTwoYellowCards();
+            var player = PlayerWithTwoYellowCards();
 
-            int score = player.ScoreAfterPlayingCard(3, ds.GameCards[CardId.Lighthouse]);
+            int score = player.ScoreAfterPlayingCard(3, CardsDataset.GameCards[CardId.Lighthouse]);
 
             // 3 VP from the Lighthouse + 6 coins / 3 = 2 VP (no shields anywhere, so no military points)
             Assert.AreEqual(5, score);

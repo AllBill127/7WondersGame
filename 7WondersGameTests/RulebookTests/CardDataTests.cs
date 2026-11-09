@@ -1,4 +1,3 @@
-using System.Reflection;
 using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
@@ -101,7 +100,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("Builders Guild",      3, "Guild",        "2 Stone, 2 Clay, Glass",    "", "0 0 0 0 0")]
         public void Card_MatchesRulebook(string name, int era, string type, string cost, string chainFrom, string copies)
         {
-            Card card = FindCard(DatasetFor(3), name, era);
+            Card card = FindCard(name, era);
 
             Assert.AreEqual(Enum.Parse<CardType>(type), card.Type, "type");
             CollectionAssert.AreEquivalent(ParseCost(cost), card.Cost.Where(kvp => kvp.Value > 0).ToList(), "cost");
@@ -111,13 +110,12 @@ namespace _7WondersGameTests.RulebookTests
             else if (chainFrom == "East Trading Post|West Trading Post")
                 Assert.AreEqual(CardId.AnyTradingPost, card.FreeWithId, "chained from");
             else
-                Assert.AreEqual(chainFrom, DatasetFor(3).GameCards[card.FreeWithId].Name, "chained from");
+                Assert.AreEqual(chainFrom, CardsDataset.GameCards[card.FreeWithId].Name, "chained from");
 
             int[] expectedCopies = copies.Split(' ').Select(int.Parse).ToArray();
             for (int players = 3; players <= 7; players++)
             {
-                Card cardForCount = FindCard(DatasetFor(players), name, era);
-                Assert.AreEqual(expectedCopies[players - 3], cardForCount.NumCardsInGame, $"copies with {players} players");
+                Assert.AreEqual(expectedCopies[players - 3], card.CopiesFor(players), $"copies with {players} players");
             }
         }
 
@@ -125,7 +123,7 @@ namespace _7WondersGameTests.RulebookTests
         public void Dataset_HasEveryRulebookCardAndNoOthers()
         {
             // 27 + 23 + 18 cards in the three ages (Loom, Glassworks and Press in both I and II), plus 10 guilds.
-            Assert.AreEqual(27 + 23 + 18 + 10, DatasetFor(3).GameCards.Count);
+            Assert.AreEqual(27 + 23 + 18 + 10, CardsDataset.GameCards.Count);
         }
 
         /// <summary>
@@ -140,12 +138,17 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow(7)]
         public void DeckSizes_MatchRulebook(int players)
         {
-            CardsDataset ds = DatasetFor(players);
-            int CountEra(int era) => ds.Cards.Values.Where(c => c.Era == era).Sum(c => c.NumCardsInGame);
+            int CountEra(int era) => CardsDataset.Cards.Values.Where(c => c.Era == era).Sum(c => c.CopiesFor(players));
 
             Assert.AreEqual(7 * players, CountEra(1), "Age I");
             Assert.AreEqual(7 * players, CountEra(2), "Age II");
             Assert.AreEqual(7 * players - (players + 2), CountEra(3), "Age III without guilds");
+
+            // a real game builds its decks for its own player count, whatever count was used before (E7)
+            var game = new Game(1) { Players = Enumerable.Range(0, players).Select(i => (Player)new RandomChoiceAI(i)).ToList() };
+            game.InitGame();
+            for (int era = 0; era < 3; era++)
+                Assert.AreEqual(7 * players, game.Decks[era].Count, $"dealt deck for age {era + 1}");
         }
 
         [DataTestMethod]
@@ -227,29 +230,9 @@ namespace _7WondersGameTests.RulebookTests
 
         // ===== helpers =====
 
-        private static readonly Dictionary<int, CardsDataset> datasets = new();
-
-        /// <summary>
-        /// CardsDataset is a singleton fixed to the player count of its first use,
-        /// so build a private instance per player count.
-        /// </summary>
-        private static CardsDataset DatasetFor(int players)
+        private static Card FindCard(string name, int era)
         {
-            lock (datasets)
-            {
-                if (!datasets.TryGetValue(players, out var ds))
-                {
-                    ds = (CardsDataset)Activator.CreateInstance(typeof(CardsDataset),
-                        BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { players }, null)!;
-                    datasets[players] = ds;
-                }
-                return ds;
-            }
-        }
-
-        private static Card FindCard(CardsDataset ds, string name, int era)
-        {
-            var matches = ds.GameCards.Values.Where(c => c.Name == name && c.Era == era).ToList();
+            var matches = CardsDataset.GameCards.Values.Where(c => c.Name == name && c.Era == era).ToList();
             Assert.AreEqual(1, matches.Count, $"cards named '{name}' in age {era}");
             return matches[0];
         }
@@ -273,8 +256,8 @@ namespace _7WondersGameTests.RulebookTests
         private static Player BuildForFree(string name, int era = 0)
         {
             Card card = era == 0
-                ? DatasetFor(3).GameCards.Values.Single(c => c.Name == name)
-                : FindCard(DatasetFor(3), name, era);
+                ? CardsDataset.GameCards.Values.Single(c => c.Name == name)
+                : FindCard(name, era);
 
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
                 new List<Wonder> { new GizahA(), new BabylonA(), new OlympiaA() });

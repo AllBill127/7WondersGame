@@ -247,7 +247,7 @@ namespace _7WondersGame.src.models.Players
                     // Check if player can chain build this card
                     if (!CanChainBuildCard(card))
                     {
-                        Dictionary<Resource, int> resourcesNeeded = card.Cost;
+                        IReadOnlyDictionary<Resource, int> resourcesNeeded = card.Cost;
                         foreach (var resourceKvp in resourcesNeeded)
                         {
                             int quantNeeded = resourceKvp.Value;
@@ -339,7 +339,7 @@ namespace _7WondersGame.src.models.Players
                     Dictionary<Resource, int> resourcesWestBckp = PlayerWest.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
                     Dictionary<Resource, int> resourcesBckp = Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
 
-                    Dictionary<Resource, int> resourcesNeeded = card.Cost;
+                    IReadOnlyDictionary<Resource, int> resourcesNeeded = card.Cost;
                     foreach (var resourceKvp in resourcesNeeded)
                     {
                         int quantNeeded = resourceKvp.Value;

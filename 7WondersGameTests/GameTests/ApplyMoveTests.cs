@@ -20,12 +20,11 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", cardDS.GameCards[CardId.Baths]);
+            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = testGame.Turn;
@@ -55,23 +54,22 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set player cards for situation
-            testGame.Players[0].HandCards.Add(cardDS.GameCards[CardId.Baths]);
-            testGame.Players[1].HandCards.Add(cardDS.GameCards[CardId.Walls]);
-            testGame.Players[2].HandCards.Add(cardDS.GameCards[CardId.ClayPit]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Baths]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Walls]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", cardDS.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", cardDS.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", cardDS.GameCards[CardId.Baths]);
+            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = testGame.Turn + 1;
@@ -103,23 +101,22 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set player cards for situation
-            testGame.Players[0].HandCards.Add(cardDS.GameCards[CardId.Baths]);
-            testGame.Players[1].HandCards.Add(cardDS.GameCards[CardId.Walls]);
-            testGame.Players[2].HandCards.Add(cardDS.GameCards[CardId.ClayPit]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Baths]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Walls]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", cardDS.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", cardDS.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", cardDS.GameCards[CardId.Baths]);
+            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 7;
@@ -152,23 +149,22 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set player cards for situation
-            testGame.Players[0].HandCards.Add(cardDS.GameCards[CardId.Baths]);
-            testGame.Players[1].HandCards.Add(cardDS.GameCards[CardId.Walls]);
-            testGame.Players[2].HandCards.Add(cardDS.GameCards[CardId.ClayPit]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Baths]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Walls]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", cardDS.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", cardDS.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_structure", cardDS.GameCards[CardId.Baths]);
+            Command testCommand = new Command("build_structure", CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 14;
@@ -201,7 +197,6 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set player resources for situation
             testGame.Players[0].Resources[Resource.Ore] += 2;
@@ -210,20 +205,20 @@ namespace _7WondersGameTests.GameTests
             testGame.Players[0].CanBuildWonder = true;
 
             // set player cards for situation
-            testGame.Players[0].HandCards.Add(cardDS.GameCards[CardId.Baths]);
-            testGame.Players[1].HandCards.Add(cardDS.GameCards[CardId.Walls]);
-            testGame.Players[2].HandCards.Add(cardDS.GameCards[CardId.ClayPit]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Baths]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Walls]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // set other player moves
-            testGame.PlayerCommands[1] = new Command("discard", cardDS.GameCards[CardId.Walls]);
+            testGame.PlayerCommands[1] = new Command("discard", CardsDataset.GameCards[CardId.Walls]);
             testGame.PlayersReady[1] = true;
-            testGame.PlayerCommands[2] = new Command("discard", cardDS.GameCards[CardId.ClayPit]);
+            testGame.PlayerCommands[2] = new Command("discard", CardsDataset.GameCards[CardId.ClayPit]);
             testGame.PlayersReady[2] = true;
 
             // test player (no neighbors)
             Player testPlayer = (Player)testGame.Players[0].DeepCopy();
             // any random command
-            Command testCommand = new Command("build_wonder", cardDS.GameCards[CardId.Baths]);
+            Command testCommand = new Command("build_wonder", CardsDataset.GameCards[CardId.Baths]);
 
             // Expected values
             int expTurn = 7;

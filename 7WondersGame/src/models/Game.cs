@@ -141,7 +141,7 @@ namespace _7WondersGame.src.models
             {
                 foreach (var cardId in gameDataset[i])
                 {
-                    Decks[i].Add(CardsDataset.GetInstance(Players.Count).GameCards[(CardId)cardId]);
+                    Decks[i].Add(CardsDataset.GameCards[(CardId)cardId]);
                 }
             }
             GiveCards();
@@ -180,17 +180,16 @@ namespace _7WondersGame.src.models
             Random rng = _rng;
 
             // Add cards to decks
-            CardsDataset cardsDS = CardsDataset.GetInstance(NumPlayers);
-            foreach (var card in cardsDS.Cards)
+            foreach (var card in CardsDataset.Cards)
             {
-                for (int i = 0; i < card.Value.NumCardsInGame; i++)
+                for (int i = 0; i < card.Value.CopiesFor(NumPlayers); i++)
                 {
                     Decks[card.Value.Era - 1].Add(card.Value);
                 }
             }
 
             // Add guild cards to Era 3 deck
-            var guildCardsDict = cardsDS.GuildCards;
+            var guildCardsDict = CardsDataset.GuildCards;
             var guildCards = guildCardsDict.Values.OrderBy(a => rng.Next()).ToList();
 
             for (int i = 0; i < NumPlayers + 2; i++)

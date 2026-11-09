@@ -17,20 +17,19 @@ namespace _7WondersGameTests.GameTests
             List<Wonder> wonders = MockHelper.MockWonders().GetRange(0, 3);
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardsDS = CardsDataset.GetInstance(players.Count);
 
             // add some cards
-            testGame.Players[0].HandCards.Add(cardsDS.GameCards[CardId.ClayPool]);
-            testGame.Players[0].HandCards.Add(cardsDS.GameCards[CardId.Pantheon]);
-            testGame.Players[0].HandCards.Add(cardsDS.GameCards[CardId.Dispensary]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Pantheon]);
+            testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Dispensary]);
 
-            testGame.Players[1].HandCards.Add(cardsDS.GameCards[CardId.OreVein]);
-            testGame.Players[1].HandCards.Add(cardsDS.GameCards[CardId.Baths]);
-            testGame.Players[1].HandCards.Add(cardsDS.GameCards[CardId.Lodge]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.OreVein]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Baths]);
+            testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Lodge]);
 
-            testGame.Players[2].HandCards.Add(cardsDS.GameCards[CardId.Quarry]);
-            testGame.Players[2].HandCards.Add(cardsDS.GameCards[CardId.Statue]);
-            testGame.Players[2].HandCards.Add(cardsDS.GameCards[CardId.School]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.Quarry]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.Statue]);
+            testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.School]);
 
             // Expected results
             List<Card> expP0cards = testGame.Players[1].HandCards.Select(e => e).ToList();

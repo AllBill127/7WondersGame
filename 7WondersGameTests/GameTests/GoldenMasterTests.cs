@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 
@@ -78,11 +77,8 @@ namespace _7WondersGameTests.GameTests
                 Players = Enumerable.Range(0, players).Select(seat => Agents[(k + seat) % Agents.Length](seat)).ToList(),
             };
 
-            WithDatasetFor(players, () =>
-            {
-                game.InitGame();
-                game.Loop(record: true);
-            });
+            game.InitGame();
+            game.Loop(record: true);
 
             var lines = new List<string>();
             string prefix = $"p{players} g{k} seed={seed}";
@@ -95,32 +91,6 @@ namespace _7WondersGameTests.GameTests
             }
             lines.Add($"{prefix} discarded={string.Join(",", game.DiscardedCards.Select(c => c.Id))}");
             return lines;
-        }
-
-        /// <summary>
-        /// Until E7 is fixed, <see cref="CardsDataset.GetInstance"/> keeps the first player count it sees.
-        /// Swap in the right one for this game and put the old one back (tests run one at a time).
-        /// </summary>
-        private static void WithDatasetFor(int players, Action action)
-        {
-            FieldInfo? field = typeof(CardsDataset).GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
-            if (field == null)
-            {
-                action();   // E7 fixed: no singleton any more
-                return;
-            }
-
-            object? saved = field.GetValue(null);
-            try
-            {
-                field.SetValue(null, null);
-                CardsDataset.GetInstance(players);
-                action();
-            }
-            finally
-            {
-                field.SetValue(null, saved);
-            }
         }
     }
 }

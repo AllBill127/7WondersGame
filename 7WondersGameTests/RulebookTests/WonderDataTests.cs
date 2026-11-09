@@ -158,9 +158,8 @@ namespace _7WondersGameTests.RulebookTests
             if (effect == "CopyGuild")
             {
                 // The east neighbour's Workers Guild is worth 1 VP per brown card next door.
-                CardsDataset ds = CardsDataset.GetInstance(3);
-                player.PlayerEast.PlayedCards.Add(ds.GameCards[CardId.Workers]);
-                player.PlayerWest.PlayedCards.Add(ds.GameCards[CardId.LumberYard]);
+                player.PlayerEast.PlayedCards.Add(CardsDataset.GameCards[CardId.Workers]);
+                player.PlayerWest.PlayedCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
                 Assert.IsTrue(player.CopyGuild(), "copy a neighbour's guild");
             }
         }

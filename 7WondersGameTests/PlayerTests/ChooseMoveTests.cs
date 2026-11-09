@@ -30,17 +30,16 @@ namespace _7WondersGameTests.PlayerTests
             List<Player> players = MockHelper.MockPriorityAIPlayers(wonders);
             testGame.Players = players;
             testGame.PlayerCommands = new Command[players.Count];
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
             players[1].FreeCardOnce = true;
 
             // set played cards for situation
-            players[1].PlayedCards.Add(cardDS.GameCards[CardId.Forum]);
+            players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // set hand cards for situation
-            players[1].HandCards.Add(cardDS.GameCards[CardId.Forum]);
+            players[1].HandCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // Expected values
             string expP1Subcommand = "discard";
@@ -66,17 +65,16 @@ namespace _7WondersGameTests.PlayerTests
             List<Player> players = MockHelper.MockPriorityAIPlayers(wonders);
             testGame.Players = players;
             testGame.PlayerCommands = new Command[players.Count];
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
             players[1].FreeCardOnce = true;
 
             // set played cards for situation
-            players[1].PlayedCards.Add(cardDS.GameCards[CardId.Forum]);
+            players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // set hand cards for situation
-            players[1].HandCards.Add(cardDS.GameCards[CardId.Palace]);
+            players[1].HandCards.Add(CardsDataset.GameCards[CardId.Palace]);
 
             // Expected values
             string expP1Subcommand = "build_hand_free";

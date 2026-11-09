@@ -20,7 +20,6 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
@@ -49,7 +48,6 @@ namespace _7WondersGameTests.GameTests
             };
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
             testGame.Players = players;
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
@@ -57,15 +55,15 @@ namespace _7WondersGameTests.GameTests
 
             // empty discarded cards list
             testGame.DiscardedCards.Clear();
-            testGame.DiscardedCards.Add(cardDS.GameCards[CardId.Palace]);
+            testGame.DiscardedCards.Add(CardsDataset.GameCards[CardId.Palace]);
 
             // Test
             testGame.ExtraLoop(players[1], discardFree: true);
 
             // Evaluate
             Assert.IsFalse(players[1].DiscardFree);
-            Assert.IsFalse(testGame.DiscardedCards.Contains(cardDS.GameCards[CardId.Palace]));
-            Assert.IsTrue(players[1].PlayedCards.Contains(cardDS.GameCards[CardId.Palace]));
+            Assert.IsFalse(testGame.DiscardedCards.Contains(CardsDataset.GameCards[CardId.Palace]));
+            Assert.IsTrue(players[1].PlayedCards.Contains(CardsDataset.GameCards[CardId.Palace]));
         }
 
         // TODO:    test when PlaySeventh effect if PlayersReady[player.Id] == false after extra loop

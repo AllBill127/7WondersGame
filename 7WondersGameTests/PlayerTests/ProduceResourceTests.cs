@@ -14,12 +14,11 @@ namespace _7WondersGameTests.PlayerTests
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // give resources for situation
-            players[0].PlayedCards.Add(cardDS.GameCards[CardId.TreeFarm]);
+            players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
             players[1].Resources[Resource.Coins] = 4;
-            players[2].PlayedCards.Add(cardDS.GameCards[CardId.ClayPit]);
+            players[2].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
             // make required resource list
             Dictionary<Resource, int> neededResources = new Dictionary<Resource, int>()
@@ -55,13 +54,12 @@ namespace _7WondersGameTests.PlayerTests
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
             List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // give resources for situation
-            players[0].PlayedCards.Add(cardDS.GameCards[CardId.TreeFarm]);
+            players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
             players[1].Resources[Resource.Coins] = 6;
-            players[2].PlayedCards.Add(cardDS.GameCards[CardId.ClayPit]);
-            players[2].PlayedCards.Add(cardDS.GameCards[CardId.Forum]); // has untradeable glass
+            players[2].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
+            players[2].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]); // has untradeable glass
 
             // make required resource list
             Dictionary<Resource, int> neededResources = new Dictionary<Resource, int>()

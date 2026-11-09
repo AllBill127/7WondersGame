@@ -4,23 +4,25 @@ namespace _7WondersGame.src.models
 {
     public class Card
     {
-        public CardId Id { get; set; }
-        public string Name { get; set; }
-        public CardType Type { get; set; }
-        public int Era { get; set; }
-        public CardId FreeWithId { get; set; }
-        public Dictionary<Resource, int> Cost { get; set; }
-        public int NumCardsInGame { get; set; }
+        public CardId Id { get; }
+        public string Name { get; }
+        public CardType Type { get; }
+        public int Era { get; }
+        public CardId FreeWithId { get; }
+        public IReadOnlyDictionary<Resource, int> Cost { get; }
 
-        public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] numCardsInGame, int numPlayers)
+        /// <summary>Copies in the deck for 3, 4, 5, 6 and 7 players.</summary>
+        private readonly int[] _copies;
+
+        public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] copies)
         {
             Id = id;
             Name = name;
             Type = type;
             Era = era;
             FreeWithId = freeWithId;
-            NumCardsInGame = numCardsInGame[numPlayers - 3];
-            Cost = new()
+            _copies = copies.ToArray();
+            Cost = new Dictionary<Resource, int>()
             {
                 { Resource.Wood,       cost[0] },
                 { Resource.Ore,        cost[1] },
@@ -31,6 +33,14 @@ namespace _7WondersGame.src.models
                 { Resource.Papyrus,    cost[6] },
                 { Resource.Coins,      cost[7] }
             };
+        }
+
+        /// <summary>How many copies of this card go into the deck with <paramref name="players"/> players (3 to 7).</summary>
+        public int CopiesFor(int players)
+        {
+            if (players < 3 || players > 7)
+                throw new ArgumentOutOfRangeException(nameof(players), players, "7 Wonders is played by 3 to 7 players.");
+            return _copies[players - 3];
         }
 
         /// <summary>
@@ -49,13 +59,13 @@ namespace _7WondersGame.src.models
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Id, Name, Type, Era, FreeWithId, Cost, NumCardsInGame);
+            return HashCode.Combine(Id, Name, Type, Era, FreeWithId, Cost);
         }
 
         public override string ToString()
         {
             StringBuilder cardStr = new StringBuilder();
-            cardStr.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  CardsInGame: {NumCardsInGame}");
+            cardStr.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  Copies (3-7 players): {string.Join(' ', _copies)}");
             cardStr.AppendLine($"Type: {Type}   FreeWith: {FreeWithId}");
             return cardStr.ToString();
         }

@@ -39,7 +39,6 @@ namespace _7WondersGameTests.GameTests
             {
                 Players = new List<Player>
                 {
-                    // 3 players: CardsDataset is a process-wide singleton fixed by the first player count (E7)
                     new DeterministicAI(0), new RandomChoiceAI(1), new PriorityWonderRandomChoiceAI(2),
                 },
             };
