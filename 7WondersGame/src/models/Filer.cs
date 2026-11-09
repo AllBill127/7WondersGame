@@ -120,17 +120,15 @@ namespace _7WondersGame.src.models
                     // log player 2 wonder names
                     worksheet.Cells[row, MAX_PLAYERS + 1].Value = players[2].Board.Name;
 
-                    // log winning player wonder name, id and score
-                    List<PlayerResults> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
-                    worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
-                    worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
-                    worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
+                    // log winning player wonder name, id and score (VP, then coins; on a full tie the lowest seat is logged)
+                    List<PlayerStanding> standings = GameResult.Rank(players);
+                    PlayerResults winner = players.First(p => p.Id == standings.Where(s => s.Rank == 1).Min(s => s.Id));
+                    worksheet.Cells[row, MAX_PLAYERS + 2].Value = winner.Board.Name;
+                    worksheet.Cells[row, MAX_PLAYERS + 3].Value = winner.Id;
+                    worksheet.Cells[row, MAX_PLAYERS + 4].Value = winner.VictoryPoints;
 
-                    // log player 2 rank (scoring place)
-                    worksheet.Cells[row, MAX_PLAYERS + 5].Value = sortedPlayers
-                        .OrderByDescending(x => x.VictoryPoints)
-                        .Select((entry, i) => new { entry.Id, Index = i })
-                        .FirstOrDefault(x => x.Id == 2)?.Index + 1 ?? -1;
+                    // log player 2 rank (tied players share a rank)
+                    worksheet.Cells[row, MAX_PLAYERS + 5].Value = standings.FirstOrDefault(s => s.Id == 2)?.Rank ?? -1;
 
                     // Save changes to the Excel file
                     excelPackage.Save();
@@ -191,17 +189,15 @@ namespace _7WondersGame.src.models
                         // log player 2 wonder names
                         worksheet.Cells[row, MAX_PLAYERS + 1].Value = players[2].Board.Name;
 
-                        // log winning player wonder name, id and score
-                        List<PlayerResults> sortedPlayers = players.OrderByDescending(p => p.VictoryPoints).ToList();
-                        worksheet.Cells[row, MAX_PLAYERS + 2].Value = sortedPlayers[0].Board.Name;
-                        worksheet.Cells[row, MAX_PLAYERS + 3].Value = sortedPlayers[0].Id;
-                        worksheet.Cells[row, MAX_PLAYERS + 4].Value = sortedPlayers[0].VictoryPoints;
+                        // log winning player wonder name, id and score (VP, then coins; on a full tie the lowest seat is logged)
+                        List<PlayerStanding> standings = GameResult.Rank(players);
+                        PlayerResults winner = players.First(p => p.Id == standings.Where(s => s.Rank == 1).Min(s => s.Id));
+                        worksheet.Cells[row, MAX_PLAYERS + 2].Value = winner.Board.Name;
+                        worksheet.Cells[row, MAX_PLAYERS + 3].Value = winner.Id;
+                        worksheet.Cells[row, MAX_PLAYERS + 4].Value = winner.VictoryPoints;
 
-                        // log player 2 rank (scoring place)
-                        worksheet.Cells[row, MAX_PLAYERS + 5].Value = sortedPlayers
-                            .OrderByDescending(x => x.VictoryPoints)
-                            .Select((entry, i) => new { entry.Id, Index = i })
-                            .FirstOrDefault(x => x.Id == 2)?.Index + 1 ?? -1;
+                        // log player 2 rank (tied players share a rank)
+                        worksheet.Cells[row, MAX_PLAYERS + 5].Value = standings.FirstOrDefault(s => s.Id == 2)?.Rank ?? -1;
                     }
 
                     // Save changes to the Excel file
