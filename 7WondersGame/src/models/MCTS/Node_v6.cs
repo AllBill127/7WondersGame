@@ -1,12 +1,4 @@
-﻿using _7WondersGame.src.models.Players;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-
-namespace _7WondersGame.src.models.MCTS
+﻿namespace _7WondersGame.src.models.MCTS
 {
     // Node with pruned discard and build_wonder options
     internal class Node_v6

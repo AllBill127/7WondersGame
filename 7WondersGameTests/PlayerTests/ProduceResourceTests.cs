@@ -1,8 +1,6 @@
 using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
 
 namespace _7WondersGameTests.PlayerTests
 {

@@ -1,9 +1,4 @@
 ﻿using _7WondersGame.src.models.Wonders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using _7WondersGame.src.models.Players;
 
 namespace _7WondersGameTests

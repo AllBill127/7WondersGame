@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace _7WondersGame.src.models
+﻿namespace _7WondersGame.src.models
 {
     /// <summary>
     /// All randomness comes from here, so the same seed always gives the same games (B1).

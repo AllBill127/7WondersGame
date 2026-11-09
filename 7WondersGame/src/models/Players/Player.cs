@@ -1,12 +1,5 @@
 ﻿using _7WondersGame.src.models.Wonders;
-using Microsoft.VisualBasic;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _7WondersGame.src.models.Players
 {

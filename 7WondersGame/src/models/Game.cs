@@ -1,17 +1,6 @@
 ﻿using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
-using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Numerics;
-using System.Runtime.Intrinsics;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace _7WondersGame.src.models
 {

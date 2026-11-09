@@ -1,13 +1,6 @@
 ﻿using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _7WondersGameTests.PlayerTests
 {
