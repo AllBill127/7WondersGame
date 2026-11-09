@@ -65,6 +65,12 @@ namespace _7WondersGame.src.models.Players
         public Player PlayerEast { get; set; }
         public Player PlayerWest { get; set; }
 
+        /// <summary>
+        /// The trace logger of the game this player is in (set by <see cref="Game.Loop"/>).
+        /// Silent by default, and copies never get it, so MCTS rollouts stay silent.
+        /// </summary>
+        public ILogger Trace { get; set; } = Serilog.Core.Logger.None;
+
         public Player(int id)
         {
             Id = id;
@@ -87,9 +93,22 @@ namespace _7WondersGame.src.models.Players
         public virtual string ConfigJson()
         {
             var config = new SortedDictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var (name, field) in SettingFields(GetType()))
+                config.Add(name, field.FieldType.IsEnum ? field.GetValue(this)?.ToString() : field.GetValue(this));
+            return System.Text.Json.JsonSerializer.Serialize(config);
+        }
+
+        /// <summary>
+        /// An agent's settings: the instance fields its own classes (below Player) declare with a primitive, enum,
+        /// string or decimal type. They are what <see cref="ConfigJson"/> writes and what the command line can set.
+        /// Auto-property backing fields are named after the property.
+        /// </summary>
+        public static IEnumerable<(string Name, System.Reflection.FieldInfo Field)> SettingFields(Type agentType)
+        {
             var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public |
                         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
-            for (Type? t = GetType(); t != null && t != typeof(Player); t = t.BaseType)
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            for (Type? t = agentType; t != null && t != typeof(Player); t = t.BaseType)
             {
                 foreach (var field in t.GetFields(flags))
                 {
@@ -98,10 +117,10 @@ namespace _7WondersGame.src.models.Players
                         continue;
                     // auto-property backing fields are named "<Name>k__BackingField"
                     string name = field.Name.StartsWith("<") ? field.Name[1..field.Name.IndexOf('>')] : field.Name;
-                    config.TryAdd(name, ft.IsEnum ? field.GetValue(this)?.ToString() : field.GetValue(this));
+                    if (seen.Add(name))
+                        yield return (name, field);
                 }
             }
-            return System.Text.Json.JsonSerializer.Serialize(config);
         }
 
 
@@ -163,17 +182,17 @@ namespace _7WondersGame.src.models.Players
                     PlayerEast.ResetUsed();
                     PlayerWest.ResetUsed();
 
-                    Log.Debug("SUCCESSFULLY built {WonderName} stage {stage} by Player {PlayerId}", Board.Name, Board.Stage, Id);
+                    Trace.Verbose("SUCCESSFULLY built {WonderName} stage {stage} by Player {PlayerId}", Board.Name, Board.Stage, Id);
                     CanBuildWonder = false;
                     return true;
                 }
                 else
-                    Log.Debug("FAILED to build {WonderName} stage {stage} by Player {PlayerId}\n" +
+                    Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId}\n" +
                         " -> CanBuildWonder: {CanBuildWonder} but buildStage: {buildSuccess}",
                         Board.Name, Board.Stage+1, Id, CanBuildWonder, buildSuccess);
             }
             else
-                Log.Debug("FAILED to build {WonderName} stage {stage} by Player {PlayerId}\n" +
+                Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId}\n" +
                     " -> CanBuildWonder: {CanBuildWonder}",
                     Board.Name, Board.Stage+1, Id, CanBuildWonder);
 
@@ -244,7 +263,7 @@ namespace _7WondersGame.src.models.Players
                                     PlayerEast.ResetUsed();
                                     PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
                                     PlayerWest.ResetUsed();
-                                    Log.Debug("Player {PlayerId} -> CANT BUILD {cardName} -> couldn't produce resources.", Id, card.Name);
+                                    Trace.Verbose("Player {PlayerId} -> CANT BUILD {cardName} -> couldn't produce resources.", Id, card.Name);
                                     playable = false;
                                     break;
                                 }
@@ -286,7 +305,7 @@ namespace _7WondersGame.src.models.Players
             // Returns false if the card has already been played (cannot play the same card twice).
             if (HasPlayedCard(card))
             {
-                Log.Debug(" -> FAILURE: Card Already played but was an option in cards_playable.");
+                Trace.Verbose(" -> FAILURE: Card Already played but was an option in cards_playable.");
                 Log.Error("SHOULD NOT HAPPEN -> Trying to build card that has already been build");
                 return false;
             }
@@ -302,7 +321,7 @@ namespace _7WondersGame.src.models.Players
             if (i == cards.Count)
             {
                 // ERROR: Card played was not found in the vector
-                Log.Debug(" -> FAILURE: Card not found in vector.");
+                Trace.Verbose(" -> FAILURE: Card not found in vector.");
                 Log.Error("SHOULD NOT HAPPEN -> Trying to build card that is not in provided cards list");
                 return false;
             }
@@ -330,7 +349,7 @@ namespace _7WondersGame.src.models.Players
                             // If it was not possible to produce/buy, revert changes to resource and onDemandResource dicts and return.
                             if (!couldProduce)
                             {
-                                Log.Debug("Player {PlayerId} -> FAILURE -> couldn't produce resources.", Id);
+                                Trace.Verbose("Player {PlayerId} -> FAILURE -> couldn't produce resources.", Id);
                                 Log.Error("SHOULD NOT HAPPEN -> If CanPlayCard() = true, then building must be possible");
                                 Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
                                 ResetUsed();
@@ -371,7 +390,7 @@ namespace _7WondersGame.src.models.Players
 
             // Pay for the card if necessary
             if (!free_card) Resources[Resource.Coins] -= cost;
-            Log.Debug("Player {PlayerId} -> SUCCESSFULLY -> builds {CardName}", Id, card.Name);
+            Trace.Verbose("Player {PlayerId} -> SUCCESSFULLY -> builds {CardName}", Id, card.Name);
 
             return true;
         }
@@ -1043,7 +1062,7 @@ namespace _7WondersGame.src.models.Players
                 missing = BuyFromNeighbor(resource, missing, RawCheapWest, PlayerWest);
                 if (missing == 0)
                 {
-                    Log.Debug("Player {PlayerId} bought {resource} from west only!", Id, resource);
+                    Trace.Verbose("Player {PlayerId} bought {resource} from west only!", Id, resource);
                     return true;
                 }
                 else
@@ -1051,7 +1070,7 @@ namespace _7WondersGame.src.models.Players
                     missing = BuyFromNeighbor(resource, missing, RawCheapEast, PlayerEast);
                     if (missing == 0)
                     {
-                        Log.Debug("Player {PlayerId} bought {resource} from east!", Id, resource);
+                        Trace.Verbose("Player {PlayerId} bought {resource} from east!", Id, resource);
                         return true;
                     }
                 }
@@ -1061,7 +1080,7 @@ namespace _7WondersGame.src.models.Players
                 missing = BuyFromNeighbor(resource, missing, RawCheapEast, PlayerEast);
                 if (missing == 0)
                 {
-                    Log.Debug("Player {PlayerId} bought {resource} from east only!", Id, resource);
+                    Trace.Verbose("Player {PlayerId} bought {resource} from east only!", Id, resource);
                     return true;
                 }
                 else
@@ -1069,7 +1088,7 @@ namespace _7WondersGame.src.models.Players
                     missing = BuyFromNeighbor(resource, missing, RawCheapWest, PlayerWest);
                     if (missing == 0)
                     {
-                        Log.Debug("Player {PlayerId} bought {resource} from west!", Id, resource);
+                        Trace.Verbose("Player {PlayerId} bought {resource} from west!", Id, resource);
                         return true;
                     }
                 }
@@ -1088,7 +1107,7 @@ namespace _7WondersGame.src.models.Players
             resourcesEastBckp.Clear();
             resourcesWestBckp.Clear();
 
-            Log.Debug("FAILURE -> Player {PlayerId} couldn't buy enough {resource}.", Id, resource);
+            Trace.Verbose("FAILURE -> Player {PlayerId} couldn't buy enough {resource}.", Id, resource);
             return false; // Couldn't buy
         }
 
@@ -1165,7 +1184,7 @@ namespace _7WondersGame.src.models.Players
 
             if (candidates.Count == 0)
             {
-                Log.Debug("Player {PlayerId} -> FAILED -> no guilds to copy!", Id);
+                Trace.Verbose("Seat {Seat} -> no guild to copy", Id);
                 return false;
             }
 
@@ -1196,7 +1215,7 @@ namespace _7WondersGame.src.models.Players
             if (bestGuild!.Id == CardId.Scientists)
                 ExtraScience = true;
 
-            Log.Debug("Player {PlayerId} -> SUCCESSFULLY -> copies guild {GuildName}", Id, bestGuild.Name);
+            Trace.Verbose("Seat {Seat} -> copies guild {Guild}", Id, bestGuild.Name);
             return true;
         }
 

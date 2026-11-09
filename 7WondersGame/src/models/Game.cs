@@ -1,6 +1,8 @@
 ﻿using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
 using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace _7WondersGame.src.models
 {
@@ -23,6 +25,18 @@ namespace _7WondersGame.src.models
         private readonly Random _rng;
         private readonly Dictionary<int, Random> _agentRngs = new();
         private ulong _copyCount = 0;
+
+        /// <summary>
+        /// Step-by-step trace of this game: Debug for the playout, Verbose for detail.
+        /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so MCTS copies and rollouts stay silent.
+        /// Players log through it too (<see cref="Loop"/> hands it to them).
+        /// A trace line must not change the game: no pay-and-roll-back checks, no random draws.
+        /// </summary>
+        public ILogger Trace { get; set; } = Logger.None;
+
+        private bool Tracing => Trace.IsEnabled(LogEventLevel.Debug);
+
+        private static string Names(IEnumerable<Card> cards) => string.Join(", ", cards.Select(c => c.Name));
 
         /// <summary>
         /// A game with seed 0. Use <see cref="Game(ulong)"/> when the game should differ from others.
@@ -311,7 +325,7 @@ namespace _7WondersGame.src.models
             return allReady;
         }
 
-        void NextTurn(bool verbose = false)
+        void NextTurn()
         {
             Turn++;
 
@@ -326,7 +340,7 @@ namespace _7WondersGame.src.models
                         //          player can play seventh Era card so we need to process 1 default move.
                         //          1. calculate players new playable cards,
                         //          2. read this players command and process it
-                        ExtraLoop(player, playSeventh: true, verbose: verbose);
+                        ExtraLoop(player, playSeventh: true);
                 }
                 Turn++;
             }
@@ -342,6 +356,8 @@ namespace _7WondersGame.src.models
                     for (int i = 0; i < cards.Count; i++)
                         DiscardedCards.Add(cards[i]);
                 }
+                if (Tracing)
+                    Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(Players.SelectMany(p => p.HandCards)));
             }
 
             // TRY COMPUTE Halikarnassos DiscardFree effect
@@ -368,7 +384,7 @@ namespace _7WondersGame.src.models
                     //          player can play card from discarded cards for free.
                     //          1. calculate players new playable cards from discardedCards
                     //          2. read this players command and process it
-                    ExtraLoop(player, discardFree: true, verbose: verbose);
+                    ExtraLoop(player, discardFree: true);
             }
 
 
@@ -383,26 +399,36 @@ namespace _7WondersGame.src.models
                         player.FreeCardOnce = true;
                     else
                         player.FreeCardOnce = false;
-                    // calculate Victory and Defeat tokens 
+                    // calculate Victory and Defeat tokens
                     player.Battle(Era);
                 }
+                if (Tracing)
+                    foreach (Player player in Players)
+                        TraceBattle(player);
 
                 Era++;
-                Log.Debug("-----------------------------------------------------------------\n");
                 if (Era < 4)
-                    Log.Debug("Nova era: {era}", Era);
+                {
+                    if (Tracing)
+                    {
+                        Trace.Debug("=== Era {Era} ===", Era);
+                        foreach (Player player in Players.Where(p => p.FreeCardOnce))
+                            Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Id);
+                    }
+                }
                 else
                 {
-                    Log.Debug("End of game");
+                    Trace.Debug("=== Game over ===");
                     return;
                 }
 
-                // give new Era cards to player 
+                // give new Era cards to player
                 GiveCards();
             }
             else
             {
                 RotateHandCards();
+                Trace.Debug("Hands passed {Direction}", Era == 1 || Era == 3 ? "west" : "east");
             }
         }
 
@@ -443,13 +469,17 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// Plays the game to the end and scores it.
         /// </summary>
-        /// <param name="record">true for a real game (not an MCTS rollout): log progress and keep <see cref="Results"/>.</param>
+        /// <param name="record">true for a real game (not an MCTS rollout): keep <see cref="Results"/>.</param>
         /// <returns>Each seat's final VP.</returns>
         public Dictionary<int, int> Loop(bool record = false)
         {
+            foreach (Player player in Players)
+                player.Trace = Trace;
+            if (Turn == 0 && Tracing)
+                TraceSetup();
+
             while (Turn < 21)
             {
-                Log.Debug("\n::: PREPARE FOR TURN {Turn} :::", Turn);
                 // update pre turn game data for players
                 foreach (Player player in Players)
                 {
@@ -459,28 +489,19 @@ namespace _7WondersGame.src.models
                     player.CheckCanBuildWonder();
                 }
 
-                Log.Debug("\n::: TURN {Turn} :::", Turn);
-
-                // Print Playable Cards for each player.
-                foreach (Player player in Players)
-                {
-                    Log.Debug("> Playable cards for player {PlayerId}:", player.Id);
-                    foreach (Card card in player.PlayableCards)
-                        Log.Debug("  ({PlayerId}) {CardName}", player.Id, card.Name);
-
-                    if (player.CanBuildWonder)
-                        Log.Debug("> Player {PlayerId} CAN build a wonder stage! ", player.Id);
-                    else
-                        Log.Debug("> Player {PlayerId} CANNOT build a wonder stage! ", player.Id);
-                }
+                if (Tracing)
+                    TraceTurnStart();
 
                 // make a turn
-                Log.Debug("<Waiting for players ready...>");
                 while (!ArePlayersReady())
                 {
                     foreach (Player player in Players)
                         player.ChooseMoveCommand(this);
                 }
+
+                if (Tracing)
+                    foreach (Player player in Players)
+                        TraceChoice(player);
 
                 // handle command for each player
                 foreach (Player player in Players)
@@ -495,19 +516,20 @@ namespace _7WondersGame.src.models
                 }
 
                 // Moves the game to the next turn, processes DiscardFree and PlaySeventh effects
-                NextTurn(record);
-                if (record)
-                    Log.Information("Turn {turn} complete", Turn);
+                NextTurn();
             }
 
             //calculate scores
             foreach (Player player in Players)
             {
                 // Copies a neighbor guild before scoring if the player has the ability to do so.
-                player.CopyGuild(); 
+                bool copied = player.CopyGuild();
+                if (copied && Tracing)
+                    Trace.Debug("Seat {Seat} copies {Guild} from a neighbour (Olympia B)", player.Id, player.PlayedCards[^1].Name);
                 player.CalculateScore();
-                Log.Debug("results Player {PlayerId} score: {PlayerScore}", player.Id, player.VictoryPoints);
             }
+            if (Tracing)
+                TraceScores();
 
             // keep the results before the game memory is released
             if (record)
@@ -519,7 +541,7 @@ namespace _7WondersGame.src.models
             return scores;
         }
 
-        public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false, bool verbose = false)
+        public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false)
         {
             // update pre turn game data for player
             // set the list of cards from which to play based on effect flag
@@ -540,25 +562,26 @@ namespace _7WondersGame.src.models
             // set CanBuildWonder
             player.CheckCanBuildWonder();
 
-            Log.Debug("\n::: EXTRA TURN {playSeventh}{discardFree} :::", playSeventh? "PlaySeventh" : "", discardFree? "DiscardFree" : "");
-
-            // Print Playable Cards for player.
-            Log.Debug("> Playable cards for player {PlayerId}:", player.Id);
-            foreach (Card card in player.PlayableCards)
-                Log.Debug("  ({PlayerId}) {CardName}", player.Id, card.Name);
-
-            if (player.CanBuildWonder)
-                Log.Debug("> Player {PlayerId} CAN build a wonder stage! ", player.Id);
-            else
-                Log.Debug("> Player {PlayerId} CANNOT build a wonder stage! ", player.Id);
+            if (Tracing)
+            {
+                if (playSeventh)
+                    Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}", player.Id, Names(cardsList));
+                else
+                {
+                    Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", player.Id);
+                    Trace.Verbose("Discard pile: {Cards}", Names(cardsList));
+                }
+                TracePlayable(player);
+            }
 
             // depending on effect flag make different moves
             if (playSeventh && !discardFree)
             {
                 // make a normal turn
-                Log.Debug("<Waiting for player ready...>");
                 player.ChooseMoveCommand(this);
                 Command playerCommand = PlayerCommands[player.Id];
+                if (Tracing)
+                    TraceChoice(player);
 
                 // handle command for player
                 HandlePlayerCommand(player, playerCommand, cardsList);
@@ -575,69 +598,50 @@ namespace _7WondersGame.src.models
                     // build the card for free
                     if (player.BuildDiscardFree(cardPlayed, cardsList))
                     {
-                        Log.Debug("<BuildDiscardFree OK>");
+                        Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Id, cardPlayed.Name);
                     }
                     else
                     {
-                        Log.Debug("<BuildDiscardFree NOK>");
                         Log.Error("SHOULD NOT HAPPEN");
                     }
                 }
                 else
                 {
-                    Log.Debug("No cards in Discarded Cards list");
+                    Trace.Debug("Seat {Seat}: nothing in the discard pile can be built", player.Id);
                     // disable discardFree effect even if no card were played
                     player.DiscardFree = false;
                 }
             }
-            if (verbose)
-                Log.Information("Turn {turn} (Player:{pId} discard:{discardFree} | seventh:{playSeventh}) complete", Turn, player.Id, discardFree, playSeventh);
         }
 
         public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList)
         {
             string command = playerCommand.Subcommand;
             Card? cardPlayed = playerCommand.Argument;
+            TraceSnapshot? before = Tracing ? TraceSnapshot.Of(player) : null;
 
             if (!command.Equals("skip_move") && cardPlayed != null)
             {
                 if (command.Equals("build_structure"))
                 {
-                    if (player.BuildStructure(cardPlayed, cardsList, false))
+                    if (!player.BuildStructure(cardPlayed, cardsList, false))
                     {
-                        Log.Debug("<BuildStructure OK>");
-                    }
-                    else
-                    {
-                        Log.Debug("<BuildStructure NOK>");
                         Log.Error("SHOULD NOT HAPPEN");
                         command = "discard";
                     }
-
                 }
                 else if (command.Equals("build_hand_free"))
                 {
-                    if (player.BuildHandFree(cardPlayed, cardsList))
+                    if (!player.BuildHandFree(cardPlayed, cardsList))
                     {
-                        Log.Debug("<BuildHandFree OK>");
-                    }
-                    else
-                    {
-                        Log.Debug("<BuildHandFree NOK>");
                         Log.Error("SHOULD NOT HAPPEN");
                         command = "discard";
                     }
-
                 }
                 else if (command.Equals("build_wonder"))
                 {
-                    if (player.BuildWonder(cardPlayed, cardsList))
+                    if (!player.BuildWonder(cardPlayed, cardsList))
                     {
-                        Log.Debug("<BuildWonder OK>");
-                    }
-                    else
-                    {
-                        Log.Debug("<BuildWonder NOK>");
                         Log.Error("SHOULD NOT HAPPEN");
                         command = "discard";
                     }
@@ -646,14 +650,117 @@ namespace _7WondersGame.src.models
                 if (command.Equals("discard"))
                 {
                     player.Discard(cardPlayed); //Gives player 3 coins.
-                    Log.Debug("<Discard OK>");
                     DiscardedCards.Add(cardPlayed);
                 }
             }
-            else
-                Log.Debug("Skipping move - no playable card found");
+
+            if (before != null)
+                TraceResult(player, command, cardPlayed, before);
         }
 
+        // ================= Trace (Debug / Verbose) =================
+        // Read-only: these only read state that is already computed.
+
+        private void TraceSetup()
+        {
+            Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players", Seed, Seed.ToString("x16"), Players.Count);
+            foreach (Player p in Players)
+                Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}", p.Id, p.GetType().Name, p.ConfigJson(), p.Board.Id);
+            for (int era = 0; era < Decks.Length; era++)
+                Trace.Verbose("Era {Era} deck: {Cards}", era + 1, Names(Decks[era]));
+            Trace.Debug("=== Era 1 ===");
+        }
+
+        private void TraceTurnStart()
+        {
+            Trace.Debug("--- Era {Era}, turn {Turn} ---", Era, Turn);
+            foreach (Player p in Players)
+            {
+                Trace.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
+                    p.Id, p.Resources[Resource.Coins], p.Resources[Resource.Shields], p.Board.Id, p.Board.Stage, Names(p.HandCards));
+                TracePlayable(p);
+            }
+        }
+
+        private void TracePlayable(Player p) =>
+            Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
+                p.Id, Names(p.PlayableCards), p.CanBuildWonder);
+
+        private void TraceChoice(Player p)
+        {
+            Command c = PlayerCommands[p.Id];
+            Trace.Debug("Seat {Seat} chooses {Action} {Card}", p.Id, c.Subcommand, c.Argument?.Name ?? "-");
+        }
+
+        /// <summary>What a move changed: coins (own and paid to each neighbour), wonder stage and effect flags.</summary>
+        private void TraceResult(Player p, string command, Card? card, TraceSnapshot before)
+        {
+            TraceSnapshot after = TraceSnapshot.Of(p);
+            string name = card?.Name ?? "";
+            string move = command switch
+            {
+                "build_structure" => $"builds {name}",
+                "build_hand_free" => $"builds {name} for free (Olympia A)",
+                "build_wonder" => $"builds wonder stage {after.Stage} using {name}",
+                "discard" => $"discards {name}",
+                _ => "skips the move",
+            };
+
+            var details = new List<string>();
+            if (after.WestCoins != before.WestCoins)
+                details.Add($"paid {after.WestCoins - before.WestCoins} to seat {p.PlayerWest.Id} (west)");
+            if (after.EastCoins != before.EastCoins)
+                details.Add($"paid {after.EastCoins - before.EastCoins} to seat {p.PlayerEast.Id} (east)");
+            var gained = after.Flags.Except(before.Flags).ToList();
+            var lost = before.Flags.Except(after.Flags).ToList();
+            if (gained.Count > 0)
+                details.Add("gains " + string.Join(", ", gained));
+            if (lost.Count > 0)
+                details.Add("uses up " + string.Join(", ", lost));
+
+            Trace.Debug("Seat {Seat} {Move}: coins {Before} -> {After}{Details}", p.Id, move, before.Coins, after.Coins,
+                details.Count > 0 ? "; " + string.Join("; ", details) : "");
+        }
+
+        /// <summary>One player's two battles at the end of an era (after <see cref="Player.Battle"/>; read-only).</summary>
+        private void TraceBattle(Player p)
+        {
+            int mine = p.Resources[Resource.Shields];
+            int win = Era == 1 ? 1 : Era == 2 ? 3 : 5;
+            string Outcome(int theirs) => mine > theirs ? $"+{win}" : mine < theirs ? "-1" : "draw";
+            int west = p.PlayerWest.Resources[Resource.Shields], east = p.PlayerEast.Resources[Resource.Shields];
+            Trace.Debug("Seat {Seat} battles with {Shields} shields: vs seat {West} (west, {WestShields}) {WestResult}, " +
+                        "vs seat {East} (east, {EastShields}) {EastResult}",
+                p.Id, mine, p.PlayerWest.Id, west, Outcome(west), p.PlayerEast.Id, east, Outcome(east));
+        }
+
+        private void TraceScores()
+        {
+            foreach (Player p in Players)
+                Trace.Debug("Seat {Seat} {Agent}: {Total} VP = military {Military} + coins {Money} + wonder {Wonder} + " +
+                            "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; {Coins} coins left",
+                    p.Id, p.GetType().Name, p.VictoryPoints, p.CalculateMilitaryScore(), p.CalculateMoneyScore(),
+                    p.CalculateWonderScore(), p.CalculateCivilianScore(), p.CalculateCommercialScore(),
+                    p.CalculateGuildScore(), p.CalculateScientificScore(), p.Resources[Resource.Coins]);
+        }
+
+        private sealed record TraceSnapshot(int Coins, int WestCoins, int EastCoins, int Stage, List<string> Flags)
+        {
+            public static TraceSnapshot Of(Player p)
+            {
+                var flags = new List<string>();
+                if (p.PlaySeventh) flags.Add(nameof(p.PlaySeventh));
+                if (p.DiscardFree) flags.Add(nameof(p.DiscardFree));
+                if (p.FreeCardOnce) flags.Add(nameof(p.FreeCardOnce));
+                if (p.WonderRawCheap) flags.Add(nameof(p.WonderRawCheap));
+                if (p.RawCheapWest) flags.Add(nameof(p.RawCheapWest));
+                if (p.RawCheapEast) flags.Add(nameof(p.RawCheapEast));
+                if (p.ManufCheap) flags.Add(nameof(p.ManufCheap));
+                if (p.ExtraScience) flags.Add(nameof(p.ExtraScience));
+                return new TraceSnapshot(p.Resources[Resource.Coins], p.PlayerWest.Resources[Resource.Coins],
+                    p.PlayerEast.Resources[Resource.Coins], p.Board.Stage, flags);
+            }
+        }
 
 
         // ================= MCTS related =================
@@ -928,17 +1035,17 @@ namespace _7WondersGame.src.models
                     // build the card for free
                     if (Players[playerId].BuildDiscardFree(cardPlayed, DiscardedCards))
                     {
-                        Log.Debug("<BuildDiscardFree OK>");
+                        Trace.Verbose("<BuildDiscardFree OK>");
                     }
                     else
                     {
-                        Log.Debug("<BuildDiscardFree NOK>");
+                        Trace.Verbose("<BuildDiscardFree NOK>");
                         Log.Error("SHOULD NOT HAPPEN");
                     }
                 }
                 else
                 {
-                    Log.Debug("No cards in Discarded Cards list");
+                    Trace.Verbose("No cards in Discarded Cards list");
                     // disable discardFree effect even if no card were played
                     Players[playerId].DiscardFree = false;
                 }
@@ -1038,17 +1145,17 @@ namespace _7WondersGame.src.models
                         // build the card for free
                         if (Players[discardFreePlayer.Id].BuildDiscardFree(cardPlayed, DiscardedCards))
                         {
-                            Log.Debug("<BuildDiscardFree OK>");
+                            Trace.Verbose("<BuildDiscardFree OK>");
                         }
                         else
                         {
-                            Log.Debug("<BuildDiscardFree NOK>");
+                            Trace.Verbose("<BuildDiscardFree NOK>");
                             Log.Error("SHOULD NOT HAPPEN");
                         }
                     }
                     else
                     {
-                        Log.Debug("No cards in Discarded Cards list");
+                        Trace.Verbose("No cards in Discarded Cards list");
                         // disable discardFree effect even if no card were played
                         Players[discardFreePlayer.Id].DiscardFree = false;
                     }
