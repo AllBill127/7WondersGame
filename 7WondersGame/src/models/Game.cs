@@ -469,7 +469,8 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// Plays the game to the end and scores it.
         /// </summary>
-        /// <param name="record">true for a real game (not an MCTS rollout): keep <see cref="Results"/>.</param>
+        /// <param name="record">true for a real game (not an MCTS rollout): keep <see cref="Results"/> and the final
+        /// state (players, cards, discard pile) instead of releasing it.</param>
         /// <returns>Each seat's final VP.</returns>
         public Dictionary<int, int> Loop(bool record = false)
         {
@@ -537,7 +538,8 @@ namespace _7WondersGame.src.models
 
             var scores = new Dictionary<int, int>();
             Players.ForEach(p => scores.Add(p.Id, p.VictoryPoints));
-            ReleaseGameMemory();
+            if (!record)
+                ReleaseGameMemory();
             return scores;
         }
 
