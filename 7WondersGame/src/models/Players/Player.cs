@@ -1133,111 +1133,62 @@ namespace _7WondersGame.src.models.Players
         }
 
         /// <summary>
-        /// Copies highest VP earning guild from neighbors to a Players PlayedCards list <br/>
-        /// - should be called before calculating scores
+        /// Olympia B stage 3: at the end of the game, copy one guild built by a neighbour, as if built. <br/>
+        /// - each candidate is scored with the real CalculateScore(); the best one is kept (ties go to the first candidate, west then east) <br/>
+        /// - the copy stays in PlayedCards, so Shipowners counts it; copying Scientists sets ExtraScience <br/>
+        /// - a guild the player already has is skipped (no two identical structures) <br/>
+        /// - should be called before calculating scores <br/>
+        /// Sources: https://rules.dized.com/7-wonders/rule/wonder-boards/the-statue-of-zeus-in-olympia,
+        ///          https://rules.dized.com/7-wonders/rule/symbols/guilds
         /// </summary>
         /// <returns>
         /// true if a guild was copied; otherwise false
         /// </returns>
         public bool CopyGuild()
         {
-            WonderId id = Board.Id;
-            int stage = Board.Stage;
+            if (Board.Id != WonderId.OlympiaB || Board.Stage < 3)
+                return false;
 
-            // { guild; total VPs it can give to the current player }
-            Dictionary<CardId, int> guild_vps = new()
+            List<Card> candidates = PlayerWest.PlayedCards.Concat(PlayerEast.PlayedCards)
+                .Where(card => card.Type == CardType.Guild && !HasPlayedCard(card))
+                .Distinct()
+                .ToList();
+
+            if (candidates.Count == 0)
             {
-                { CardId.Workers, 0 },
-                { CardId.Craftsmens, 0 },
-                { CardId.Traders, 0 },
-                { CardId.Philosophers, 0 },
-                { CardId.Spies, 0 },
-                { CardId.Magistrates, 0 },
-                { CardId.Shipowners, 0 },
-                { CardId.Strategists, 0 },
-                { CardId.Scientists, 0 },
-                { CardId.Builders, 0 },
-            };
-
-            if (id == WonderId.OlympiaB && stage >= 3)
-            {
-                List<Card> available_guilds = new();
-                foreach (Card card in PlayerEast.PlayedCards)
-                {
-                    if (card.Type == CardType.Guild)
-                        available_guilds.Add(card);
-                }
-                foreach (Card card in PlayerWest.PlayedCards)
-                {
-                    if (card.Type == CardType.Guild)
-                        available_guilds.Add(card);
-                }
-
-                // For each guild the neighbors have, calculate the potential VPs it can give
-                // to the current player.
-                // The guild with the most VPs will be the chosen one to be copied.
-                foreach (Card guild in available_guilds)
-                {
-                    CardId guild_id = guild.Id;
-                    switch (guild_id)
-                    {
-                        case CardId.Workers:
-                            guild_vps[CardId.Workers] = PlayerEast.AmountOfType(CardType.Materials) + PlayerWest.AmountOfType(CardType.Materials);
-                            break;
-                        case CardId.Craftsmens:
-                            guild_vps[CardId.Craftsmens] = PlayerEast.AmountOfType(CardType.Manufactured) + PlayerWest.AmountOfType(CardType.Manufactured);
-                            break;
-                        case CardId.Traders:
-                            guild_vps[CardId.Traders] = PlayerEast.AmountOfType(CardType.Commercial) + PlayerWest.AmountOfType(CardType.Commercial);
-                            break;
-                        case CardId.Philosophers:
-                            guild_vps[CardId.Philosophers] = PlayerEast.AmountOfType(CardType.Scientific) + PlayerWest.AmountOfType(CardType.Scientific);
-                            break;
-                        case CardId.Spies:
-                            guild_vps[CardId.Spies] = PlayerEast.AmountOfType(CardType.Military) + PlayerWest.AmountOfType(CardType.Military);
-                            break;
-                        case CardId.Magistrates:
-                            guild_vps[CardId.Magistrates] = PlayerEast.AmountOfType(CardType.Civilian) + PlayerWest.AmountOfType(CardType.Civilian);
-                            break;
-                        case CardId.Shipowners:
-                            guild_vps[CardId.Shipowners] = AmountOfType(CardType.Materials) + AmountOfType(CardType.Manufactured);
-                            guild_vps[CardId.Shipowners] += AmountOfType(CardType.Guild);
-                            break;
-                        case CardId.Strategists:
-                            guild_vps[CardId.Strategists] = PlayerEast.DefeatTokens + PlayerWest.DefeatTokens;
-                            break;
-                        case CardId.Scientists:
-                            // Not 100% accurate.
-                            guild_vps[CardId.Scientists] = AmountOfType(CardType.Scientific);
-                            break;
-                        case CardId.Builders:
-                            guild_vps[CardId.Builders] = PlayerEast.Board.Stage + PlayerWest.Board.Stage;
-                            guild_vps[CardId.Builders] += Board.Stage;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                KeyValuePair<CardId, int> best_guild = guild_vps.MaxBy(kvp => kvp.Value);
-
-                if (best_guild.Value > 0)
-                {
-                    foreach (Card guild in available_guilds)
-                    {
-                        // Pushes the chosen guild to the vector of played cards.
-                        if (guild.Id == best_guild.Key)
-                        {
-                            PlayedCards.Add(guild);
-                            Log.Debug("Player {PlayerId} -> SUCCESSFULLY -> copies guild {GuildName}", Id, guild.Name);
-                            return true;
-                        }
-                    }
-                }
                 Log.Debug("Player {PlayerId} -> FAILED -> no guilds to copy!", Id);
+                return false;
             }
 
-            return false;
+            int victoryPointsBckp = VictoryPoints;
+            bool extraScienceBckp = ExtraScience;
+
+            Card? bestGuild = null;
+            int bestScore = int.MinValue;
+            foreach (Card guild in candidates)
+            {
+                PlayedCards.Add(guild);
+                if (guild.Id == CardId.Scientists)
+                    ExtraScience = true;
+
+                int score = CalculateScore();
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestGuild = guild;
+                }
+
+                PlayedCards.RemoveAt(PlayedCards.Count - 1);
+                ExtraScience = extraScienceBckp;
+            }
+            VictoryPoints = victoryPointsBckp;
+
+            PlayedCards.Add(bestGuild!);
+            if (bestGuild!.Id == CardId.Scientists)
+                ExtraScience = true;
+
+            Log.Debug("Player {PlayerId} -> SUCCESSFULLY -> copies guild {GuildName}", Id, bestGuild.Name);
+            return true;
         }
 
         // =========== End of game scoring related ===========
