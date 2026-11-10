@@ -17,8 +17,8 @@ namespace _7WondersGame.src.models
         public List<Card> DiscardedCards { get; set; }
 
         // game loop data
+        /// <summary>Where an agent's <see cref="Player.ChooseMoveCommand"/> puts its answer. Not game state: never copied.</summary>
         public Command[] PlayerCommands { get; set; }
-        public bool[] PlayersReady { get; set; }
 
         // randomness (B1): everything random in a game comes from its seed
         public ulong Seed { get; private set; }
@@ -56,7 +56,6 @@ namespace _7WondersGame.src.models
 
             // init with default size; changes in InitGame()
             PlayerCommands = new Command[NumPlayers];
-            PlayersReady = new bool[NumPlayers];
         }
 
         /// <summary>
@@ -98,8 +97,12 @@ namespace _7WondersGame.src.models
 
             copy.DiscardedCards = this.DiscardedCards.Select(e => e).ToList();
 
-            copy.PlayerCommands = this.PlayerCommands.Select(e => e).ToArray();
-            copy.PlayersReady = this.PlayersReady.Select(e => e).ToArray();
+            // the agents' answer slots stay empty: a copy never shows a choice made in the original (M2)
+            copy.PlayerCommands = new Command[this.PlayerCommands.Length];
+
+            copy.Phase = this.Phase;
+            copy._waiting = this._waiting?.ToArray();
+            copy._chosen = this._chosen.ToArray();
 
             return copy;
         }
@@ -114,7 +117,6 @@ namespace _7WondersGame.src.models
         {
             NumPlayers = Players.Count;
             PlayerCommands = new Command[NumPlayers];
-            PlayersReady = new bool[NumPlayers];
 
             SetPlayerNeighbors();
 
@@ -132,7 +134,6 @@ namespace _7WondersGame.src.models
         {
             NumPlayers = Players.Count;
             PlayerCommands = new Command[NumPlayers];
-            PlayersReady = new bool[NumPlayers];
 
             SetPlayerNeighbors();
 
@@ -307,98 +308,191 @@ namespace _7WondersGame.src.models
 
 
 
-        // ============ Game running related ============
-        /// <summary>
-        /// Check if all players are ready
-        /// </summary>
-        /// <returns>
-        /// true if all players are ready; false otherwise
-        /// </returns>
-        private bool ArePlayersReady()
+        // ============ Turn state machine (E1) ============
+        // The turn rules live here once. Loop and the MCTS trees all go through PendingPlayers and Submit.
+
+        /// <summary>What the game is waiting for.</summary>
+        public Phase Phase { get; private set; } = Phase.ChooseMoves;
+
+        // who still has to decide in this phase; null until the first phase starts
+        private bool[]? _waiting;
+        // ChooseMoves: the moves already in, held until everyone has chosen
+        private Command?[] _chosen = Array.Empty<Command?>();
+
+        /// <summary>The seats that must decide now, in seat order. Empty once the game is over.</summary>
+        public IReadOnlyList<int> PendingPlayers()
         {
-            bool allReady = true;
-            for (int i = 0; i < Players.Count; i++)
-            {
-                allReady = allReady && PlayersReady[i];
-            }
-            return allReady;
+            StartIfNeeded();
+            var pending = new List<int>();
+            for (int seat = 0; seat < _waiting!.Length; seat++)
+                if (_waiting[seat])
+                    pending.Add(seat);
+            return pending;
         }
 
-        void NextTurn()
+        /// <summary>True when some players' moves for this turn are in and the others' aren't yet.</summary>
+        public bool MovesWaiting => _chosen.Any(c => c != null);
+
+        /// <summary>
+        /// A pending player's decision. The game moves on when everyone pending has decided:
+        /// <list type="bullet">
+        /// <item><see cref="Phase.ChooseMoves"/>: the move is held until all moves are in, then they happen together.</item>
+        /// <item><see cref="Phase.SeventhCard"/>: a normal move with the last card of the hand.</item>
+        /// <item><see cref="Phase.DiscardBuild"/>: a Build of a discard-pile card, or Skip to build nothing.</item>
+        /// </list>
+        /// Throws if the seat has nothing to decide or the rules don't allow the move; the state is then unchanged.
+        /// </summary>
+        public void Submit(int seat, Command move)
         {
-            Turn++;
+            StartIfNeeded();
+            if (seat < 0 || seat >= _waiting!.Length || !_waiting[seat])
+                throw new InvalidOperationException(
+                    $"Seat {seat} has nothing to decide now ({Phase}, turn {Turn}, era {Era}, game seed {Seed}).");
+            Player player = Players[seat];
 
-            // TRY COMPUTE Babylon PlaySeventh effect
-            // * Turns 6 13 and 20 -> last card in hand card.
-            if (Turn == 6 || Turn == 13 || Turn == 20)
+            switch (Phase)
             {
-                foreach (Player player in Players)
-                {
-                    if (player.PlaySeventh)
-                        // NOTE:
-                        //          player can play seventh Era card so we need to process 1 default move.
-                        //          1. calculate players new playable cards,
-                        //          2. read this players command and process it
-                        ExtraLoop(player, playSeventh: true);
-                }
-                Turn++;
-            }
+                case Phase.ChooseMoves:
+                    _chosen[seat] = move;
+                    _waiting[seat] = false;
+                    if (_waiting.Contains(true))
+                        return;
+                    try
+                    {
+                        // every player's move happens at the same time (R5)
+                        ResolveMoves(Players.Select(p => (p, _chosen[p.Id]!, p.HandCards)).ToList());
+                    }
+                    catch
+                    {
+                        // ResolveMoves refuses before changing anything
+                        _chosen[seat] = null;
+                        _waiting[seat] = true;
+                        throw;
+                    }
+                    Array.Clear(_chosen);
+                    Turn++;
+                    if (Turn % 7 == 6 && StartPhase(Phase.SeventhCard))
+                        return;
+                    AfterSeventhCard();
+                    break;
 
-            // discard last card in hand if turn is 7 14 and 21
+                case Phase.SeventhCard:
+                    HandlePlayerCommand(player, move, player.HandCards);
+                    _waiting[seat] = false;
+                    if (!_waiting.Contains(true))
+                        AfterSeventhCard();
+                    break;
+
+                case Phase.DiscardBuild:
+                    if (move.Card is { } card)
+                    {
+                        if (!player.BuildDiscardFree(card, DiscardedCards))
+                            throw MoveFailed(player, "build from the discard pile", card);
+                        Trace.Debug("Seat {Seat} builds {Card} from the discard pile", seat, card.Name);
+                    }
+                    else
+                    {
+                        Trace.Debug("Seat {Seat} builds nothing from the discard pile", seat);
+                        player.DiscardFree = false;
+                    }
+                    _waiting[seat] = false;
+                    if (!_waiting.Contains(true))
+                        AfterDiscardBuild();
+                    break;
+            }
+        }
+
+        private void StartIfNeeded()
+        {
+            if (_waiting != null)
+                return;
+            _waiting = new bool[Players.Count];
+            _chosen = new Command?[Players.Count];
+            if (Era >= 4)
+                Phase = Phase.GameOver;
+            else
+                StartPhase(Phase);
+        }
+
+        /// <summary>
+        /// Enters a phase: marks who must decide and whether each of them can pay for a wonder stage (the rules read
+        /// <see cref="Player.CanBuildWonder"/>). False if nobody has anything to decide in it.
+        /// </summary>
+        private bool StartPhase(Phase phase)
+        {
+            Phase = phase;
+            bool any = false;
+            foreach (Player p in Players)
+            {
+                bool waits = phase switch
+                {
+                    Phase.ChooseMoves => true,
+                    Phase.SeventhCard => p.PlaySeventh && p.HandCards.Count > 0,
+                    Phase.DiscardBuild => CanBuildFromDiscardPile(p),
+                    _ => false,
+                };
+                _waiting![p.Id] = waits;
+                if (!waits)
+                    continue;
+                any = true;
+                p.CheckCanBuildWonder();
+            }
+            return any;
+        }
+
+        /// <summary>
+        /// What an agent looks at when choosing: its playable cards and whether it can build a wonder stage.
+        /// Worked out just before asking, because agents overwrite <see cref="Player.PlayableCards"/> while choosing
+        /// and MCTS rollouts swap in other agents.
+        /// </summary>
+        private void PrepareToAsk(Player p)
+        {
+            // the discard-pile build is free, so only the no-duplicates rule limits it
+            p.PlayableCards = Phase == Phase.DiscardBuild
+                ? p.GetPlayableCards(DiscardedCards, playAllFree: true)
+                : p.GetPlayableCards(p.HandCards);
+            p.CheckCanBuildWonder();
+        }
+
+        private static bool CanBuildFromDiscardPile(Player p) =>
+            p.DiscardFree && (p.Board.Id == WonderId.HalikarnassosA && p.Board.Stage == 2 ||
+                              p.Board.Id == WonderId.HalikarnassosB && p.Board.Stage >= 1);
+
+        /// <summary>After the turn's moves (and Babylon's 7th card): the end of an era's last hands, then Halikarnassos.</summary>
+        private void AfterSeventhCard()
+        {
+            // the 7th card slot (6, 13, 20) is used up whether or not someone played it
+            if (Turn % 7 == 6)
+                Turn++;
+
+            // the last card of each hand is discarded at the end of an era (turns 7, 14 and 21)
             if (Turn % 7 == 0)
             {
-                // transfer the remaining card in each player's hand to the discarded card list
                 foreach (Player player in Players)
-                {
-                    List<Card> cards = player.HandCards;
-                    // cards must be size 1!!
-                    for (int i = 0; i < cards.Count; i++)
-                        DiscardedCards.Add(cards[i]);
-                }
+                    DiscardedCards.AddRange(player.HandCards);
                 if (Tracing)
                     Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(Players.SelectMany(p => p.HandCards)));
             }
 
-            // TRY COMPUTE Halikarnassos DiscardFree effect
-            // this is done after all players have completed their turn
-            // and if last turn in Era - all last cards are discarded and BabylonA2 effect computed
+            // Halikarnassos A gets its discard-pile build from stage 2 only
             foreach (Player player in Players)
-            {
-                WonderId id = player.Board.Id;
-                int stage = player.Board.Stage;
-
-                // hard coded fix for DiscardFree flag going bonkers
-                // CAUSE:   not initiating new players when looping over many games keeps their flags up after game end
-                // FIX:     hard coded 
-                // NOTE:    no more neede as this fix is simple and implemented
-                if (player.DiscardFree && id == WonderId.HalikarnassosA && stage != 2)
-                { 
+                if (player.DiscardFree && player.Board.Id == WonderId.HalikarnassosA && player.Board.Stage != 2)
                     player.DiscardFree = false;
-                }
 
-                if ((id == WonderId.HalikarnassosA && stage == 2 ||
-                    id == WonderId.HalikarnassosB && stage >= 1) &&
-                    player.DiscardFree)
-                    // NOTE:
-                    //          player can play card from discarded cards for free.
-                    //          1. calculate players new playable cards from discardedCards
-                    //          2. read this players command and process it
-                    ExtraLoop(player, discardFree: true);
-            }
+            if (StartPhase(Phase.DiscardBuild))
+                return;
+            AfterDiscardBuild();
+        }
 
-
-            // if end of an era (turns 7 14 and 21)
-            // calculate battle tokens, reset OlympiaA2 effect if needed, give new Era cards to players
+        /// <summary>The end of a turn: at the end of an era battles and the next era's hands, otherwise pass the hands.</summary>
+        private void AfterDiscardBuild()
+        {
             if (Turn % 7 == 0)
             {
                 foreach (Player player in Players)
                 {
-                    // reset Olympia A stage 2 effect flag
-                    if (player.Board.Id == WonderId.OlympiaA && player.Board.Stage >= 2)
-                        player.FreeCardOnce = true;
-                    else
-                        player.FreeCardOnce = false;
-                    // calculate Victory and Defeat tokens
+                    // Olympia A stage 2: one free card per era
+                    player.FreeCardOnce = player.Board.Id == WonderId.OlympiaA && player.Board.Stage >= 2;
                     player.Battle(Era);
                 }
                 if (Tracing)
@@ -406,22 +500,19 @@ namespace _7WondersGame.src.models
                         TraceBattle(player);
 
                 Era++;
-                if (Era < 4)
-                {
-                    if (Tracing)
-                    {
-                        Trace.Debug("=== Era {Era} ===", Era);
-                        foreach (Player player in Players.Where(p => p.FreeCardOnce))
-                            Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Id);
-                    }
-                }
-                else
+                if (Era >= 4)
                 {
                     Trace.Debug("=== Game over ===");
+                    Phase = Phase.GameOver;
+                    Array.Clear(_waiting!);
                     return;
                 }
-
-                // give new Era cards to player
+                if (Tracing)
+                {
+                    Trace.Debug("=== Era {Era} ===", Era);
+                    foreach (Player player in Players.Where(p => p.FreeCardOnce))
+                        Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Id);
+                }
                 GiveCards();
             }
             else
@@ -429,6 +520,7 @@ namespace _7WondersGame.src.models
                 RotateHandCards();
                 Trace.Debug("Hands passed {Direction}", Era == 1 || Era == 3 ? "west" : "east");
             }
+            StartPhase(Phase.ChooseMoves);
         }
 
         public void RotateHandCards()
@@ -478,38 +570,21 @@ namespace _7WondersGame.src.models
             if (Turn == 0 && Tracing)
                 TraceSetup();
 
-            while (Turn < 21)
+            while (PendingPlayers() is { Count: > 0 } pending)
             {
-                // update pre turn game data for players
-                foreach (Player player in Players)
-                {
-                    // set PlayableCards
-                    player.PlayableCards = player.GetPlayableCards(player.HandCards);
-                    // set CanBuildWonder
-                    player.CheckCanBuildWonder();
-                }
-
+                foreach (int seat in pending)
+                    PrepareToAsk(Players[seat]);
                 if (Tracing)
-                    TraceTurnStart();
+                    TracePhaseStart(pending);
 
-                // make a turn
-                while (!ArePlayersReady())
-                {
-                    foreach (Player player in Players)
-                        player.ChooseMoveCommand(this);
-                }
+                // Everyone chooses from the same state before any choice is submitted, so no agent sees another's (M2).
+                var choices = pending.Select(seat => (Seat: seat, Move: Ask(Players[seat]))).ToList();
+                if (Tracing && Phase != Phase.DiscardBuild)
+                    foreach (var (seat, move) in choices)
+                        TraceChoice(Players[seat], move);
 
-                if (Tracing)
-                    foreach (Player player in Players)
-                        TraceChoice(player);
-
-                // every player's move happens at the same time (R5)
-                ResolveMoves(Players.Select(p => (p, PlayerCommands[p.Id], p.HandCards)).ToList());
-                foreach (Player player in Players)
-                    PlayersReady[player.Id] = false;
-
-                // Moves the game to the next turn, processes DiscardFree and PlaySeventh effects
-                NextTurn();
+                foreach (var (seat, move) in choices)
+                    Submit(seat, move);
             }
 
             //calculate scores
@@ -535,72 +610,20 @@ namespace _7WondersGame.src.models
             return scores;
         }
 
-        public void ExtraLoop(Player player, bool playSeventh = false, bool discardFree = false)
+        /// <summary>A pending player's decision for the current phase, from the agent.</summary>
+        private Command Ask(Player player)
         {
-            // update pre turn game data for player
-            // set the list of cards from which to play based on effect flag
-            List<Card> cardsList;
-            if (playSeventh)
-                cardsList = player.HandCards;
-            else if (discardFree)
-                cardsList = DiscardedCards;
-            else
-                return;
-            // set PlayableCards depending on effect
-            // - DiscardFree effect allows to build free so we only check if No duplicate card
-            if (discardFree && !playSeventh)
-                player.PlayableCards = player.GetPlayableCards(cardsList, true);
-            // - PlaySeventh effect allows any default action so we check default PlayableCards
-            if (playSeventh && !discardFree)
-                player.PlayableCards = player.GetPlayableCards(cardsList);
-            // set CanBuildWonder
-            player.CheckCanBuildWonder();
-
-            if (Tracing)
+            if (Phase == Phase.DiscardBuild)
             {
-                if (playSeventh)
-                    Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}", player.Id, Names(cardsList));
-                else
-                {
-                    Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", player.Id);
-                    Trace.Verbose("Discard pile: {Cards}", Names(cardsList));
-                }
-                TracePlayable(player);
+                Card? card = player.ChooseMoveCard(this, ActionType.Build, player.PlayableCards);
+                return card == null ? new Command(ActionType.Skip, null) : new Command(ActionType.Build, card);
             }
 
-            // depending on effect flag make different moves
-            if (playSeventh && !discardFree)
-            {
-                // make a normal turn
-                player.ChooseMoveCommand(this);
-                Command playerCommand = PlayerCommands[player.Id];
-                if (Tracing)
-                    TraceChoice(player);
-
-                // handle command for player
-                HandlePlayerCommand(player, playerCommand, cardsList);
-                // reset PlayersReady status for player
-                PlayersReady[player.Id] = false;
-            }
-            else if (discardFree && !playSeventh)
-            {
-                // choose a card from playable cards
-                Card? cardPlayed = player.ChooseMoveCard(this, ActionType.Build, player.PlayableCards);
-
-                if(cardPlayed != null)
-                {
-                    // build the card for free
-                    if (!player.BuildDiscardFree(cardPlayed, cardsList))
-                        throw MoveFailed(player, "build from the discard pile", cardPlayed);
-                    Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Id, cardPlayed.Name);
-                }
-                else
-                {
-                    Trace.Debug("Seat {Seat}: nothing in the discard pile can be built", player.Id);
-                    // disable discardFree effect even if no card were played
-                    player.DiscardFree = false;
-                }
-            }
+            player.ChooseMoveCommand(this);
+            Command move = PlayerCommands[player.Id];
+            // the slot only carries the agent's answer; clear it so the next agent can't read it (M2)
+            PlayerCommands[player.Id] = null!;
+            return move;
         }
 
         /// <summary>
@@ -679,9 +702,29 @@ namespace _7WondersGame.src.models
             Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
                 p.Id, Names(p.PlayableCards), p.CanBuildWonder);
 
-        private void TraceChoice(Player p)
+        private void TracePhaseStart(IReadOnlyList<int> pending)
         {
-            Command c = PlayerCommands[p.Id];
+            if (Phase == Phase.ChooseMoves)
+            {
+                TraceTurnStart();
+                return;
+            }
+            foreach (int seat in pending)
+            {
+                Player p = Players[seat];
+                if (Phase == Phase.SeventhCard)
+                    Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}", p.Id, Names(p.HandCards));
+                else
+                {
+                    Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", p.Id);
+                    Trace.Verbose("Discard pile: {Cards}", Names(DiscardedCards));
+                }
+                TracePlayable(p);
+            }
+        }
+
+        private void TraceChoice(Player p, Command c)
+        {
             Trace.Debug("Seat {Seat} chooses {Action} {Card}", p.Id, c.Action, c.Card?.Name ?? "-");
         }
 
@@ -760,552 +803,79 @@ namespace _7WondersGame.src.models
 
 
         // ================= MCTS related =================
-        public List<Command> GetLegalMoves(int playerId, bool playSeventh = false, bool discardFree = false)
-        {
-            List<Command> legalMoves = new();
-            Player player = Players[playerId];
-
-            // update player playable cards and wonder 
-            player.PlayableCards = player.GetPlayableCards(player.HandCards);
-            player.CheckCanBuildWonder();
-
-            // get possible actions for general situation
-            if (!playSeventh && !discardFree)
-            {
-                // add build structure moves with playable cards
-                if (player.PlayableCards.Count > 0)
-                {
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.Build, c));
-                }
-                // add build wonder moves with any of hand cards
-                if (player.CanBuildWonder)
-                {
-                    foreach (Card c in player.HandCards)
-                        legalMoves.Add(new Command(ActionType.BuildWonder, c));
-                }
-                // add build hand free moves with all playable cards when all hand cards are free
-                if (player.FreeCardOnce)
-                {
-                    player.PlayableCards = player.GetPlayableCards(player.HandCards, playAllFree: true);
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.BuildFreeOnce, c));
-                }
-
-                // add discard moves
-                foreach (Card c in player.HandCards)
-                    legalMoves.Add(new Command(ActionType.Discard, c));
-            }
-            // get possible actions for PlaySeventh effect situation
-            else if (playSeventh && !discardFree)
-            {
-                // add build structure moves with playable cards
-                if (player.PlayableCards.Count > 0)
-                {
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.Build, c));
-                }
-                // add build wonder moves with any of hand cards
-                if (player.CanBuildWonder)
-                {
-                    foreach (Card c in player.HandCards)
-                        legalMoves.Add(new Command(ActionType.BuildWonder, c));
-                }
-
-                // add discard moves
-                foreach (Card c in player.HandCards)
-                    legalMoves.Add(new Command(ActionType.Discard, c));
-            }
-            // get legal build moves for DiscardFree effect situation
-            else if (discardFree && player.DiscardFree && !playSeventh)
-            {
-                // add build structure moves with playable cards from games discarded cards
-                player.PlayableCards = player.GetPlayableCards(DiscardedCards);
-
-                if (player.PlayableCards.Count > 0)
-                {
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.Build, c));
-                }
-            }
-
-            // add single skip move when no moves available (should only happen on extra loop for FreeCardOnce or DiscardFree)
-            if (legalMoves.Count < 1)
-                legalMoves.Add(new Command(ActionType.Skip, null));
-
-            // group duplicate moves (occurs when duplicate cards in hand)
-            List<Command> groupedLegalMoves = legalMoves
-                .GroupBy(move => move)
-                .Select(group => group.Key)
-                .ToList();
-
-            return groupedLegalMoves;
-        }
-
-
-        public List<Command> GetLegalMovesPrunedDiscards(int playerId, bool playSeventh = false, bool discardFree = false)
-        {
-            Random rng = _rng;
-            int discardCardIdx;
-            List<Command> legalMoves = new();
-            Player player = Players[playerId];
-
-            // update player playable cards and wonder 
-            player.PlayableCards = player.GetPlayableCards(player.HandCards);
-            player.CheckCanBuildWonder();
-
-            // get possible actions for general situation
-            if (!playSeventh && !discardFree)
-            {
-                // add build structure moves with playable cards
-                if (player.PlayableCards.Count > 0)
-                {
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.Build, c));
-                }
-                // add build wonder moves with any of hand cards
-                if (player.CanBuildWonder)
-                {
-                    // add single random discard for wonder building if available
-                    if (player.HandCards.Count > 0)
-                    {
-                        discardCardIdx = rng.Next(player.HandCards.Count);
-                        legalMoves.Add(new Command(ActionType.BuildWonder, player.HandCards[discardCardIdx]));
-                    }
-                }
-                // add build hand free moves with all playable cards when all hand cards are free
-                if (player.FreeCardOnce)
-                {
-                    player.PlayableCards = player.GetPlayableCards(player.HandCards, playAllFree: true);
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.BuildFreeOnce, c));
-                }
-
-                // add single random discard move
-                if (player.HandCards.Count > 0)
-                {
-                    discardCardIdx = rng.Next(player.HandCards.Count);
-                    legalMoves.Add(new Command(ActionType.Discard, player.HandCards[discardCardIdx]));
-                }
-            }
-            // get possible actions for PlaySeventh effect situation
-            else if (playSeventh && !discardFree)
-            {
-                // add build structure moves with playable cards
-                if (player.PlayableCards.Count > 0)
-                {
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.Build, c));
-                }
-                // add build wonder moves with any of hand cards
-                if (player.CanBuildWonder)
-                {
-                    // add single random discard for wonder building if available
-                    if (player.HandCards.Count > 0)
-                    {
-                        discardCardIdx = rng.Next(player.HandCards.Count);
-                        legalMoves.Add(new Command(ActionType.BuildWonder, player.HandCards[discardCardIdx]));
-                    }
-                }
-
-                // add single random discard move
-                if (player.HandCards.Count > 0)
-                {
-                    discardCardIdx = rng.Next(player.HandCards.Count);
-                    legalMoves.Add(new Command(ActionType.Discard, player.HandCards[discardCardIdx]));
-                }
-            }
-            // get legal build moves for DiscardFree effect situation
-            else if (discardFree && player.DiscardFree && !playSeventh)
-            {
-                // add build structure moves with playable cards from games discarded cards
-                player.PlayableCards = player.GetPlayableCards(DiscardedCards);
-
-                if (player.PlayableCards.Count > 0)
-                {
-                    foreach (Card c in player.PlayableCards)
-                        legalMoves.Add(new Command(ActionType.Build, c));
-                }
-            }
-
-            // add single skip move when no moves available (should only happen on extra loop for FreeCardOnce or DiscardFree)
-            if (legalMoves.Count < 1)
-                legalMoves.Add(new Command(ActionType.Skip, null));
-
-            // group duplicate moves (occurs when duplicate cards in hand)
-            List<Command> groupedLegalMoves = legalMoves
-                .GroupBy(move => move)
-                .Select(group => group.Key)
-                .ToList();
-
-            return groupedLegalMoves;
-        }
+        /// <summary>
+        /// Every move a seat may make now. A seat with nothing to decide gets a single Skip, which is what a joint
+        /// move holds for it.
+        /// </summary>
+        public List<Command> LegalMoves(int seat) => Moves(seat, pruned: false);
 
         /// <summary>
-        /// 
+        /// Like <see cref="LegalMoves"/>, but with one wonder-stage move and one discard, each with a random hand
+        /// card (from the game's own random stream), instead of one per card.
         /// </summary>
-        /// <param name="playerId"></param>
-        /// <param name="playerMove"></param>
-        /// <returns>-1 when game is finished</returns>
-        public int ApplyMove(int playerId, Command playerMove)
+        public List<Command> LegalMovesPruned(int seat) => Moves(seat, pruned: true);
+
+        private List<Command> Moves(int seat, bool pruned)
         {
-            int newPlayer = -1;
-
-            // if not all players are ready then simply set move and player ready
-            if (PlayersReady.Contains(false))
+            var moves = new List<Command>();
+            if (PendingPlayers().Contains(seat))
             {
-                PlayerCommands[playerId] = playerMove;
-                PlayersReady[playerId] = true;
-            }
+                // Worked out from the state, not from Player.PlayableCards: agents overwrite that while choosing
+                // (with Olympia A's free card, for example), and a copy may be taken after they have.
+                Player player = Players[seat];
+                List<Card> hand = player.HandCards;
 
-            // if all players ready apply their moves
-            if (!PlayersReady.Contains(false))
-            {
-                // every player's move happens at the same time (R5)
-                ResolveMoves(Players.Select(p => (p, PlayerCommands[p.Id], p.HandCards)).ToList());
-                foreach (Player p in Players)
-                    PlayersReady[p.Id] = false;
-
-                Turn++;
-            }
-
-            // if on the last turn playSeventh effect active for some player and the player hasnt chosen a move return current state and set new player to the PlaySeventh player
-            var playSeventhPlayer = Players.FirstOrDefault(p => p.PlaySeventh == true);
-            if (playSeventhPlayer != null)
-            {
-                if ((Turn == 6 || Turn == 13 || Turn == 20) &&
-                    PlayersReady[playSeventhPlayer.Id] == false)
-                {
-                    return playSeventhPlayer.Id;
-                }
-            }
-            // increment turn even if playSeventh effect not active but 6, 13, 20 turn (technically a 7th turn which is considered an extra turn)
-            else if (Turn == 6 || Turn == 13 || Turn == 20)
-                Turn++;
-
-            // apply PlaySeventh extra move if current player from mcts expansion has this effect and its time to play it out
-            if (Turn == 6 || Turn == 13 || Turn == 20)
-            {
-                if (PlayersReady[playerId] == true && 
-                    Players[playerId].PlaySeventh == true)
-                {
-                    // handle command for player
-                    HandlePlayerCommand(Players[playerId], playerMove, Players[playerId].HandCards);
-
-                    // reset PlayersReady status for player
-                    PlayersReady[playerId] = false;
-
-                    Turn++;
-                }
-            }
-
-            // discard last card in hand if turn is 7 14 and 21 and all palyer commands were handled (PlayersReady all false)
-            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
-            {
-                // transfer the remaining card in each player's hand to the discarded card list
-                foreach (Player p in Players)
-                {
-                    List<Card> cards = p.HandCards;
-                    // cards must be size 1!!
-                    for (int i = 0; i < cards.Count; i++)
-                        DiscardedCards.Add(cards[i]);
-                }
-            }
-
-            // apply DiscrdFree extra move if current player from mcts expansion has this effect and its time to play it out
-            if (PlayersReady[playerId] == true &&
-                Players[playerId].DiscardFree == true)
-            {
-                Card? cardPlayed = playerMove.Card;
-                if (cardPlayed != null)
-                {
-                    // build the card for free
-                    if (!Players[playerId].BuildDiscardFree(cardPlayed, DiscardedCards))
-                        throw MoveFailed(Players[playerId], "build from the discard pile", cardPlayed);
-                }
+                if (Phase == Phase.DiscardBuild)
+                    moves.AddRange(player.GetPlayableCards(DiscardedCards, playAllFree: true).Select(c => new Command(ActionType.Build, c)));
                 else
                 {
-                    Trace.Verbose("No cards in Discarded Cards list");
-                    // disable discardFree effect even if no card were played
-                    Players[playerId].DiscardFree = false;
-                }
-
-                // reset player ready status
-                PlayersReady[playerId] = false;
-            }
-
-            // if at the end of a turn discardFree effect active for some player and the player hasnt chosen a move return current state and set new player to the DiscardFree player
-            var discardFreePlayer = Players.FirstOrDefault(p => p.DiscardFree == true);
-            if (discardFreePlayer is not null &&
-                //Turn % 7 == 0 && Turn != 0 &&
-                PlayersReady[discardFreePlayer.Id] == false)
-            {
-                return discardFreePlayer.Id;
-            }
-
-            // if end of an era (turns 7 14 and 21) and all player moves were handled (PlayersReady all false)
-            // calculate battle tokens, reset OlympiaA2 effect if needed, give new Era cards to players
-            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
-            {
-                foreach (Player p in Players)
-                {
-                    // reset Olympia A stage 2 effect flag
-                    if (p.Board.Id == WonderId.OlympiaA && p.Board.Stage >= 2)
-                        p.FreeCardOnce = true;
-                    else
-                        p.FreeCardOnce = false;
-                    // calculate Victory and Defeat tokens 
-                    p.Battle(Era);
-                }
-
-                Era++;
-                if (Era >= 4)
-                {
-                    // return next player in turn cycle as null because the game has ended
-                    return -1;
-                }
-
-                // give new Era cards to players 
-                GiveCards();
-            }
-            // rotate hand cards if turn and extra turn is complete (at this point no players have chosen a move)
-            else if (!PlayersReady.Contains(true))
-            {
-                RotateHandCards();
-            }
-
-            // set new player to first so the next turn cycle can be explored
-            // NOTE:    not sure if this is valid because this should be reset to root node player, but the turn cycle will still be completed so at that point we should calculate the uct
-            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
-            {
-                newPlayer = Players[0].Id;
-            }
-            // return next player in turn cycle 
-            else
-            {
-                int newPlayerIdx = playerId - 1 < 0 ? Players.Count - 1 : playerId - 1;
-                // deep copy player without his neighbors
-                // neighbors arent used with this variable so it isnt neccessary
-                newPlayer = Players[newPlayerIdx].Id;
-            }
-            
-            return newPlayer;
-        }
-
-        public Game ApplyJointMove(List<Command> playersJointMove)
-        {
-            var discardFreePlayer = Players.FirstOrDefault(p => p.DiscardFree == true);
-
-            // set other player moves and this players chosen move
-            foreach (Player player in Players)
-            {
-                PlayerCommands[player.Id] = playersJointMove[player.Id];
-                PlayersReady[player.Id] = true;
-            }
-
-            // A Halikarnassos build from the discard pile goes first; every other move happens at the same time (R5).
-            var together = new List<(Player, Command, List<Card>)>();
-            foreach (Player p in Players)
-            {
-                Command playerCommand = PlayerCommands[p.Id];
-                bool seventh = (Turn == 6 || Turn == 13 || Turn == 20) && p.PlaySeventh;
-
-                if (!seventh &&
-                    discardFreePlayer != null &&
-                    discardFreePlayer.DiscardFree == true &&
-                    p.Id == discardFreePlayer.Id)
-                {
-                    Card? cardPlayed = playerCommand.Card;
-                    if (cardPlayed != null)
+                    moves.AddRange(player.GetPlayableCards(hand).Select(c => new Command(ActionType.Build, c)));
+                    if (player.CheckCanBuildWonder() && hand.Count > 0)
                     {
-                        // build the card for free
-                        if (!Players[discardFreePlayer.Id].BuildDiscardFree(cardPlayed, DiscardedCards))
-                            throw MoveFailed(Players[discardFreePlayer.Id], "build from the discard pile", cardPlayed);
+                        if (pruned)
+                            moves.Add(new Command(ActionType.BuildWonder, hand[_rng.Next(hand.Count)]));
+                        else
+                            moves.AddRange(hand.Select(c => new Command(ActionType.BuildWonder, c)));
                     }
-                    else
+                    if (Phase == Phase.ChooseMoves && player.FreeCardOnce)
+                        moves.AddRange(player.GetPlayableCards(hand, playAllFree: true).Select(c => new Command(ActionType.BuildFreeOnce, c)));
+                    if (hand.Count > 0)
                     {
-                        Trace.Verbose("No cards in Discarded Cards list");
-                        // disable discardFree effect even if no card were played
-                        Players[discardFreePlayer.Id].DiscardFree = false;
+                        if (pruned)
+                            moves.Add(new Command(ActionType.Discard, hand[_rng.Next(hand.Count)]));
+                        else
+                            moves.AddRange(hand.Select(c => new Command(ActionType.Discard, c)));
                     }
                 }
-                else
-                    together.Add((p, playerCommand, p.HandCards));
-            }
-            ResolveMoves(together);
-            foreach (Player p in Players)
-                PlayersReady[p.Id] = false;
-            Turn++;
-
-            // if on the last turn playSeventh effect active for some player and the player hasnt chosen a move return current state
-            var playSeventhPlayer = Players.FirstOrDefault(p => p.PlaySeventh == true);
-            if (playSeventhPlayer != null)
-            {
-                if ((Turn == 6 || Turn == 13 || Turn == 20) &&
-                    PlayersReady[playSeventhPlayer.Id] == false)
-                {
-                    return this;
-                }
-            }
-            // increment turn even if playSeventh effect not active but 6, 13, 20 turn (technically a 7th turn which is considered an extra turn)
-            else if (Turn == 6 || Turn == 13 || Turn == 20)
-                Turn++;
-
-            // discard last card in hand if turn is 7 14 and 21 and all palyer commands were handled (PlayersReady all false)
-            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
-            {
-                // transfer the remaining card in each player's hand to the discarded card list
-                foreach (Player p in Players)
-                {
-                    List<Card> cards = p.HandCards;
-                    // cards must be size 1!!
-                    for (int i = 0; i < cards.Count; i++)
-                        DiscardedCards.Add(cards[i]);
-                }
             }
 
-            // if at the end of a turn discardFree effect active for some player and the player hasnt chosen a move return current state 
-            discardFreePlayer = Players.FirstOrDefault(p => p.DiscardFree == true);
-            if (discardFreePlayer is not null &&
-                //Turn % 7 == 0 && Turn != 0 &&
-                PlayersReady[discardFreePlayer.Id] == false)
-            {
-                Turn--;
-                return this;
-            }
-
-            // if end of an era (turns 7 14 and 21) and all player moves were handled (PlayersReady all false)
-            // calculate battle tokens, reset OlympiaA2 effect if needed, give new Era cards to players
-            if (Turn % 7 == 0 && Turn != 0 && !PlayersReady.Contains(true))
-            {
-                foreach (Player p in Players)
-                {
-                    // reset Olympia A stage 2 effect flag
-                    if (p.Board.Id == WonderId.OlympiaA && p.Board.Stage >= 2)
-                        p.FreeCardOnce = true;
-                    else
-                        p.FreeCardOnce = false;
-                    // calculate Victory and Defeat tokens 
-                    p.Battle(Era);
-                }
-
-                Era++;
-                if (Era >= 4)
-                {
-                    return this;
-                }
-
-                // give new Era cards to players 
-                GiveCards();
-            }
-            // rotate hand cards if turn and extra turn is complete (at this point no players have chosen a move)
-            else if (!PlayersReady.Contains(true))
-            {
-                RotateHandCards();
-            }
-
-            return this;
+            if (moves.Count == 0)
+                moves.Add(new Command(ActionType.Skip, null));
+            // the same card twice in a hand gives the same move twice
+            return moves.Distinct().ToList();
         }
 
-        public bool CompletedTurn(Game prevGame)
+        /// <summary>Every combination of the seats' <see cref="LegalMoves"/>, indexed by seat.</summary>
+        public List<List<Command>> JointMoves() => Combinations(LegalMoves);
+
+        /// <summary>Every combination of the seats' <see cref="LegalMovesPruned"/>, indexed by seat.</summary>
+        public List<List<Command>> JointMovesPruned() => Combinations(LegalMovesPruned);
+
+        private List<List<Command>> Combinations(Func<int, List<Command>> movesOf)
         {
-            bool completedTurn = false;
-            bool handCardsNotChanged;
-            bool playedCardsNotChanged;
-
-            foreach (Player p in Players)
-            {
-                handCardsNotChanged = Players[p.Id].HandCards.SequenceEqual(prevGame.Players[p.Id].HandCards);
-                playedCardsNotChanged = Players[p.Id].PlayedCards.SequenceEqual(prevGame.Players[p.Id].PlayedCards);
-
-                if (!handCardsNotChanged || !playedCardsNotChanged)
-                {
-                    completedTurn = true;
-                    break;
-                }
-            }
-
-            return completedTurn;
+            List<Command>[] perSeat = Players.Select(p => movesOf(p.Id)).ToArray();
+            var all = new List<List<Command>>();
+            GetAllCombinationsRecursive(perSeat, 0, new List<Command>(), all);
+            return all;
         }
 
-        public List<List<Command>> GetPossibleMovesForAllPlayersPruned()
+        /// <summary>A joint move (one per seat): every pending seat's move is submitted; the other seats' are ignored.</summary>
+        public void SubmitJointMove(IReadOnlyList<Command> jointMove)
         {
-            List<Command>[] playersLegalMoves = new List<Command>[this.Players.Count];
-            List<List<Command>> legalMoves = new();
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                playersLegalMoves[i] = PlayerLegalMovesPruned(Players[i]);
-            }
-
-
-            GetAllCombinationsRecursive(playersLegalMoves, 0, new List<Command>(), legalMoves);
-
-
-            return legalMoves;
+            foreach (int seat in PendingPlayers())
+                Submit(seat, jointMove[seat]);
         }
 
-        public List<List<Command>> GetPossibleMovesForAllPlayers()
-        {
-            List<Command>[] playersLegalMoves = new List<Command>[this.Players.Count];
-            List<List<Command>> legalMoves = new();
-
-            var discardFreePlayer = Players.FirstOrDefault(p => p.DiscardFree == true);
-            var playSeventhPlayer = Players.FirstOrDefault(p => p.PlaySeventh == true);
-
-            if (discardFreePlayer != null)
-            {
-                playersLegalMoves[discardFreePlayer.Id] = this.GetLegalMoves(discardFreePlayer.Id, discardFree: true);
-
-                for (int i = 0; i < Players.Count; i++)
-                    if (i != discardFreePlayer.Id)
-                        playersLegalMoves[i] = new List<Command>() { new Command(ActionType.Skip, null), };
-            }
-            else if (playSeventhPlayer != null &&
-                    (this.Turn == 6 ||
-                    this.Turn == 13 ||
-                    this.Turn == 20))
-            {
-                playersLegalMoves[playSeventhPlayer.Id] = this.GetLegalMoves(playSeventhPlayer.Id, playSeventh: true);
-
-                for (int i = 0; i < Players.Count; i++)
-                    if (i != playSeventhPlayer.Id)
-                        playersLegalMoves[i] = new List<Command>() { new Command(ActionType.Skip, null), };
-            }
-            else
-            {
-                for (int i = 0; i < Players.Count; i++)
-                {
-                    playersLegalMoves[i] = this.GetLegalMoves(Players[i].Id);
-                }
-            }
-
-
-            GetAllCombinationsRecursive(playersLegalMoves, 0, new List<Command>(), legalMoves);
-
-
-            return legalMoves;
-        }
-
-        private List<Command> PlayerLegalMovesPruned(Player player)
-        {
-            List<Command> legalMoves = new();
-
-            if (player.DiscardFree)
-                legalMoves = this.GetLegalMovesPrunedDiscards(player.Id, discardFree: true);
-            // if currentPlayer PlaySeveth is true and gameState.turn == 6 13 20, then he has to expand on last card all actions
-            else if (player.PlaySeventh &&
-                    (this.Turn == 6 ||
-                    this.Turn == 13 ||
-                    this.Turn == 20))
-                legalMoves = this.GetLegalMovesPrunedDiscards(player.Id, playSeventh: true);
-            // if currentPlayer FreeCardOnce is true, then he can also expand on building all hand cards free
-            // if regular move, then currentPlayer has to expand on build action with playable cards or discard, build wonder actions with any hand cards
-            else
-                legalMoves = this.GetLegalMovesPrunedDiscards(player.Id);
-
-            return legalMoves;
-        }
 
         private static void GetAllCombinationsRecursive(List<Command>[] arrayOfLists, int currentIndex, List<Command> currentCombination, List<List<Command>> allCombinations)
         {

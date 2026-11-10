@@ -56,7 +56,6 @@ namespace _7WondersGame.src.models.MCTS
                 game.PlayerCommands[this.Id] = bestCommand;
             else
                 game.PlayerCommands[this.Id] = new Command(ActionType.Skip, null);
-            game.PlayersReady[this.Id] = true;
         }
         
         /// <summary>
@@ -219,7 +218,7 @@ namespace _7WondersGame.src.models.MCTS
             // create child node with new game state after selected move
             // apply move to new state
             Game newState = node.GameState.DeepCopy();
-            newState = newState.ApplyJointMove(selectedJointMove);
+            newState.SubmitJointMove(selectedJointMove);
 
             // if newState is null, then game has ended
             if (newState.Era >= 4)

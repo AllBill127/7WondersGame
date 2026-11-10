@@ -28,7 +28,7 @@
                 TotalWLVector.Add(0);
             }
 
-            LegalJointMoves = GameState.GetPossibleMovesForAllPlayers();
+            LegalJointMoves = GameState.JointMoves();
 
             // initiate empty explored moves list
             ExploredJointMoves = new List<List<Command>>();

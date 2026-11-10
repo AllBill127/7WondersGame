@@ -68,13 +68,13 @@ namespace _7WondersGameTests.GameTests
             {
                 Game copy = searched.DeepCopy();
                 Draw(copy.AgentRandom(0));
-                copy.GetLegalMovesPrunedDiscards(0);
+                copy.LegalMovesPruned(0);
             }
 
             CollectionAssert.AreEqual(Draw(untouched.AgentRandom(0)), Draw(searched.AgentRandom(0)), "agent stream");
             CollectionAssert.AreEqual(
-                untouched.GetLegalMovesPrunedDiscards(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
-                searched.GetLegalMovesPrunedDiscards(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
+                untouched.LegalMovesPruned(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
+                searched.LegalMovesPruned(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
                 "pruning stream");
         }
 

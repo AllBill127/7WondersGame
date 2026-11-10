@@ -31,20 +31,8 @@
                 TotalWLVector.Add(0);
             }
 
-            // get legal moves for nodes current player based on current game state
-            // if currentPlayer DiscardFree is true, then he has to expand on building any card from discarded cards 
-            if (GameState.Players[CurrentPlayerId].DiscardFree)
-                LegalMoves = GameState.GetLegalMovesPrunedDiscards(CurrentPlayerId, discardFree: true);
-            // if currentPlayer PlaySeveth is true and gameState.turn == 6 13 20, then he has to expand on last card all actions
-            else if (GameState.Players[CurrentPlayerId].PlaySeventh &&
-                    (GameState.Turn == 6 ||
-                    GameState.Turn == 13 ||
-                    GameState.Turn == 20))
-                LegalMoves = GameState.GetLegalMovesPrunedDiscards(CurrentPlayerId, playSeventh: true);
-            // if currentPlayer FreeCardOnce is true, then he can also expand on building all hand cards free
-            // if regular move, then currentPlayer has to expand on build action with playable cards or discard, build wonder actions with any hand cards
-            else
-                LegalMoves = GameState.GetLegalMovesPrunedDiscards(CurrentPlayerId);
+            // the moves the current player may make now (E1)
+            LegalMoves = GameState.LegalMovesPruned(CurrentPlayerId);
 
             // initiate empty explored moves list
             ExploredMoves = new List<Command>();

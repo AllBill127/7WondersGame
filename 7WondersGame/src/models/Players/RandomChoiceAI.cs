@@ -91,7 +91,6 @@ namespace _7WondersGame.src.models.Players
                 g.PlayerCommands[this.Id] = new Command(subcommand, argument);
             else
                 g.PlayerCommands[this.Id] = new Command(ActionType.Skip, null);
-            g.PlayersReady[this.Id] = true;
         }
 
         public override Card? ChooseMoveCard(Game game, ActionType action, List<Card> cardsList)

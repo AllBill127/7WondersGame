@@ -61,7 +61,6 @@ namespace _7WondersGame.src.models.MCTS
                 game.PlayerCommands[this.Id] = bestCommand;
             else
                 game.PlayerCommands[this.Id] = new Command(ActionType.Skip, null);
-            game.PlayersReady[this.Id] = true;
         }
         
         /// <summary>
@@ -132,28 +131,9 @@ namespace _7WondersGame.src.models.MCTS
                 return new Command(ActionType.Skip, null);
         }
 
-        private bool TurnEnded(Node_v7 expandedNode)
-        {
-            bool turnEnded = false;
-
-            if (expandedNode.Parent is null)
-                return turnEnded;
-            if (expandedNode.Parent.GameState.CompletedTurn(expandedNode.GameState))
-                turnEnded = true;
-            if (expandedNode.GameState.Players[expandedNode.CurrentPlayerId].PlaySeventh == true &&
-                (expandedNode.GameState.Turn + 1) % 7 == 0 &&
-                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayerId] == false)
-                turnEnded = false;
-            // if current nodes player is a player with extra turn effect, the turn number is considered possible extra turn and player is not ready
-            // then turn is not complete as extra move has to be done before simulation
-            if (expandedNode.GameState.Players[expandedNode.CurrentPlayerId].DiscardFree == true && 
-                (expandedNode.GameState.Turn % 7 == 0 &&
-                expandedNode.GameState.PlayersReady[expandedNode.CurrentPlayerId] == false))
-                turnEnded = false;
-
-            return turnEnded;
-
-        }
+        /// <summary>A rollout starts once the expanded move completes a step of the game (no moves left waiting).</summary>
+        private bool TurnEnded(Node_v7 expandedNode) =>
+            expandedNode.Parent is not null && !expandedNode.GameState.MovesWaiting;
 
         private Node_v7 Selection(Node_v7 node)
         {
@@ -237,7 +217,8 @@ namespace _7WondersGame.src.models.MCTS
             // create child node with new game state after selected move
             // apply move to new state
             Game newState = node.GameState.DeepCopy();
-            int nextPlayerId = newState.ApplyMove(node.CurrentPlayerId, selectedMove);
+            newState.Submit(node.CurrentPlayerId, selectedMove);
+            int nextPlayerId = SequentialTree.NextPlayer(newState, this.Id);
 
             // NOTE:    can add a check if nextplayer is Players[0] && node.GameState.Turn != newState.Turn
             //          meaning that a turn has been applied and nextPlayer - Player[0] was returned as a ahrd coded choice.
