@@ -545,13 +545,11 @@ namespace _7WondersGame.src.models.Players
                     if (cardId == CardId.Stockade || cardId == CardId.Barracks || cardId == CardId.GuardTower)
                     {
                         Resources[Resource.Shields] += 1;
-
                     }
                     else if (cardId == CardId.Walls || cardId == CardId.TrainingGround ||
                                cardId == CardId.Stables || cardId == CardId.ArcheryRange)
                     {
                         Resources[Resource.Shields] += 2;
-
                     }
                     else if (cardId == CardId.Fortifications || cardId == CardId.Circus ||
                                cardId == CardId.Arsenal || cardId == CardId.SiegeWorkshop)
@@ -981,6 +979,45 @@ namespace _7WondersGame.src.models.Players
 
             return needed - missing; // Returns quantity of produced resource.
         }
+
+        /// <summary>
+        /// How much of <paramref name="needed"/> this player could produce of a resource: its fixed production plus
+        /// every either/or source that can give it (for a neighbour, only the brown cards they could sell).
+        /// Read-only; the heuristics use it to judge what is missing.
+        /// </summary>
+        int CountProducible(Resource resource, int needed, bool isNeighbor)
+        {
+            int count = Resources[resource];
+            if (count >= needed) return needed;
+
+            foreach (Card card in PlayedCards)
+            {
+                bool gives = card.Id switch
+                {
+                    CardId.TreeFarm => resource == Resource.Wood || resource == Resource.Clay,
+                    CardId.ForestCave => resource == Resource.Wood || resource == Resource.Ore,
+                    CardId.TimberYard => resource == Resource.Wood || resource == Resource.Stone,
+                    CardId.Excavation => resource == Resource.Clay || resource == Resource.Stone,
+                    CardId.ClayPit => resource == Resource.Clay || resource == Resource.Ore,
+                    CardId.Mine => resource == Resource.Ore || resource == Resource.Stone,
+                    CardId.Caravansery => !isNeighbor && (int)resource <= (int)Resource.Stone,
+                    CardId.Forum => !isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus,
+                    _ => false,
+                };
+                if (gives) count++;
+            }
+            if (!isNeighbor && (int)resource <= (int)Resource.Stone && HasExtraRaw()) count++;
+            if (!isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus && HasExtraManuf()) count++;
+
+            return Math.Min(needed, count);
+        }
+
+        /// <summary>Alexandria A stage 2 / B stage 1: one raw resource of the player's choice each turn.</summary>
+        bool HasExtraRaw() =>
+            Board.Id == WonderId.AlexandriaA && Board.Stage >= 2 || Board.Id == WonderId.AlexandriaB && Board.Stage >= 1;
+
+        /// <summary>Alexandria B stage 2: one manufactured good of the player's choice each turn.</summary>
+        bool HasExtraManuf() => Board.Id == WonderId.AlexandriaB && Board.Stage >= 2;
 
         // =========== Commerce functions ===========
         /// <summary>
@@ -1553,25 +1590,31 @@ namespace _7WondersGame.src.models.Players
                 else if (card.Id == CardId.Forum)
                 {
                     score = ScoreAfterPlayingCard(2, null);
-                    Dictionary<string, int> usedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // get amounts of potencially producable manufectured goods resources
                     int loomAmount = this.Resources[Resource.Loom] +
                         this.PlayerEast.Resources[Resource.Loom] +
                         this.PlayerWest.Resources[Resource.Loom];
-                    if (loomAmount == 0 && this.ChooseExtraManuf(Resource.Loom))
+                    bool extraManuf = this.HasExtraManuf();
+                    if (loomAmount == 0 && extraManuf)
+                    {
                         loomAmount++;
+                        extraManuf = false;
+                    }
 
                     int glassAmount = this.Resources[Resource.Glass] +
                         this.PlayerEast.Resources[Resource.Glass] +
                         this.PlayerWest.Resources[Resource.Glass];
-                    if (glassAmount == 0 && this.ChooseExtraManuf(Resource.Glass))
+                    if (glassAmount == 0 && extraManuf)
+                    {
                         glassAmount++;
+                        extraManuf = false;
+                    }
 
                     int papyrusAmount = this.Resources[Resource.Papyrus] +
                         this.PlayerEast.Resources[Resource.Papyrus] +
                         this.PlayerWest.Resources[Resource.Papyrus];
-                    if (papyrusAmount == 0 && this.ChooseExtraManuf(Resource.Papyrus))
+                    if (papyrusAmount == 0 && extraManuf)
                         papyrusAmount++;
 
                     // check if enough manufactured goods for wonder building
@@ -1588,17 +1631,10 @@ namespace _7WondersGame.src.models.Players
                     {
                         score += 9;     // same as double resource when not needed for wonder building, but missing any or all of manufactured goods 
                     }
-
-                    // reset usedOnDemandResource map
-                    this.UsedOnDemandResource = usedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    usedResourceBckp.Clear();
                 }
                 else if (card.Id == CardId.Caravansery)
                 {
                     score = ScoreAfterPlayingCard(2, null);
-                    Dictionary<string, int> thisUsedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Dictionary<string, int> westUsedResourceBckp = this.PlayerWest.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Dictionary<string, int> eastUsedResourceBckp = this.PlayerEast.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // check if enough resources to build wonder before resource card
                     int neededWood = this.Board.HighestCosts[Resource.Wood],
@@ -1606,60 +1642,25 @@ namespace _7WondersGame.src.models.Players
                         neededClay = this.Board.HighestCosts[Resource.Clay],
                         neededOre = this.Board.HighestCosts[Resource.Ore];
 
-                    int producedWoodThis = this.GetResourceOnDemand(Resource.Wood, neededWood, false);
-                    int producedWoodWest = this.PlayerWest.GetResourceOnDemand(Resource.Wood, neededWood, true);
-                    int producedWoodEast = this.PlayerEast.GetResourceOnDemand(Resource.Wood, neededWood, true);
+                    int producedWoodThis = this.CountProducible(Resource.Wood, neededWood, false);
+                    int producedWoodWest = this.PlayerWest.CountProducible(Resource.Wood, neededWood, true);
+                    int producedWoodEast = this.PlayerEast.CountProducible(Resource.Wood, neededWood, true);
                     neededWood = neededWood - producedWoodThis - producedWoodWest - producedWoodEast;
 
-                    // reset usedOnDemandResource map for next resource calculation
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    int producedStoneThis = this.GetResourceOnDemand(Resource.Stone, neededStone, false);
-                    int producedStoneWest = this.PlayerWest.GetResourceOnDemand(Resource.Stone, neededStone, true);
-                    int producedStoneEast =  this.PlayerEast.GetResourceOnDemand(Resource.Stone, neededStone, true);
+                    int producedStoneThis = this.CountProducible(Resource.Stone, neededStone, false);
+                    int producedStoneWest = this.PlayerWest.CountProducible(Resource.Stone, neededStone, true);
+                    int producedStoneEast =  this.PlayerEast.CountProducible(Resource.Stone, neededStone, true);
                     neededStone = neededStone - producedStoneThis - producedStoneWest - producedStoneEast;
 
-                    // reset usedOnDemandResource map for next resource calculation
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    int producedClayThis = this.GetResourceOnDemand(Resource.Clay, neededClay, false);
-                    int producedClayWest = this.PlayerWest.GetResourceOnDemand(Resource.Clay, neededClay, true);
-                    int producedClayEast =  this.PlayerEast.GetResourceOnDemand(Resource.Clay, neededClay, true);
+                    int producedClayThis = this.CountProducible(Resource.Clay, neededClay, false);
+                    int producedClayWest = this.PlayerWest.CountProducible(Resource.Clay, neededClay, true);
+                    int producedClayEast =  this.PlayerEast.CountProducible(Resource.Clay, neededClay, true);
                     neededClay = neededClay - producedClayThis - producedClayWest - producedClayEast;
 
-                    // reset usedOnDemandResource map for next resource calculation
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    int producedOreThis = this.GetResourceOnDemand(Resource.Ore, neededOre, false);
-                    int producedOreWest = this.PlayerWest.GetResourceOnDemand(Resource.Ore, neededOre, true);
-                    int producedOreEast =  this.PlayerEast.GetResourceOnDemand(Resource.Ore, neededOre, true);
+                    int producedOreThis = this.CountProducible(Resource.Ore, neededOre, false);
+                    int producedOreWest = this.PlayerWest.CountProducible(Resource.Ore, neededOre, true);
+                    int producedOreEast =  this.PlayerEast.CountProducible(Resource.Ore, neededOre, true);
                     neededOre = neededOre - producedOreThis - producedOreWest - producedOreEast;
-
-                    // reset usedOnDemandResource map 
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    thisUsedResourceBckp.Clear();
-                    westUsedResourceBckp.Clear();
-                    eastUsedResourceBckp.Clear();
 
                     if (neededWood > 0 || (producedWoodThis + producedWoodWest + producedWoodEast) < 2 ||
                         neededStone > 0 || (producedStoneThis + producedStoneWest + producedStoneEast) < 2 ||
@@ -1672,9 +1673,6 @@ namespace _7WondersGame.src.models.Players
                 else if (card.Type == CardType.Materials)
                 {
                     score = ScoreAfterPlayingCard(2, null);
-                    Dictionary<string, int> thisUsedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Dictionary<string, int> westUsedResourceBckp = this.PlayerWest.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Dictionary<string, int> eastUsedResourceBckp = this.PlayerEast.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // check if enough resources to build wonder before resource card
                     int neededWood = this.Board.HighestCosts[Resource.Wood],
@@ -1682,60 +1680,25 @@ namespace _7WondersGame.src.models.Players
                         neededClay = this.Board.HighestCosts[Resource.Clay],
                         neededOre = this.Board.HighestCosts[Resource.Ore];
 
-                    int producedWoodThis = this.GetResourceOnDemand(Resource.Wood, neededWood, false);
-                    int producedWoodWest = this.PlayerWest.GetResourceOnDemand(Resource.Wood, neededWood, true);
-                    int producedWoodEast = this.PlayerEast.GetResourceOnDemand(Resource.Wood, neededWood, true);
+                    int producedWoodThis = this.CountProducible(Resource.Wood, neededWood, false);
+                    int producedWoodWest = this.PlayerWest.CountProducible(Resource.Wood, neededWood, true);
+                    int producedWoodEast = this.PlayerEast.CountProducible(Resource.Wood, neededWood, true);
                     neededWood = neededWood - producedWoodThis - producedWoodWest - producedWoodEast;
 
-                    // reset usedOnDemandResource map for next resource calculation
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    int producedStoneThis = this.GetResourceOnDemand(Resource.Stone, neededStone, false);
-                    int producedStoneWest = this.PlayerWest.GetResourceOnDemand(Resource.Stone, neededStone, true);
-                    int producedStoneEast = this.PlayerEast.GetResourceOnDemand(Resource.Stone, neededStone, true);
+                    int producedStoneThis = this.CountProducible(Resource.Stone, neededStone, false);
+                    int producedStoneWest = this.PlayerWest.CountProducible(Resource.Stone, neededStone, true);
+                    int producedStoneEast = this.PlayerEast.CountProducible(Resource.Stone, neededStone, true);
                     neededStone = neededStone - producedStoneThis - producedStoneWest - producedStoneEast;
 
-                    // reset usedOnDemandResource map for next resource calculation
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    int producedClayThis = this.GetResourceOnDemand(Resource.Clay, neededClay, false);
-                    int producedClayWest = this.PlayerWest.GetResourceOnDemand(Resource.Clay, neededClay, true);
-                    int producedClayEast = this.PlayerEast.GetResourceOnDemand(Resource.Clay, neededClay, true);
+                    int producedClayThis = this.CountProducible(Resource.Clay, neededClay, false);
+                    int producedClayWest = this.PlayerWest.CountProducible(Resource.Clay, neededClay, true);
+                    int producedClayEast = this.PlayerEast.CountProducible(Resource.Clay, neededClay, true);
                     neededClay = neededClay - producedClayThis - producedClayWest - producedClayEast;
 
-                    // reset usedOnDemandResource map for next resource calculation
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    int producedOreThis = this.GetResourceOnDemand(Resource.Ore, neededOre, false);
-                    int producedOreWest = this.PlayerWest.GetResourceOnDemand(Resource.Ore, neededOre, true);
-                    int producedOreEast = this.PlayerEast.GetResourceOnDemand(Resource.Ore, neededOre, true);
+                    int producedOreThis = this.CountProducible(Resource.Ore, neededOre, false);
+                    int producedOreWest = this.PlayerWest.CountProducible(Resource.Ore, neededOre, true);
+                    int producedOreEast = this.PlayerEast.CountProducible(Resource.Ore, neededOre, true);
                     neededOre = neededOre - producedOreThis - producedOreWest - producedOreEast;
-
-                    // reset usedOnDemandResource map 
-                    this.UsedOnDemandResource.Clear();
-                    this.PlayerWest.UsedOnDemandResource.Clear();
-                    this.PlayerEast.UsedOnDemandResource.Clear();
-                    this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    thisUsedResourceBckp.Clear();
-                    westUsedResourceBckp.Clear();
-                    eastUsedResourceBckp.Clear();
 
                     if (neededWood > 0 ||
                         neededStone > 0 ||
@@ -1795,7 +1758,6 @@ namespace _7WondersGame.src.models.Players
                 else if (card.Type == CardType.Manufactured)
                 {
                     score = ScoreAfterPlayingCard(2, null);
-                    Dictionary<string, int> usedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // get amounts of potencially producable manufectured goods resources
                     int loomAmount = this.Resources[Resource.Loom] +
@@ -1811,16 +1773,12 @@ namespace _7WondersGame.src.models.Players
                         this.PlayerWest.Resources[Resource.Papyrus];
 
                     // choose extra manuf for first non 0 wonder cost and try then
-                    if (this.Board.HighestCosts[Resource.Loom] != 0 && this.Board.HighestCosts[Resource.Loom] > loomAmount && this.ChooseExtraManuf(Resource.Loom))
+                    if (this.Board.HighestCosts[Resource.Loom] != 0 && this.Board.HighestCosts[Resource.Loom] > loomAmount && this.HasExtraManuf())
                         loomAmount++;
-                    else if (this.Board.HighestCosts[Resource.Glass] != 0 && this.Board.HighestCosts[Resource.Glass] > glassAmount && this.ChooseExtraManuf(Resource.Glass))
+                    else if (this.Board.HighestCosts[Resource.Glass] != 0 && this.Board.HighestCosts[Resource.Glass] > glassAmount && this.HasExtraManuf())
                         glassAmount++;
-                    else if (this.Board.HighestCosts[Resource.Papyrus] != 0 && this.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && this.ChooseExtraManuf(Resource.Papyrus))
+                    else if (this.Board.HighestCosts[Resource.Papyrus] != 0 && this.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && this.HasExtraManuf())
                         papyrusAmount++;
-
-                    // reset usedOnDemandResource map
-                    this.UsedOnDemandResource = usedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    usedResourceBckp.Clear();
 
                     if (card.Name.Equals("Loom"))
                     {
@@ -1952,9 +1910,6 @@ namespace _7WondersGame.src.models.Players
                 {
                     score = ScoreAfterPlayingCard(1, null);
                     double tradingWeight = 0;
-                    Dictionary<string, int> thisUsedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Dictionary<string, int> westUsedResourceBckp = this.PlayerWest.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Dictionary<string, int> eastUsedResourceBckp = this.PlayerEast.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // check if enough resources to build wonder before resource card
                     int neededWood, neededStone, neededClay, neededOre, 
@@ -1968,60 +1923,25 @@ namespace _7WondersGame.src.models.Players
                         neededClay = this.Board.HighestCosts[Resource.Clay];
                         neededOre = this.Board.HighestCosts[Resource.Ore];
 
-                        producedWoodThis = this.GetResourceOnDemand(Resource.Wood, neededWood, false);
-                        producedWoodWest = this.PlayerWest.GetResourceOnDemand(Resource.Wood, neededWood, true);
-                        producedWoodEast = this.PlayerEast.GetResourceOnDemand(Resource.Wood, neededWood, true);
+                        producedWoodThis = this.CountProducible(Resource.Wood, neededWood, false);
+                        producedWoodWest = this.PlayerWest.CountProducible(Resource.Wood, neededWood, true);
+                        producedWoodEast = this.PlayerEast.CountProducible(Resource.Wood, neededWood, true);
                         neededWood = neededWood - producedWoodThis - producedWoodWest - producedWoodEast;
 
-                        // reset usedOnDemandResource map for next resource calculation
-                        this.UsedOnDemandResource.Clear();
-                        this.PlayerWest.UsedOnDemandResource.Clear();
-                        this.PlayerEast.UsedOnDemandResource.Clear();
-                        this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                        producedStoneThis = this.GetResourceOnDemand(Resource.Stone, neededStone, false);
-                        producedStoneWest = this.PlayerWest.GetResourceOnDemand(Resource.Stone, neededStone, true);
-                        producedStoneEast = this.PlayerEast.GetResourceOnDemand(Resource.Stone, neededStone, true);
+                        producedStoneThis = this.CountProducible(Resource.Stone, neededStone, false);
+                        producedStoneWest = this.PlayerWest.CountProducible(Resource.Stone, neededStone, true);
+                        producedStoneEast = this.PlayerEast.CountProducible(Resource.Stone, neededStone, true);
                         neededStone = neededStone - producedStoneThis - producedStoneWest - producedStoneEast;
 
-                        // reset usedOnDemandResource map for next resource calculation
-                        this.UsedOnDemandResource.Clear();
-                        this.PlayerWest.UsedOnDemandResource.Clear();
-                        this.PlayerEast.UsedOnDemandResource.Clear();
-                        this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                        producedClayThis = this.GetResourceOnDemand(Resource.Clay, neededClay, false);
-                        producedClayWest = this.PlayerWest.GetResourceOnDemand(Resource.Clay, neededClay, true);
-                        producedClayEast = this.PlayerEast.GetResourceOnDemand(Resource.Clay, neededClay, true);
+                        producedClayThis = this.CountProducible(Resource.Clay, neededClay, false);
+                        producedClayWest = this.PlayerWest.CountProducible(Resource.Clay, neededClay, true);
+                        producedClayEast = this.PlayerEast.CountProducible(Resource.Clay, neededClay, true);
                         neededClay = neededClay - producedClayThis - producedClayWest - producedClayEast;
 
-                        // reset usedOnDemandResource map for next resource calculation
-                        this.UsedOnDemandResource.Clear();
-                        this.PlayerWest.UsedOnDemandResource.Clear();
-                        this.PlayerEast.UsedOnDemandResource.Clear();
-                        this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                        producedOreThis = this.GetResourceOnDemand(Resource.Ore, neededOre, false);
-                        producedOreWest = this.PlayerWest.GetResourceOnDemand(Resource.Ore, neededOre, true);
-                        producedOreEast = this.PlayerEast.GetResourceOnDemand(Resource.Ore, neededOre, true);
+                        producedOreThis = this.CountProducible(Resource.Ore, neededOre, false);
+                        producedOreWest = this.PlayerWest.CountProducible(Resource.Ore, neededOre, true);
+                        producedOreEast = this.PlayerEast.CountProducible(Resource.Ore, neededOre, true);
                         neededOre = neededOre - producedOreThis - producedOreWest - producedOreEast;
-
-                        // reset usedOnDemandResource map 
-                        this.UsedOnDemandResource.Clear();
-                        this.PlayerWest.UsedOnDemandResource.Clear();
-                        this.PlayerEast.UsedOnDemandResource.Clear();
-                        this.UsedOnDemandResource = thisUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerWest.UsedOnDemandResource = westUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        this.PlayerEast.UsedOnDemandResource = eastUsedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        thisUsedResourceBckp.Clear();
-                        westUsedResourceBckp.Clear();
-                        eastUsedResourceBckp.Clear();
                     }
 
                     int eastRawAmount = this.PlayerEast.AmountOfType(CardType.Materials);
@@ -2245,7 +2165,6 @@ namespace _7WondersGame.src.models.Players
                 else if (card.Type == CardType.Manufactured)
                 {
                     score = ScoreAfterPlayingCard(1, null);
-                    Dictionary<string, int> usedResourceBckp = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                     // get amounts of potencially producable manufectured goods resources
                     int loomAmount = this.Resources[Resource.Loom] +
@@ -2261,16 +2180,12 @@ namespace _7WondersGame.src.models.Players
                         this.PlayerWest.Resources[Resource.Papyrus];
 
                     // choose extra manuf for first non 0 wonder cost and try then
-                    if (this.Board.HighestCosts[Resource.Loom] != 0 && this.Board.HighestCosts[Resource.Loom] > loomAmount && this.ChooseExtraManuf(Resource.Loom))
+                    if (this.Board.HighestCosts[Resource.Loom] != 0 && this.Board.HighestCosts[Resource.Loom] > loomAmount && this.HasExtraManuf())
                         loomAmount++;
-                    else if (this.Board.HighestCosts[Resource.Glass] != 0 && this.Board.HighestCosts[Resource.Glass] > glassAmount && this.ChooseExtraManuf(Resource.Glass))
+                    else if (this.Board.HighestCosts[Resource.Glass] != 0 && this.Board.HighestCosts[Resource.Glass] > glassAmount && this.HasExtraManuf())
                         glassAmount++;
-                    else if (this.Board.HighestCosts[Resource.Papyrus] != 0 && this.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && this.ChooseExtraManuf(Resource.Papyrus))
+                    else if (this.Board.HighestCosts[Resource.Papyrus] != 0 && this.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && this.HasExtraManuf())
                         papyrusAmount++;
-
-                    // reset usedOnDemandResource map
-                    this.UsedOnDemandResource = usedResourceBckp.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    usedResourceBckp.Clear();
 
                     if (card.Name.Equals("Loom"))
                     {
