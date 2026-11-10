@@ -503,17 +503,10 @@ namespace _7WondersGame.src.models
                     foreach (Player player in Players)
                         TraceChoice(player);
 
-                // handle command for each player
+                // every player's move happens at the same time (R5)
+                ResolveMoves(Players.Select(p => (p, PlayerCommands[p.Id], p.HandCards)).ToList());
                 foreach (Player player in Players)
-                {
-                    Command playerCommand = PlayerCommands[player.Id];
-
-                    // handle command for player
-                    HandlePlayerCommand(player, playerCommand, player.HandCards);
-
-                    // reset PlayersReady status for player
                     PlayersReady[player.Id] = false;
-                }
 
                 // Moves the game to the next turn, processes DiscardFree and PlaySeventh effects
                 NextTurn();
@@ -618,7 +611,7 @@ namespace _7WondersGame.src.models
             new($"Seat {player.Id} ({player.GetType().Name}) could not {move} {card.Name} on turn {Turn} " +
                 $"(era {Era}, game seed {Seed}).");
 
-        /// <summary>One player's move on its own (Babylon's 7th card, and everywhere that still goes seat by seat).</summary>
+        /// <summary>One player's move on its own (Babylon's 7th card).</summary>
         public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList) =>
             ResolveMoves(new[] { (player, playerCommand, cardsList) });
 
@@ -968,17 +961,10 @@ namespace _7WondersGame.src.models
             // if all players ready apply their moves
             if (!PlayersReady.Contains(false))
             {
-                // handle command for each player
+                // every player's move happens at the same time (R5)
+                ResolveMoves(Players.Select(p => (p, PlayerCommands[p.Id], p.HandCards)).ToList());
                 foreach (Player p in Players)
-                {
-                    Command playerCommand = PlayerCommands[p.Id];
-
-                    // handle command for player
-                    HandlePlayerCommand(p, playerCommand, p.HandCards);
-
-                    // reset PlayersReady status for player
                     PlayersReady[p.Id] = false;
-                }
 
                 Turn++;
             }
@@ -1117,19 +1103,15 @@ namespace _7WondersGame.src.models
                 PlayersReady[player.Id] = true;
             }
 
-            // handle command for each player
+            // A Halikarnassos build from the discard pile goes first; every other move happens at the same time (R5).
+            var together = new List<(Player, Command, List<Card>)>();
             foreach (Player p in Players)
             {
                 Command playerCommand = PlayerCommands[p.Id];
+                bool seventh = (Turn == 6 || Turn == 13 || Turn == 20) && p.PlaySeventh;
 
-                // handle command for player
-                if ((Turn == 6 || Turn == 13 || Turn == 20) &&
-                    p.PlaySeventh)
-                {
-                    HandlePlayerCommand(p, playerCommand, p.HandCards);
-                }
-                // apply DiscrdFree extra move if current player from mcts expansion has this effect and its time to play it out
-                else if (discardFreePlayer != null &&
+                if (!seventh &&
+                    discardFreePlayer != null &&
                     discardFreePlayer.DiscardFree == true &&
                     p.Id == discardFreePlayer.Id)
                 {
@@ -1146,16 +1128,13 @@ namespace _7WondersGame.src.models
                         // disable discardFree effect even if no card were played
                         Players[discardFreePlayer.Id].DiscardFree = false;
                     }
-
-                    // reset player ready status
-                    PlayersReady[discardFreePlayer.Id] = false;
                 }
                 else
-                    HandlePlayerCommand(p, playerCommand, p.HandCards);
-
-                // reset PlayersReady status for player
-                PlayersReady[p.Id] = false;
+                    together.Add((p, playerCommand, p.HandCards));
             }
+            ResolveMoves(together);
+            foreach (Player p in Players)
+                PlayersReady[p.Id] = false;
             Turn++;
 
             // if on the last turn playSeventh effect active for some player and the player hasnt chosen a move return current state
