@@ -55,26 +55,25 @@ namespace _7WondersGameTests.GameTests
             List<AgentSpec> specs = AgentSpec.ParseList("DeterministicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
 
             Assert.AreEqual(3, specs.Count);
-            var agent = AgentCatalog.Create(specs[2], 2);
+            var agent = AgentCatalog.Create(specs[2]);
             Assert.IsInstanceOfType(agent, typeof(SettingsTestAgent));
-            Assert.AreEqual(2, agent.Id);
             Assert.AreEqual("{\"C\":1.5,\"Iterations\":500}", agent.ConfigJson());
         }
 
         [TestMethod]
         public void AgentSpec_Defaults_AreTheClassDefaults()
         {
-            var agent = AgentCatalog.Create(AgentSpec.Parse("settingstestagent"), 0);
+            var agent = AgentCatalog.Create(AgentSpec.Parse("settingstestagent"));
             Assert.AreEqual("{\"C\":1,\"Iterations\":100}", agent.ConfigJson());
         }
 
         [TestMethod]
         public void AgentSpec_Mistakes_AreUsageErrors()
         {
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("Nobody"), 0));
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:x=1"), 0));
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=abc"), 0));
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("DeterministicAI:c=1"), 0));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("Nobody")));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:x=1")));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=abc")));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("DeterministicAI:c=1")));
             Assert.ThrowsException<UsageException>(() => AgentSpec.Parse("SettingsTestAgent:c"));
         }
 
@@ -83,18 +82,18 @@ namespace _7WondersGameTests.GameTests
         {
             foreach (var entry in AgentCatalog.Entries)
             {
-                var player = AgentCatalog.Create(AgentSpec.Parse(entry.Name), 1);
-                Assert.AreEqual(entry.Name, player.GetType().Name);
+                IAgent agent = AgentCatalog.Create(AgentSpec.Parse(entry.Name));
+                Assert.AreEqual(entry.Name, agent.Name);
             }
         }
 
         [TestMethod]
         public void ResultRow_RebuildsTheSameAgent()
         {
-            var original = AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=0.1:iterations=1234"), 2);
-            AgentSpec fromRow = AgentCatalog.FromResultRow(original.GetType().Name, original.ConfigJson());
+            var original = AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=0.1:iterations=1234"));
+            AgentSpec fromRow = AgentCatalog.FromResultRow(original.Name, original.ConfigJson());
 
-            Assert.AreEqual(original.ConfigJson(), AgentCatalog.Create(fromRow, 2).ConfigJson());
+            Assert.AreEqual(original.ConfigJson(), AgentCatalog.Create(fromRow).ConfigJson());
         }
 
         [TestMethod]
@@ -106,7 +105,7 @@ namespace _7WondersGameTests.GameTests
             Assert.IsNotNull(sweep);
             Assert.AreEqual(2, sweep.Seat);
             CollectionAssert.AreEqual(new[] { 0, 0.5, 1, 1.5, 2 }, Enumerable.Range(0, 5).Select(sweep.ValueAt).ToArray());
-            StringAssert.Contains(AgentCatalog.Create(specs[2], 2, sweep.ValueAt(3)).ConfigJson(), "\"C\":1.5");
+            StringAssert.Contains(AgentCatalog.Create(specs[2], sweep.ValueAt(3)).ConfigJson(), "\"C\":1.5");
         }
 
         [TestMethod]

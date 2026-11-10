@@ -14,7 +14,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
@@ -28,7 +28,7 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 3;
 
             // Test
-            bool canBuildWonder = players[1].CheckCanBuildWonder();
+            bool canBuildWonder = players[1].CanBuildWonder();
 
             // Evaluate
             Assert.IsTrue(canBuildWonder);

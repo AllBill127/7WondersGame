@@ -1,4 +1,5 @@
-﻿using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.src.models.Agents;
+using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
 using Serilog;
 using Serilog.Core;
@@ -8,17 +9,17 @@ namespace _7WondersGame.src.models
 {
     public class Game
     {
-        public List<Player> Players { get; set; }
+        /// <summary>The players' cities and hands, by seat (Players[i].Id == i).</summary>
+        public List<PlayerState> Players { get; set; }
+
+        /// <summary>Who decides each seat's moves, by seat. <see cref="InitGame"/> makes one player per agent.</summary>
+        public List<IAgent> Agents { get; set; } = new();
         int NumPlayers { get; set; } = 3;
         public int Era { get; set; } = 1;
         // 0, 7 , 14, 21 are new era turns (0 being the start of the game)
         public int Turn { get; set; } = 0;
         public List<Card>[] Decks { get; set; } 
         public List<Card> DiscardedCards { get; set; }
-
-        // game loop data
-        /// <summary>Where an agent's <see cref="Player.ChooseMoveCommand"/> puts its answer. Not game state: never copied.</summary>
-        public Command[] PlayerCommands { get; set; }
 
         // randomness (B1): everything random in a game comes from its seed
         public ulong Seed { get; private set; }
@@ -28,8 +29,7 @@ namespace _7WondersGame.src.models
 
         /// <summary>
         /// Step-by-step trace of this game: Debug for the playout, Verbose for detail.
-        /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so MCTS copies and rollouts stay silent.
-        /// Players log through it too (<see cref="Loop"/> hands it to them).
+        /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so search copies and rollouts stay silent.
         /// A trace line must not change the game: no pay-and-roll-back checks, no random draws.
         /// </summary>
         public ILogger Trace { get; set; } = Logger.None;
@@ -53,9 +53,6 @@ namespace _7WondersGame.src.models
             for (int i = 0; i < Decks.Length; ++i)
                 Decks[i] = new List<Card>();
             DiscardedCards = new();
-
-            // init with default size; changes in InitGame()
-            PlayerCommands = new Command[NumPlayers];
         }
 
         /// <summary>
@@ -79,13 +76,10 @@ namespace _7WondersGame.src.models
         {
             Game copy = new Game(Seeding.Nth(Seed, Seeding.CopyStreamBase + ++_copyCount));
 
-            // fully copy players
-            // copy player data
-            foreach (Player p in Players)
-                copy.Players.Add((Player)p.DeepCopy());
-            // set player neighbors
+            copy.Players = PlayerState.CloneTable(Players);
+            // the same agents; a search may swap in others (for its rollouts, say) without touching this game
+            copy.Agents = Agents.ToList();
             copy.NumPlayers = this.NumPlayers;
-            copy.SetPlayerNeighbors();
 
             copy.Era = this.Era;
             copy.Turn = this.Turn;
@@ -97,9 +91,6 @@ namespace _7WondersGame.src.models
 
             copy.DiscardedCards = this.DiscardedCards.Select(e => e).ToList();
 
-            // the agents' answer slots stay empty: a copy never shows a choice made in the original (M2)
-            copy.PlayerCommands = new Command[this.PlayerCommands.Length];
-
             copy.Phase = this.Phase;
             copy._waiting = this._waiting?.ToArray();
             copy._chosen = this._chosen.ToArray();
@@ -110,15 +101,11 @@ namespace _7WondersGame.src.models
 
         // ============ Game creation related ============
         /// <summary>
-        /// Setup initial game data <br/>
-        /// - Game Players must be initiated and set before calling this function
+        /// Sets up a random game: one player per agent in <see cref="Agents"/>, the decks and the wonders.
         /// </summary>
         public void InitGame()
         {
-            NumPlayers = Players.Count;
-            PlayerCommands = new Command[NumPlayers];
-
-            SetPlayerNeighbors();
+            CreatePlayers();
 
             CreateDecks();
             GiveCards();
@@ -127,16 +114,12 @@ namespace _7WondersGame.src.models
 
 
         /// <summary>
-        /// Setup initial game data with game dataset containing decks card ids and wonder ids in specific shuffled order<br/>
-        /// - Game Players must be initiated and set before calling this function
+        /// Sets up a game from a dataset deal (the decks' card ids and the wonder ids, in order): one player per agent
+        /// in <see cref="Agents"/>.
         /// </summary>
         public void InitGameNotRandom(List<int>[] gameDataset)
         {
-            NumPlayers = Players.Count;
-            PlayerCommands = new Command[NumPlayers];
-
-            SetPlayerNeighbors();
-
+            CreatePlayers();
 
             for (int i = 0; i < 3; i++)
             {
@@ -151,6 +134,15 @@ namespace _7WondersGame.src.models
             {
                 AssignWonder(Players[i], gameDataset[3][i]);
             }
+        }
+
+        private void CreatePlayers()
+        {
+            if (Agents.Count == 0)
+                throw new InvalidOperationException("Add the agents (Game.Agents) before setting up the game.");
+            NumPlayers = Agents.Count;
+            Players = Enumerable.Range(0, NumPlayers).Select(seat => new PlayerState(seat)).ToList();
+            SetPlayerNeighbors();
         }
 
         public void SetPlayerNeighbors()
@@ -209,7 +201,7 @@ namespace _7WondersGame.src.models
             List<Card> cards = new List<Card>();
             int cardIdx = 0;
 
-            foreach (Player player in Players)
+            foreach (PlayerState player in Players)
             {
                 cards.Clear();
                 for (int i = 0; i < 7; i++)
@@ -278,7 +270,7 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// Give a player a wonder board and its starting resource. Used by both setup paths.
         /// </summary>
-        private void AssignWonder(Player player, int wonderId)
+        private void AssignWonder(PlayerState player, int wonderId)
         {
             player.Board = CreateWonders(wonderId);
             player.Resources[player.Board.Production] += 1;
@@ -291,7 +283,7 @@ namespace _7WondersGame.src.models
             for (int i = 0; i < 7; i++)
                 wonder_availability[i] = true;
 
-            foreach (Player player in Players)
+            foreach (PlayerState player in Players)
             {
                 while (true)
                 {
@@ -348,7 +340,7 @@ namespace _7WondersGame.src.models
             if (seat < 0 || seat >= _waiting!.Length || !_waiting[seat])
                 throw new InvalidOperationException(
                     $"Seat {seat} has nothing to decide now ({Phase}, turn {Turn}, era {Era}, game seed {Seed}).");
-            Player player = Players[seat];
+            PlayerState player = Players[seat];
 
             switch (Phase)
             {
@@ -414,47 +406,24 @@ namespace _7WondersGame.src.models
                 StartPhase(Phase);
         }
 
-        /// <summary>
-        /// Enters a phase: marks who must decide and whether each of them can pay for a wonder stage (the rules read
-        /// <see cref="Player.CanBuildWonder"/>). False if nobody has anything to decide in it.
-        /// </summary>
+        /// <summary>Enters a phase and marks who must decide in it. False if nobody has anything to decide.</summary>
         private bool StartPhase(Phase phase)
         {
             Phase = phase;
-            bool any = false;
-            foreach (Player p in Players)
+            foreach (PlayerState p in Players)
             {
-                bool waits = phase switch
+                _waiting![p.Id] = phase switch
                 {
                     Phase.ChooseMoves => true,
                     Phase.SeventhCard => p.PlaySeventh && p.HandCards.Count > 0,
                     Phase.DiscardBuild => CanBuildFromDiscardPile(p),
                     _ => false,
                 };
-                _waiting![p.Id] = waits;
-                if (!waits)
-                    continue;
-                any = true;
-                p.CheckCanBuildWonder();
             }
-            return any;
+            return _waiting!.Contains(true);
         }
 
-        /// <summary>
-        /// What an agent looks at when choosing: its playable cards and whether it can build a wonder stage.
-        /// Worked out just before asking, because agents overwrite <see cref="Player.PlayableCards"/> while choosing
-        /// and MCTS rollouts swap in other agents.
-        /// </summary>
-        private void PrepareToAsk(Player p)
-        {
-            // the discard-pile build is free, so only the no-duplicates rule limits it
-            p.PlayableCards = Phase == Phase.DiscardBuild
-                ? p.GetPlayableCards(DiscardedCards, playAllFree: true)
-                : p.GetPlayableCards(p.HandCards);
-            p.CheckCanBuildWonder();
-        }
-
-        private static bool CanBuildFromDiscardPile(Player p) =>
+        private static bool CanBuildFromDiscardPile(PlayerState p) =>
             p.DiscardFree && (p.Board.Id == WonderId.HalikarnassosA && p.Board.Stage == 2 ||
                               p.Board.Id == WonderId.HalikarnassosB && p.Board.Stage >= 1);
 
@@ -468,14 +437,14 @@ namespace _7WondersGame.src.models
             // the last card of each hand is discarded at the end of an era (turns 7, 14 and 21)
             if (Turn % 7 == 0)
             {
-                foreach (Player player in Players)
+                foreach (PlayerState player in Players)
                     DiscardedCards.AddRange(player.HandCards);
                 if (Tracing)
                     Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(Players.SelectMany(p => p.HandCards)));
             }
 
             // Halikarnassos A gets its discard-pile build from stage 2 only
-            foreach (Player player in Players)
+            foreach (PlayerState player in Players)
                 if (player.DiscardFree && player.Board.Id == WonderId.HalikarnassosA && player.Board.Stage != 2)
                     player.DiscardFree = false;
 
@@ -489,14 +458,14 @@ namespace _7WondersGame.src.models
         {
             if (Turn % 7 == 0)
             {
-                foreach (Player player in Players)
+                foreach (PlayerState player in Players)
                 {
                     // Olympia A stage 2: one free card per era
                     player.FreeCardOnce = player.Board.Id == WonderId.OlympiaA && player.Board.Stage >= 2;
                     player.Battle(Era);
                 }
                 if (Tracing)
-                    foreach (Player player in Players)
+                    foreach (PlayerState player in Players)
                         TraceBattle(player);
 
                 Era++;
@@ -510,7 +479,7 @@ namespace _7WondersGame.src.models
                 if (Tracing)
                 {
                     Trace.Debug("=== Era {Era} ===", Era);
-                    foreach (Player player in Players.Where(p => p.FreeCardOnce))
+                    foreach (PlayerState player in Players.Where(p => p.FreeCardOnce))
                         Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Id);
                 }
                 GiveCards();
@@ -525,7 +494,7 @@ namespace _7WondersGame.src.models
 
         public void RotateHandCards()
         {
-            Player p,
+            PlayerState p,
                 p1,
                 neighbor;
             p1 = p = Players.First();
@@ -564,30 +533,30 @@ namespace _7WondersGame.src.models
         /// <returns>Each seat's final VP.</returns>
         public Dictionary<int, int> Loop(bool record = false)
         {
-            foreach (Player player in Players)
-                player.Trace = Trace;
+            if (Agents.Count != Players.Count)
+                throw new InvalidOperationException($"{Players.Count} players but {Agents.Count} agents.");
             if (Turn == 0 && Tracing)
                 TraceSetup();
 
             while (PendingPlayers() is { Count: > 0 } pending)
             {
-                foreach (int seat in pending)
-                    PrepareToAsk(Players[seat]);
+                // Everyone chooses from a view of the same state before any choice is submitted, so no agent sees
+                // another's choice (M2).
+                List<GameView> views = pending.Select(seat => new GameView(this, seat)).ToList();
                 if (Tracing)
-                    TracePhaseStart(pending);
+                    TracePhaseStart(views);
 
-                // Everyone chooses from the same state before any choice is submitted, so no agent sees another's (M2).
-                var choices = pending.Select(seat => (Seat: seat, Move: Ask(Players[seat]))).ToList();
+                var choices = views.Select(v => (v.Seat, Move: Agents[v.Seat].Choose(v))).ToList();
                 if (Tracing && Phase != Phase.DiscardBuild)
                     foreach (var (seat, move) in choices)
-                        TraceChoice(Players[seat], move);
+                        TraceChoice(seat, move);
 
                 foreach (var (seat, move) in choices)
                     Submit(seat, move);
             }
 
             //calculate scores
-            foreach (Player player in Players)
+            foreach (PlayerState player in Players)
             {
                 // Copies a neighbor guild before scoring if the player has the ability to do so.
                 bool copied = player.CopyGuild();
@@ -599,39 +568,25 @@ namespace _7WondersGame.src.models
                 TraceScores();
 
             if (record)
-                Results = GameResult.ForPlayers(Players);
+                Results = GameResult.ForPlayers(Players, Agents);
 
             var scores = new Dictionary<int, int>();
             Players.ForEach(p => scores.Add(p.Id, p.VictoryPoints));
             return scores;
         }
 
-        /// <summary>A pending player's decision for the current phase, from the agent.</summary>
-        private Command Ask(Player player)
-        {
-            if (Phase == Phase.DiscardBuild)
-            {
-                Card? card = player.ChooseMoveCard(this, ActionType.Build, player.PlayableCards);
-                return card == null ? new Command(ActionType.Skip, null) : new Command(ActionType.Build, card);
-            }
-
-            player.ChooseMoveCommand(this);
-            Command move = PlayerCommands[player.Id];
-            // the slot only carries the agent's answer; clear it so the next agent can't read it (M2)
-            PlayerCommands[player.Id] = null!;
-            return move;
-        }
-
         /// <summary>
         /// A chosen move that the rules don't allow (E8). The game stops here instead of carrying on in a state
         /// that shouldn't exist; the message has what is needed to replay it.
         /// </summary>
-        private InvalidOperationException MoveFailed(Player player, string move, Card card) =>
-            new($"Seat {player.Id} ({player.GetType().Name}) could not {move} {card.Name} on turn {Turn} " +
+        private InvalidOperationException MoveFailed(PlayerState player, string move, Card card) =>
+            new($"Seat {player.Id} ({AgentName(player.Id)}) could not {move} {card.Name} on turn {Turn} " +
                 $"(era {Era}, game seed {Seed}).");
 
+        private string AgentName(int seat) => seat < Agents.Count ? Agents[seat].Name : "no agent";
+
         /// <summary>One player's move on its own (Babylon's 7th card).</summary>
-        public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList) =>
+        public void HandlePlayerCommand(PlayerState player, Command playerCommand, List<Card> cardsList) =>
             ResolveMoves(new[] { (player, playerCommand, cardsList) });
 
         /// <summary>
@@ -640,7 +595,7 @@ namespace _7WondersGame.src.models
         /// the cards and wonder stages arrive. Coins received can't be spent in the same turn, and seat order doesn't
         /// change the result.
         /// </summary>
-        public void ResolveMoves(IReadOnlyList<(Player Player, Command Command, List<Card> Source)> moves)
+        public void ResolveMoves(IReadOnlyList<(PlayerState Player, Command Command, List<Card> Source)> moves)
         {
             TraceSnapshot[]? before = Tracing ? moves.Select(m => TraceSnapshot.Of(m.Player)).ToArray() : null;
 
@@ -676,38 +631,41 @@ namespace _7WondersGame.src.models
         private void TraceSetup()
         {
             Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players", Seed, Seed.ToString("x16"), Players.Count);
-            foreach (Player p in Players)
-                Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}", p.Id, p.GetType().Name, p.ConfigJson(), p.Board.Id);
+            foreach (PlayerState p in Players)
+                Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}", p.Id, AgentName(p.Id),
+                    p.Id < Agents.Count ? Agents[p.Id].ConfigJson() : "{}", p.Board.Id);
             for (int era = 0; era < Decks.Length; era++)
                 Trace.Verbose("Era {Era} deck: {Cards}", era + 1, Names(Decks[era]));
             Trace.Debug("=== Era 1 ===");
         }
 
-        private void TraceTurnStart()
+        private void TraceTurnStart(IReadOnlyList<GameView> views)
         {
             Trace.Debug("--- Era {Era}, turn {Turn} ---", Era, Turn);
-            foreach (Player p in Players)
+            foreach (GameView v in views)
             {
+                PlayerState p = Players[v.Seat];
                 Trace.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
                     p.Id, p.Resources[Resource.Coins], p.Resources[Resource.Shields], p.Board.Id, p.Board.Stage, Names(p.HandCards));
-                TracePlayable(p);
+                TracePlayable(v);
             }
         }
 
-        private void TracePlayable(Player p) =>
+        // what the agent was shown (worked out for its view, so tracing it changes nothing)
+        private void TracePlayable(GameView v) =>
             Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
-                p.Id, Names(p.PlayableCards), p.CanBuildWonder);
+                v.Seat, Names(v.PlayableCards), v.CanBuildWonder);
 
-        private void TracePhaseStart(IReadOnlyList<int> pending)
+        private void TracePhaseStart(IReadOnlyList<GameView> views)
         {
             if (Phase == Phase.ChooseMoves)
             {
-                TraceTurnStart();
+                TraceTurnStart(views);
                 return;
             }
-            foreach (int seat in pending)
+            foreach (GameView v in views)
             {
-                Player p = Players[seat];
+                PlayerState p = Players[v.Seat];
                 if (Phase == Phase.SeventhCard)
                     Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}", p.Id, Names(p.HandCards));
                 else
@@ -715,17 +673,17 @@ namespace _7WondersGame.src.models
                     Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", p.Id);
                     Trace.Verbose("Discard pile: {Cards}", Names(DiscardedCards));
                 }
-                TracePlayable(p);
+                TracePlayable(v);
             }
         }
 
-        private void TraceChoice(Player p, Command c)
+        private void TraceChoice(int seat, Command c)
         {
-            Trace.Debug("Seat {Seat} chooses {Action} {Card}", p.Id, c.Action, c.Card?.Name ?? "-");
+            Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, c.Action, c.Card?.Name ?? "-");
         }
 
         /// <summary>What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.</summary>
-        private void TraceResult(Player p, PlannedMove? m, TraceSnapshot before)
+        private void TraceResult(PlayerState p, PlannedMove? m, TraceSnapshot before)
         {
             TraceSnapshot after = TraceSnapshot.Of(p);
             string name = m?.Card.Name ?? "";
@@ -758,8 +716,8 @@ namespace _7WondersGame.src.models
                 details.Count > 0 ? "; " + string.Join("; ", details) : "");
         }
 
-        /// <summary>One player's two battles at the end of an era (after <see cref="Player.Battle"/>; read-only).</summary>
-        private void TraceBattle(Player p)
+        /// <summary>One player's two battles at the end of an era (after <see cref="Rules.Battle"/>; read-only).</summary>
+        private void TraceBattle(PlayerState p)
         {
             int mine = p.Resources[Resource.Shields];
             int win = Era == 1 ? 1 : Era == 2 ? 3 : 5;
@@ -772,17 +730,17 @@ namespace _7WondersGame.src.models
 
         private void TraceScores()
         {
-            foreach (Player p in Players)
+            foreach (PlayerState p in Players)
                 Trace.Debug("Seat {Seat} {Agent}: {Total} VP = military {Military} + coins {Money} + wonder {Wonder} + " +
                             "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; {Coins} coins left",
-                    p.Id, p.GetType().Name, p.VictoryPoints, p.CalculateMilitaryScore(), p.CalculateMoneyScore(),
+                    p.Id, AgentName(p.Id), p.VictoryPoints, p.CalculateMilitaryScore(), p.CalculateMoneyScore(),
                     p.CalculateWonderScore(), p.CalculateCivilianScore(), p.CalculateCommercialScore(),
                     p.CalculateGuildScore(), p.CalculateScientificScore(), p.Resources[Resource.Coins]);
         }
 
         private sealed record TraceSnapshot(int Coins, int Stage, List<string> Flags)
         {
-            public static TraceSnapshot Of(Player p)
+            public static TraceSnapshot Of(PlayerState p)
             {
                 var flags = new List<string>();
                 if (p.PlaySeventh) flags.Add(nameof(p.PlaySeventh));
@@ -813,9 +771,7 @@ namespace _7WondersGame.src.models
             var moves = new List<Command>();
             if (PendingPlayers().Contains(seat))
             {
-                // Worked out from the state, not from Player.PlayableCards: agents overwrite that while choosing
-                // (with Olympia A's free card, for example), and a copy may be taken after they have.
-                Player player = Players[seat];
+                PlayerState player = Players[seat];
                 List<Card> hand = player.HandCards;
 
                 if (Phase == Phase.DiscardBuild)
@@ -823,7 +779,7 @@ namespace _7WondersGame.src.models
                 else
                 {
                     moves.AddRange(player.GetPlayableCards(hand).Select(c => new Command(ActionType.Build, c)));
-                    if (player.CheckCanBuildWonder() && hand.Count > 0)
+                    if (player.CanBuildWonder() && hand.Count > 0)
                     {
                         if (pruned)
                             moves.Add(new Command(ActionType.BuildWonder, hand[_rng.Next(hand.Count)]));

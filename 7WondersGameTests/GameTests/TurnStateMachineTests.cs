@@ -17,7 +17,7 @@ namespace _7WondersGameTests.GameTests
         private static Game ThreePlayers(Wonder w0, Wonder w1, Wonder w2, params CardId[][] hands)
         {
             Game game = new Game();
-            game.Players = MockHelper.MockRandomChoiceAIPlayers(new List<Wonder> { w0, w1, w2 });
+            game.Players = MockHelper.MockPlayers(new List<Wonder> { w0, w1, w2 });
             for (int seat = 0; seat < hands.Length; seat++)
                 game.Players[seat].HandCards.AddRange(hands[seat].Select(C));
             return game;
@@ -190,44 +190,51 @@ namespace _7WondersGameTests.GameTests
 
         // ================= Loop =================
 
-        /// <summary>Records what it could see of the other players' choices whenever it was asked to choose.</summary>
+        /// <summary>
+        /// Plays randomly and records whether, when asked, any move of this step was already in the game, or its view
+        /// was the live game rather than a copy.
+        /// </summary>
         private sealed class Spy : RandomChoiceAI
         {
+            public Game? Game;
             public bool SawAnotherChoice;
-            public Spy(int id) : base(id) { }
+            public bool SawLiveState;
 
-            public override void ChooseMoveCommand(Game g)
+            protected override ActionType ChooseAction(GameView view)
             {
-                SawAnotherChoice |= g.MovesWaiting || g.PlayerCommands.Where((c, seat) => seat != Id && c != null).Any();
-                base.ChooseMoveCommand(g);
+                SawAnotherChoice |= Game!.MovesWaiting;
+                SawLiveState |= view.Players.Any(p => Game.Players.Contains(p)) || ReferenceEquals(view.DiscardPile, Game.DiscardedCards);
+                return base.ChooseAction(view);
             }
         }
 
         [TestMethod]
         public void Loop_NoAgentSeesAnotherChoice()
         {
-            var spies = Enumerable.Range(0, 4).Select(seat => new Spy(seat)).ToList();
-            var game = new Game(Seeding.GameSeed(7, 0)) { Players = spies.Cast<Player>().ToList() };
+            var spies = Enumerable.Range(0, 4).Select(_ => new Spy()).ToList();
+            var game = new Game(Seeding.GameSeed(7, 0)) { Agents = spies.Cast<IAgent>().ToList() };
+            spies.ForEach(s => s.Game = game);
             game.InitGame();
             game.Loop(record: true);
 
             Assert.AreEqual(Phase.GameOver, game.Phase);
             Assert.IsFalse(spies.Any(s => s.SawAnotherChoice));
+            Assert.IsFalse(spies.Any(s => s.SawLiveState), "agents get a copy of the state");
         }
 
-        private static readonly Func<int, Player>[] Agents =
+        private static readonly Func<IAgent>[] Agents =
         {
-            id => new DeterministicAI(id),
-            id => new RandomChoiceAI(id),
-            id => new PriorityWonderRandomChoiceAI(id),
-            id => new PriorityStructureRandomChoiceAI(id),
+            () => new DeterministicAI(),
+            () => new RandomChoiceAI(),
+            () => new PriorityRandomChoiceAI(ActionPriority.Wonder),
+            () => new PriorityRandomChoiceAI(ActionPriority.Structure),
         };
 
-        private static Game NewGame(int players, int k, Func<int, Player>[] agents)
+        private static Game NewGame(int players, int k, Func<IAgent>[] agents)
         {
             var game = new Game(Seeding.GameSeed(0xE1, players * 1000 + k))
             {
-                Players = Enumerable.Range(0, players).Select(seat => agents[(k + seat) % agents.Length](seat)).ToList(),
+                Agents = Enumerable.Range(0, players).Select(seat => agents[(k + seat) % agents.Length]()).ToList(),
             };
             game.InitGame();
             return game;
@@ -241,24 +248,11 @@ namespace _7WondersGameTests.GameTests
                 .ToList();
 
         /// <summary>The agent's decision, asked the way <see cref="Game.Loop"/> asks it.</summary>
-        private static Command Ask(Game game, int seat)
-        {
-            Player p = game.Players[seat];
-            p.PlayableCards = game.Phase == Phase.DiscardBuild
-                ? p.GetPlayableCards(game.DiscardedCards, playAllFree: true)
-                : p.GetPlayableCards(p.HandCards);
-            p.CheckCanBuildWonder();
-            if (game.Phase == Phase.DiscardBuild)
-                return p.ChooseMoveCard(game, ActionType.Build, p.PlayableCards) is { } card
-                    ? new Command(ActionType.Build, card)
-                    : new Command(ActionType.Skip, null);
-            p.ChooseMoveCommand(game);
-            return game.PlayerCommands[seat];
-        }
+        private static Command Ask(Game game, int seat) => game.Agents[seat].Choose(new GameView(game, seat));
 
         /// <summary>
         /// Plays the game one decision at a time, last seat first, each submitted as soon as it is made.
-        /// With <paramref name="copyEachStep"/>, every decision is made and submitted on a fresh copy, the way an MCTS tree steps.
+        /// With <paramref name="copyEachStep"/>, every decision is made and submitted on a fresh copy, the way a search tree steps.
         /// </summary>
         private static Game StepThrough(Game game, bool copyEachStep, HashSet<Phase> phasesSeen)
         {
@@ -295,7 +289,7 @@ namespace _7WondersGameTests.GameTests
         public void SteppingThroughCopies_MatchesLoop()
         {
             // DeterministicAI makes no random draws, so its choices don't depend on the copy's seed
-            Func<int, Player>[] deterministic = { id => new DeterministicAI(id) };
+            Func<IAgent>[] deterministic = { () => new DeterministicAI() };
             var phasesSeen = new HashSet<Phase>();
             for (int players = 3; players <= 7; players++)
                 for (int k = 0; k < 8; k++)

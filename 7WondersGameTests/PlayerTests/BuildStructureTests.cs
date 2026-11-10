@@ -14,7 +14,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -54,7 +54,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -94,7 +94,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -134,7 +134,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -170,7 +170,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // set hand card list
             players[1].HandCards.Add(CardsDataset.GameCards[CardId.Loom2]);

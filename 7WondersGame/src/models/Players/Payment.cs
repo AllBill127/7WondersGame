@@ -54,7 +54,7 @@
         /// The cheapest plan for <paramref name="buyer"/> to pay <paramref name="cost"/>, or null if they can't
         /// (the resources aren't available, or buying them plus the coin cost is more than their coins).
         /// </summary>
-        public static PaymentPlan? Plan(Player buyer, IReadOnlyDictionary<Resource, int> cost)
+        public static PaymentPlan? Plan(PlayerState buyer, IReadOnlyDictionary<Resource, int> cost)
         {
             int budget = buyer.Resources[Resource.Coins] - (cost.TryGetValue(Resource.Coins, out int coinCost) ? coinCost : 0);
             if (budget < 0)
@@ -90,7 +90,7 @@
             private readonly int[] westPrice = new int[Goods], eastPrice = new int[Goods];
             private int bestTotal = int.MaxValue, bestEast = int.MaxValue;
 
-            public Search(Player buyer, int[] need)
+            public Search(PlayerState buyer, int[] need)
             {
                 this.need = need;
 
@@ -117,7 +117,7 @@
                 }
             }
 
-            private void AddSeller(Player seller, int[] supply)
+            private void AddSeller(PlayerState seller, int[] supply)
             {
                 for (int g = 0; g < Goods; g++)
                     supply[g] = seller.Resources[(Resource)g];

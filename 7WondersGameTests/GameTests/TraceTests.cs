@@ -37,9 +37,9 @@ namespace _7WondersGameTests.GameTests
         {
             var game = new Game(seed)
             {
-                Players = new List<Player>
+                Agents = new List<IAgent>
                 {
-                    new DeterministicAI(0), new RandomChoiceAI(1), new PriorityWonderRandomChoiceAI(2),
+                    new DeterministicAI(), new RandomChoiceAI(), new PriorityRandomChoiceAI(ActionPriority.Wonder),
                 },
             };
             if (trace != null)
@@ -75,7 +75,6 @@ namespace _7WondersGameTests.GameTests
             Game copy = game.DeepCopy();
 
             Assert.AreSame(Logger.None, copy.Trace);
-            Assert.IsTrue(copy.Players.All(p => ReferenceEquals(p.Trace, Logger.None)));
         }
 
         [TestMethod]

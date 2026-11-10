@@ -1,4 +1,5 @@
-﻿using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.src.models.Agents;
+using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.models
 {
@@ -40,19 +41,19 @@ namespace _7WondersGame.src.models
                 .ToList();
         }
 
-        public static List<PlayerStanding> Rank(IEnumerable<Player> players) =>
+        public static List<PlayerStanding> Rank(IEnumerable<PlayerState> players) =>
             Rank(players.Select(p => (p.Id, p.VictoryPoints, p.Resources[Resource.Coins])).ToList());
 
         /// <summary>
-        /// Final results of a scored game, one per seat, in seat order.
+        /// Final results of a scored game, one per seat, in seat order, with the agent that played each seat.
         /// </summary>
-        public static List<SeatResult> ForPlayers(IReadOnlyList<Player> players)
+        public static List<SeatResult> ForPlayers(IReadOnlyList<PlayerState> players, IReadOnlyList<IAgent> agents)
         {
             List<PlayerStanding> standings = Rank(players);
             return players.Select((p, i) =>
             {
                 string board = p.Board.Id.ToString();
-                return new SeatResult(p.Id, p.GetType().Name, p.ConfigJson(),
+                return new SeatResult(p.Id, agents[i].Name, agents[i].ConfigJson(),
                     board[..^1], board[^1..],
                     p.VictoryPoints, p.Resources[Resource.Coins], standings[i].Rank, standings[i].WinShare);
             }).ToList();

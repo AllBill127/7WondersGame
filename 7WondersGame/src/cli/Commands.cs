@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using _7WondersGame.src.models;
-using _7WondersGame.src.models.Players;
+using _7WondersGame.src.models.Agents;
 using Serilog;
 using Serilog.Events;
 
@@ -85,8 +85,8 @@ namespace _7WondersGame.src.cli
                     Game game;
                     lock (setupLock)
                     {
-                        List<Player> players = specs.Select((s, seat) => AgentCatalog.Create(s, seat, value)).ToList();
-                        game = new Game(Seeding.GameSeed(runSeed, deal)) { Players = players, Trace = log };
+                        List<IAgent> agents = specs.Select(s => AgentCatalog.Create(s, value)).ToList();
+                        game = new Game(Seeding.GameSeed(runSeed, deal)) { Agents = agents, Trace = log };
                         if (deals != null)
                             game.InitGameNotRandom(deals[deal]);
                         else
@@ -197,7 +197,7 @@ namespace _7WondersGame.src.cli
 
             var game = new Game(gameSeed)
             {
-                Players = specs.Select((s, seat) => AgentCatalog.Create(s, seat)).ToList(),
+                Agents = specs.Select(s => AgentCatalog.Create(s)).ToList(),
                 Trace = Log.Logger,
             };
             if (deals != null)
@@ -247,7 +247,7 @@ namespace _7WondersGame.src.cli
                 // the same deal 'run --seed <seed>' plays as game i
                 var game = new Game(Seeding.GameSeed(seed, i))
                 {
-                    Players = Enumerable.Range(0, seats).Select(seat => (Player)new RandomChoiceAI(seat)).ToList(),
+                    Agents = Enumerable.Range(0, seats).Select(_ => (IAgent)new RandomChoiceAI()).ToList(),
                 };
                 game.InitGame();
 

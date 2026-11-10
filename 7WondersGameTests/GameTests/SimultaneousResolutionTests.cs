@@ -21,8 +21,8 @@ namespace _7WondersGameTests.GameTests
         private static Game TradingTurn(int seat0Coins, int seat1Coins)
         {
             Game game = new Game();
-            game.Players = MockHelper.MockRandomChoiceAIPlayers(new List<Wonder> { new GizahA(), new GizahA(), new GizahA() });
-            foreach (Player p in game.Players)
+            game.Players = MockHelper.MockPlayers(new List<Wonder> { new GizahA(), new GizahA(), new GizahA() });
+            foreach (PlayerState p in game.Players)
                 p.Resources[Resource.Coins] = 0;
             game.Players[0].Resources[Resource.Coins] = seat0Coins;
             game.Players[1].Resources[Resource.Coins] = seat1Coins;
@@ -33,10 +33,10 @@ namespace _7WondersGameTests.GameTests
             return game;
         }
 
-        private static List<(Player, Command, List<Card>)> Moves(Game game, params int[] seats) =>
+        private static List<(PlayerState, Command, List<Card>)> Moves(Game game, params int[] seats) =>
             seats.Select(s =>
             {
-                Player p = game.Players[s];
+                PlayerState p = game.Players[s];
                 return (p, new Command(ActionType.Build, p.HandCards[0]), p.HandCards);
             }).ToList();
 
@@ -90,8 +90,8 @@ namespace _7WondersGameTests.GameTests
             foreach (int[] order in new[] { new[] { 0, 1 }, new[] { 1, 0 } })
             {
                 Game game = new Game();
-                game.Players = MockHelper.MockRandomChoiceAIPlayers(new List<Wonder> { new GizahA(), new GizahA(), new GizahA() });
-                foreach (Player p in game.Players)
+                game.Players = MockHelper.MockPlayers(new List<Wonder> { new GizahA(), new GizahA(), new GizahA() });
+                foreach (PlayerState p in game.Players)
                     p.Resources[Resource.Coins] = 0;
                 game.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Vineyard]);
                 game.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.LumberYard]);

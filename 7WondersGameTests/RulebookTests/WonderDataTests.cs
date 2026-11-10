@@ -37,7 +37,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("HalikarnassosA", 3)]  [DataRow("HalikarnassosB", 3)]
         public void Board_HasRulebookStageCount(string wonder, int stages)
         {
-            Player player = SetUpPlayer(wonder);
+            PlayerState player = SetUpPlayer(wonder);
             for (int s = 0; s < stages; s++)
             {
                 GiveResources(player, 10);
@@ -46,7 +46,7 @@ namespace _7WondersGameTests.RulebookTests
 
             GiveResources(player, 10);
             player.Resources[Resource.Coins] = 100;
-            Assert.IsFalse(player.CheckCanBuildWonder(), "one stage too many");
+            Assert.IsFalse(player.CanBuildWonder(), "one stage too many");
         }
 
         // Columns: wonder, stage, cost, VP, coins, shields, other effect.
@@ -95,7 +95,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("HalikarnassosB", 3, "Glass, Papyrus, Loom", 0, 0, 0, "BuildFromDiscard")]
         public void Stage_MatchesRulebook(string wonder, int stage, string cost, int vp, int coins, int shields, string effect)
         {
-            Player player = SetUpPlayer(wonder);
+            PlayerState player = SetUpPlayer(wonder);
             for (int s = 1; s < stage; s++)
             {
                 GiveResources(player, 10);
@@ -106,7 +106,7 @@ namespace _7WondersGameTests.RulebookTests
 
             // Exactly the rulebook cost is enough (no coins, so nothing can be bought).
             SetResources(player, costDict);
-            Assert.IsTrue(player.CheckCanBuildWonder(), "exact cost should be enough");
+            Assert.IsTrue(player.CanBuildWonder(), "exact cost should be enough");
 
             // One less of any resource is not enough, unless the board's own wildcard covers it.
             foreach (Resource r in costDict.Keys)
@@ -119,7 +119,7 @@ namespace _7WondersGameTests.RulebookTests
                 var lessOne = new Dictionary<Resource, int>(costDict);
                 lessOne[r]--;
                 SetResources(player, lessOne);
-                Assert.IsFalse(player.CheckCanBuildWonder(), $"one {r} short should not be enough");
+                Assert.IsFalse(player.CanBuildWonder(), $"one {r} short should not be enough");
             }
 
             // Build it and check the rewards.
@@ -171,23 +171,23 @@ namespace _7WondersGameTests.RulebookTests
             return (Wonder)Activator.CreateInstance(type)!;
         }
 
-        private static Player SetUpPlayer(string wonder)
+        private static PlayerState SetUpPlayer(string wonder)
         {
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
+            List<PlayerState> players = MockHelper.MockPlayers(
                 new List<Wonder> { CreateWonder(wonder), new GizahA(), new GizahA() });
-            foreach (Player p in players)
+            foreach (PlayerState p in players)
                 p.Resources[Resource.Coins] = 0;
             return players[0];
         }
 
-        private static void GiveResources(Player player, int amount)
+        private static void GiveResources(PlayerState player, int amount)
         {
             foreach (Resource r in Raw.Concat(Manufactured))
                 player.Resources[r] = amount;
         }
 
         /// <summary>Sets raw and manufactured resources to exactly these amounts, and coins to 0.</summary>
-        private static void SetResources(Player player, Dictionary<Resource, int> amounts)
+        private static void SetResources(PlayerState player, Dictionary<Resource, int> amounts)
         {
             GiveResources(player, 0);
             foreach (var kvp in amounts)

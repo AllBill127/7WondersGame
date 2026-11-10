@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
-using _7WondersGame.src.models.Players;
+using _7WondersGame.src.models.Agents;
 
 namespace _7WondersGame.src.cli
 {
@@ -61,7 +61,7 @@ namespace _7WondersGame.src.cli
     /// <summary>The agents the command line can create, and how their settings are set.</summary>
     public static class AgentCatalog
     {
-        public sealed record Entry(string Name, Func<int, Player> Create, string Description);
+        public sealed record Entry(string Name, Func<IAgent> Create, string Description);
 
         /// <summary>
         /// Short names for settings (the full field names work too). Empty until the configurable MCTS agent
@@ -71,10 +71,10 @@ namespace _7WondersGame.src.cli
 
         private static readonly List<Entry> BuiltIn = new()
         {
-            new("DeterministicAI", id => new DeterministicAI(id), "rule-based heuristic (era-specific card scores)"),
-            new("RandomChoiceAI", id => new RandomChoiceAI(id), "random legal move"),
-            new("PriorityStructureRandomChoiceAI", id => new PriorityStructureRandomChoiceAI(id), "random, prefers building a card"),
-            new("PriorityWonderRandomChoiceAI", id => new PriorityWonderRandomChoiceAI(id), "random, prefers building a wonder stage"),
+            new("DeterministicAI", () => new DeterministicAI(), "rule-based heuristic (era-specific card scores)"),
+            new("RandomChoiceAI", () => new RandomChoiceAI(), "random legal move"),
+            new("PriorityStructureRandomChoiceAI", () => new PriorityRandomChoiceAI(ActionPriority.Structure), "random card, prefers building a card"),
+            new("PriorityWonderRandomChoiceAI", () => new PriorityRandomChoiceAI(ActionPriority.Wonder), "random card, prefers building a wonder stage"),
         };
 
         private static readonly List<Entry> Registered = new();
@@ -100,8 +100,8 @@ namespace _7WondersGame.src.cli
         /// <summary>The settable fields of an agent type, with their defaults.</summary>
         public static List<(string Name, Type Type, object? Default)> SettingsOf(Entry entry)
         {
-            Player sample = entry.Create(0);
-            return Player.SettingFields(sample.GetType())
+            IAgent sample = entry.Create();
+            return AgentSettings.Fields(sample.GetType())
                 .Select(s => (s.Name, s.Field.FieldType, s.Field.GetValue(sample)))
                 .OrderBy(s => s.Name, StringComparer.Ordinal)
                 .ToList();
@@ -111,7 +111,7 @@ namespace _7WondersGame.src.cli
         public static (string Name, FieldInfo Field) ResolveSetting(Type agentType, string key)
         {
             string wanted = Aliases.TryGetValue(key, out string? full) ? full : key;
-            var fields = Player.SettingFields(agentType).ToList();
+            var fields = AgentSettings.Fields(agentType).ToList();
             foreach (var f in fields)
                 if (f.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
                     return f;
@@ -120,23 +120,23 @@ namespace _7WondersGame.src.cli
         }
 
         /// <summary>
-        /// Creates the agent for a seat and applies its settings. <paramref name="sweepValue"/> replaces the value of the
+        /// Creates the agent and applies its settings. <paramref name="sweepValue"/> replaces the value of the
         /// setting that is a range (it must be given when the spec has one).
         /// </summary>
-        public static Player Create(AgentSpec spec, int seat, double? sweepValue = null)
+        public static IAgent Create(AgentSpec spec, double? sweepValue = null)
         {
             Entry entry = Find(spec.Name);
-            Player player = entry.Create(seat);
+            IAgent agent = entry.Create();
             foreach (var (key, value) in spec.Settings)
             {
-                var (name, field) = ResolveSetting(player.GetType(), key);
+                var (name, field) = ResolveSetting(agent.GetType(), key);
                 string text = value;
                 if (Sweep.TryParseRange(value, out _, out _))
                     text = (sweepValue ?? throw new InvalidOperationException("range setting without a sweep value"))
                         .ToString("R", CultureInfo.InvariantCulture);
-                field.SetValue(player, ConvertValue(text, field.FieldType, $"{spec.Name}:{key}"));
+                field.SetValue(agent, ConvertValue(text, field.FieldType, $"{spec.Name}:{key}"));
             }
-            return player;
+            return agent;
         }
 
         private static object ConvertValue(string text, Type type, string where)
@@ -185,8 +185,8 @@ namespace _7WondersGame.src.cli
             }
             if (sweep == null && steps != null)
                 throw new UsageException("--steps only applies when a setting is a range a..b.");
-            for (int seat = 0; seat < specs.Count; seat++)
-                Create(specs[seat], seat, sweep?.From);  // throws a usage error for bad names or values
+            foreach (AgentSpec spec in specs)
+                Create(spec, sweep?.From);  // throws a usage error for bad names or values
             return sweep;
         }
 

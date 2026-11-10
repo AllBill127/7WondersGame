@@ -42,10 +42,10 @@ namespace _7WondersGame.src.models.Wonders
         public object DeepCopy() => MemberwiseClone();
 
         /// <summary>
-        /// Adds the next stage and applies its effect. The caller has already paid for it (see <see cref="Player.BuildWonder"/>).
+        /// Adds the next stage and applies its effect. The caller has already paid for it (see <see cref="Rules.BuildWonder"/>).
         /// </summary>
         /// <returns>false if every stage is already built</returns>
-        public bool AddStage(Player player)
+        public bool AddStage(PlayerState player)
         {
             if (Stage >= stageCosts.Length)
                 return false;
@@ -59,7 +59,7 @@ namespace _7WondersGame.src.models.Wonders
         /// Effects read later from <see cref="Stage"/> (Babylon's science symbol, Alexandria's wildcards,
         /// Olympia B's guild copy) need nothing here.
         /// </summary>
-        protected abstract void ApplyStageEffect(Player player, int stage);
+        protected abstract void ApplyStageEffect(PlayerState player, int stage);
     }
 
     public enum WonderId{

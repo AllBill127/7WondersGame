@@ -27,9 +27,8 @@ namespace _7WondersGameTests.PlayerTests
                 new OlympiaA(),
                 new BabylonA(),
             };
-            List<Player> players = MockHelper.MockPriorityAIPlayers(wonders);
+            List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
-            testGame.PlayerCommands = new Command[players.Count];
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
@@ -45,10 +44,10 @@ namespace _7WondersGameTests.PlayerTests
             ActionType expP1Action = ActionType.Discard;
 
             // Test
-            players[1].ChooseMoveCommand(testGame);
+            Command move = new PriorityRandomChoiceAI(ActionPriority.Wonder).Choose(new GameView(testGame, 1));
 
             // Evaluate
-            Assert.AreEqual(expP1Action, testGame.PlayerCommands[players[1].Id].Action);
+            Assert.AreEqual(expP1Action, move.Action);
         }
 
         [TestMethod]
@@ -62,9 +61,8 @@ namespace _7WondersGameTests.PlayerTests
                 new OlympiaA(),
                 new BabylonA(),
             };
-            List<Player> players = MockHelper.MockPriorityAIPlayers(wonders);
+            List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
-            testGame.PlayerCommands = new Command[players.Count];
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
@@ -80,10 +78,10 @@ namespace _7WondersGameTests.PlayerTests
             ActionType expP1Action = ActionType.BuildFreeOnce;
 
             // Test
-            players[1].ChooseMoveCommand(testGame);
+            Command move = new PriorityRandomChoiceAI(ActionPriority.Wonder).Choose(new GameView(testGame, 1));
 
             // Evaluate
-            Assert.AreEqual(expP1Action, testGame.PlayerCommands[players[1].Id].Action);
+            Assert.AreEqual(expP1Action, move.Action);
         }
     }
 }

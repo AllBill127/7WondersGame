@@ -18,7 +18,7 @@ namespace _7WondersGameTests.PlayerTests
                 new OlympiaB(),
                 new BabylonA(),
             };
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
+            List<PlayerState> players = MockHelper.MockPlayers(wonders);
 
             // set Babylon A stage 3 for CopyGuild effect
             players[1].Board.Stage = 3;
@@ -49,7 +49,7 @@ namespace _7WondersGameTests.PlayerTests
                 new OlympiaB(),
                 new BabylonA(),
             };
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonder);
+            List<PlayerState> players = MockHelper.MockPlayers(wonder);
 
             // set Babylon A stage 3 for CopyGuild effect
             players[1].Board.Stage = 3;
@@ -86,7 +86,7 @@ namespace _7WondersGameTests.PlayerTests
                 new OlympiaB(),
                 new BabylonA(),
             };
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonder);
+            List<PlayerState> players = MockHelper.MockPlayers(wonder);
 
             // set Babylon A stage 3 for CopyGuild effect
             players[1].Board.Stage = 3;
@@ -105,9 +105,9 @@ namespace _7WondersGameTests.PlayerTests
         // ===== R4: score candidates with the real CalculateScore() =====
         // Seats: players[1] is Olympia B; its west neighbour is players[0], its east neighbour players[2].
 
-        private static List<Player> OlympiaBWithStage3()
+        private static List<PlayerState> OlympiaBWithStage3()
         {
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
+            List<PlayerState> players = MockHelper.MockPlayers(
                 new List<Wonder> { new GizahA(), new OlympiaB(), new BabylonA() });
             players[1].Board.Stage = 3;
             return players;

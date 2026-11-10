@@ -11,11 +11,11 @@ namespace _7WondersGameTests.PlayerTests
     [TestClass]
     public class LighthouseTests
     {
-        private static Player PlayerWithTwoYellowCards()
+        private static PlayerState PlayerWithTwoYellowCards()
         {
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
+            List<PlayerState> players = MockHelper.MockPlayers(
                 new List<Wonder> { new GizahA(), new BabylonA(), new OlympiaA() });
-            Player player = players[0];
+            PlayerState player = players[0];
             player.PlayedCards.Add(CardsDataset.GameCards[CardId.Marketplace]);
             player.PlayedCards.Add(CardsDataset.GameCards[CardId.Tavern]);
             return player;

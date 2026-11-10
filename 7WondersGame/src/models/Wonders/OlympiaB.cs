@@ -11,7 +11,7 @@ namespace _7WondersGame.src.models.Wonders
         {
         }
 
-        protected override void ApplyStageEffect(Player player, int stage)
+        protected override void ApplyStageEffect(PlayerState player, int stage)
         {
             switch (stage)
             {

@@ -14,7 +14,7 @@ namespace _7WondersGameTests.PlayerTests
             Game testGame = new Game();
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockDeterministicAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // set coins to 0 so its not added to the score
             players[1].Resources[Resource.Coins] = 0;
@@ -29,7 +29,7 @@ namespace _7WondersGameTests.PlayerTests
             int expectedScore = 8;
 
             // Test
-            DeterministicAI p1 = (DeterministicAI)players[1];
+            PlayerState p1 = players[1];
             int score = p1.ScoreAfterPlayingCard(testGame.Era, CardsDataset.GameCards[CardId.Palace]);
 
             // Evaluate
@@ -55,7 +55,7 @@ namespace _7WondersGameTests.PlayerTests
             testGame.Era = 3;
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockDeterministicAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // set coins to 0 so its not added to the score
             players[1].Resources[Resource.Coins] = 0;
@@ -73,7 +73,7 @@ namespace _7WondersGameTests.PlayerTests
             int expectedScore = 10;
 
             // Test
-            DeterministicAI p1 = (DeterministicAI)players[1];
+            PlayerState p1 = players[1];
             int score = p1.ScoreAfterPlayingCard(testGame.Era, CardsDataset.GameCards[CardId.Strategists]);
 
             // Evaluate
@@ -99,7 +99,7 @@ namespace _7WondersGameTests.PlayerTests
             testGame.Era = 3;
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockDeterministicAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // set coins to 0 so its not added to the score
             players[1].Resources[Resource.Coins] = 0;
@@ -114,7 +114,7 @@ namespace _7WondersGameTests.PlayerTests
             int expectedScore = 10;
 
             // Test
-            DeterministicAI p1 = (DeterministicAI)players[1];
+            PlayerState p1 = players[1];
             int score = p1.ScoreAfterPlayingCard(testGame.Era, CardsDataset.GameCards[CardId.Walls]);
 
             // Evaluate

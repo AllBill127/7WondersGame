@@ -15,11 +15,11 @@ namespace _7WondersGameTests.PlayerTests
             { Resource.Wood, Resource.Ore, Resource.Clay, Resource.Stone, Resource.Loom, Resource.Glass, Resource.Papyrus };
 
         /// <summary>Three players, all resources 0. Returns (west, buyer, east); the buyer has the given coins, the others 0.</summary>
-        private static (Player West, Player Buyer, Player East) SetUp(int coins, Wonder? buyerWonder = null)
+        private static (PlayerState West, PlayerState Buyer, PlayerState East) SetUp(int coins, Wonder? buyerWonder = null)
         {
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
+            List<PlayerState> players = MockHelper.MockPlayers(
                 new List<Wonder> { new GizahA(), buyerWonder ?? new GizahA(), new GizahA() });
-            foreach (Player p in players)
+            foreach (PlayerState p in players)
                 p.Resources[Resource.Coins] = 0;
             players[1].Resources[Resource.Coins] = coins;
             return (players[0], players[1], players[2]);
@@ -28,7 +28,7 @@ namespace _7WondersGameTests.PlayerTests
         private static Dictionary<Resource, int> Cost(params (Resource, int)[] parts) =>
             parts.ToDictionary(p => p.Item1, p => p.Item2);
 
-        private static void Build(Player p, params CardId[] cards)
+        private static void Build(PlayerState p, params CardId[] cards)
         {
             foreach (CardId id in cards)
                 p.PlayedCards.Add(CardsDataset.GameCards[id]);
@@ -232,7 +232,7 @@ namespace _7WondersGameTests.PlayerTests
                 Wonder buyerBoard = boards[rng.Next(boards.Length)]();
                 buyerBoard.Stage = rng.Next(0, 3);
                 var (west, buyer, east) = SetUp(coins: rng.Next(0, 9), buyerBoard);
-                foreach (Player p in new[] { west, buyer, east })
+                foreach (PlayerState p in new[] { west, buyer, east })
                 {
                     foreach (Resource r in GoodsList)
                         p.Resources[r] = rng.Next(4) == 0 ? rng.Next(1, 3) : 0;
@@ -265,7 +265,7 @@ namespace _7WondersGameTests.PlayerTests
         /// Tries every choice (including "unused") for every either/or source, then every split of every
         /// purchase between the neighbours. Written from the rules, independently of the planner.
         /// </summary>
-        private static PaymentPlan? BruteForce(Player buyer, Dictionary<Resource, int> cost)
+        private static PaymentPlan? BruteForce(PlayerState buyer, Dictionary<Resource, int> cost)
         {
             int budget = buyer.Resources[Resource.Coins] - cost.GetValueOrDefault(Resource.Coins);
             if (budget < 0)
@@ -288,7 +288,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // every source: (owner 0 = buyer, 1 = west, 2 = east, options)
             var sources = new List<(int Owner, Resource[] Options)>();
-            Player[] owners = { buyer, buyer.PlayerWest, buyer.PlayerEast };
+            PlayerState[] owners = { buyer, buyer.PlayerWest, buyer.PlayerEast };
             for (int o = 0; o < 3; o++)
                 foreach (Card c in owners[o].PlayedCards)
                     if (Options(c.Id, o == 0) is { } opts)

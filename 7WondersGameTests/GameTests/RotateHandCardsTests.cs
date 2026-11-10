@@ -15,7 +15,7 @@ namespace _7WondersGameTests.GameTests
             testGame.Era = 1;
 
             List<Wonder> wonders = MockHelper.MockWonders().GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(wonders);
+            List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
 
             // add some cards

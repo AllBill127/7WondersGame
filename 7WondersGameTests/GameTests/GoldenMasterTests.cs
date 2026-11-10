@@ -18,12 +18,12 @@ namespace _7WondersGameTests.GameTests
         private const ulong RunSeed = 0x60_1D_E4_3A_57E2;
         private const int GamesPerPlayerCount = 40;
 
-        private static readonly Func<int, Player>[] Agents =
+        private static readonly Func<IAgent>[] Agents =
         {
-            id => new DeterministicAI(id),
-            id => new RandomChoiceAI(id),
-            id => new PriorityWonderRandomChoiceAI(id),
-            id => new PriorityStructureRandomChoiceAI(id),
+            () => new DeterministicAI(),
+            () => new RandomChoiceAI(),
+            () => new PriorityRandomChoiceAI(ActionPriority.Wonder),
+            () => new PriorityRandomChoiceAI(ActionPriority.Structure),
         };
 
         private static string MasterPath([CallerFilePath] string thisFile = "") =>
@@ -74,7 +74,7 @@ namespace _7WondersGameTests.GameTests
             var game = new Game(seed)
             {
                 // rotate the line-up so every agent plays every seat
-                Players = Enumerable.Range(0, players).Select(seat => Agents[(k + seat) % Agents.Length](seat)).ToList(),
+                Agents = Enumerable.Range(0, players).Select(seat => Agents[(k + seat) % Agents.Length]()).ToList(),
             };
 
             game.InitGame();
@@ -82,9 +82,9 @@ namespace _7WondersGameTests.GameTests
 
             var lines = new List<string>();
             string prefix = $"p{players} g{k} seed={seed}";
-            foreach (Player p in game.Players)
+            foreach (PlayerState p in game.Players)
             {
-                lines.Add($"{prefix} seat={p.Id} {p.GetType().Name} {p.Board.Id} stage={p.Board.Stage} " +
+                lines.Add($"{prefix} seat={p.Id} {game.Agents[p.Id].Name} {p.Board.Id} stage={p.Board.Stage} " +
                           $"vp={p.VictoryPoints} coins={p.Resources[Resource.Coins]} " +
                           $"military=+{p.VictoryTokens}/-{p.DefeatTokens} " +
                           $"built={string.Join(",", p.PlayedCards.Select(c => c.Id))}");

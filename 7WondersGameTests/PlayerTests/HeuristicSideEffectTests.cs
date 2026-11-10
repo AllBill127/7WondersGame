@@ -14,8 +14,8 @@ namespace _7WondersGameTests.PlayerTests
         [DataRow(CardId.Marketplace)]
         public void ScoreAfterPlayingCard_TradingCard_GivesNoDiscount(CardId id)
         {
-            List<Player> players = MockHelper.MockDeterministicAIPlayers(new List<Wonder> { new HalikarnassosB(), new GizahA(), new GizahA() });
-            Player p = players[0];
+            List<PlayerState> players = MockHelper.MockPlayers(new List<Wonder> { new HalikarnassosB(), new GizahA(), new GizahA() });
+            PlayerState p = players[0];
 
             // in era 2 or 3 a Halikarnassos player can meet an era 1 trading card in the discard pile
             p.ScoreAfterPlayingCard(3, CardsDataset.GameCards[id]);

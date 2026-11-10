@@ -145,7 +145,7 @@ namespace _7WondersGameTests.RulebookTests
             Assert.AreEqual(7 * players - (players + 2), CountEra(3), "Age III without guilds");
 
             // a real game builds its decks for its own player count, whatever count was used before (E7)
-            var game = new Game(1) { Players = Enumerable.Range(0, players).Select(i => (Player)new RandomChoiceAI(i)).ToList() };
+            var game = new Game(1) { Agents = Enumerable.Range(0, players).Select(_ => (IAgent)new RandomChoiceAI()).ToList() };
             game.InitGame();
             for (int era = 0; era < 3; era++)
                 Assert.AreEqual(7 * players, game.Decks[era].Count, $"dealt deck for age {era + 1}");
@@ -167,7 +167,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("Senate",      6)]
         public void CivilianCard_GivesRulebookVP(string name, int vp)
         {
-            Player player = BuildForFree(name);
+            PlayerState player = BuildForFree(name);
             Assert.AreEqual(vp, player.CalculateCivilianScore());
         }
 
@@ -185,7 +185,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("Siege Workshop",  3)]
         public void MilitaryCard_GivesRulebookShields(string name, int shields)
         {
-            Player player = BuildForFree(name);
+            PlayerState player = BuildForFree(name);
             Assert.AreEqual(shields, player.Resources[Resource.Shields]);
         }
 
@@ -204,7 +204,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("Study",       "Gear")]
         public void ScienceCard_GivesRulebookSymbol(string name, string symbol)
         {
-            Player player = BuildForFree(name);
+            PlayerState player = BuildForFree(name);
             Resource expected = Enum.Parse<Resource>(symbol);
             foreach (Resource r in new[] { Resource.Gear, Resource.Compass, Resource.Tablet })
                 Assert.AreEqual(r == expected ? 1 : 0, player.Resources[r], r.ToString());
@@ -224,7 +224,7 @@ namespace _7WondersGameTests.RulebookTests
         [DataRow("Press",       1, "Papyrus", 1)]
         public void SingleResourceCard_ProducesRulebookAmount(string name, int era, string resource, int amount)
         {
-            Player player = BuildForFree(name, era);
+            PlayerState player = BuildForFree(name, era);
             Assert.AreEqual(amount, player.Resources[Enum.Parse<Resource>(resource)]);
         }
 
@@ -253,15 +253,15 @@ namespace _7WondersGameTests.RulebookTests
             return result;
         }
 
-        private static Player BuildForFree(string name, int era = 0)
+        private static PlayerState BuildForFree(string name, int era = 0)
         {
             Card card = era == 0
                 ? CardsDataset.GameCards.Values.Single(c => c.Name == name)
                 : FindCard(name, era);
 
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
+            List<PlayerState> players = MockHelper.MockPlayers(
                 new List<Wonder> { new GizahA(), new BabylonA(), new OlympiaA() });
-            Player player = players[0];
+            PlayerState player = players[0];
 
             Assert.IsTrue(player.BuildStructure(card, new List<Card> { card }, true));
             return player;

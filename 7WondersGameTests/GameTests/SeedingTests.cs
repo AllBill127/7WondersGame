@@ -95,9 +95,9 @@ namespace _7WondersGameTests.GameTests
         private static Game NewGame(ulong seed)
         {
             Game game = new Game(seed);
-            game.Players.Add(new RandomChoiceAI(0));
-            game.Players.Add(new DeterministicAI(1));
-            game.Players.Add(new RandomChoiceAI(2));
+            game.Agents.Add(new RandomChoiceAI());
+            game.Agents.Add(new DeterministicAI());
+            game.Agents.Add(new RandomChoiceAI());
             return game;
         }
 

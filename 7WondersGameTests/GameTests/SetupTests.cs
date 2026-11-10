@@ -29,8 +29,8 @@ namespace _7WondersGameTests.GameTests
 
                 for (int i = 0; i < random.Players.Count; i++)
                 {
-                    Player expected = random.Players[i];
-                    Player actual = fromDataset.Players[i];
+                    PlayerState expected = random.Players[i];
+                    PlayerState actual = fromDataset.Players[i];
 
                     Assert.AreEqual(expected.Board.Id, actual.Board.Id, "wonder");
                     CollectionAssert.AreEquivalent(expected.Resources.ToList(), actual.Resources.ToList(), "resources");
@@ -45,7 +45,7 @@ namespace _7WondersGameTests.GameTests
         {
             Game game = new Game(seed);
             for (int i = 0; i < 3; i++)
-                game.Players.Add(new RandomChoiceAI(i));
+                game.Agents.Add(new RandomChoiceAI());
             return game;
         }
     }

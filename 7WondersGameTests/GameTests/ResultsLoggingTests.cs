@@ -62,8 +62,8 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void ConfigJson_ListsTheAgentsOwnSettings()
         {
-            Assert.AreEqual("{}", new RandomChoiceAI(0).ConfigJson());
-            Assert.AreEqual("{\"C\":2.5,\"Iterations\":100}", new SettingsTestAgent(0) { C = 2.5 }.ConfigJson());
+            Assert.AreEqual("{}", new RandomChoiceAI().ConfigJson());
+            Assert.AreEqual("{\"C\":2.5,\"Iterations\":100}", new SettingsTestAgent { C = 2.5 }.ConfigJson());
         }
 
         [TestMethod]
@@ -127,9 +127,9 @@ namespace _7WondersGameTests.GameTests
         private static Game NewGame(ulong seed)
         {
             Game game = new Game(seed);
-            game.Players.Add(new RandomChoiceAI(0));
-            game.Players.Add(new DeterministicAI(1));
-            game.Players.Add(new RandomChoiceAI(2));
+            game.Agents.Add(new RandomChoiceAI());
+            game.Agents.Add(new DeterministicAI());
+            game.Agents.Add(new RandomChoiceAI());
             return game;
         }
 

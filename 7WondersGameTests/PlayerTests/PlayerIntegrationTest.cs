@@ -14,7 +14,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -30,8 +30,8 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 5;
 
             // Test
-            players[1].PlayableCards = players[1].GetPlayableCards(players[1].HandCards);
-            bool canPlayCard = players[1].PlayableCards.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
+            List<Card> playable1 = players[1].GetPlayableCards(players[1].HandCards);
+            bool canPlayCard = playable1.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
             Assert.IsTrue(canPlayCard);
 
             bool buildSuccess = players[1].BuildStructure(
@@ -58,7 +58,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -75,8 +75,8 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 3;
 
             // Test
-            players[1].PlayableCards = players[1].GetPlayableCards(players[1].HandCards);
-            bool canPlayCard = players[1].PlayableCards.Contains<Card>(CardsDataset.GameCards[CardId.Temple]);
+            List<Card> playable1 = players[1].GetPlayableCards(players[1].HandCards);
+            bool canPlayCard = playable1.Contains<Card>(CardsDataset.GameCards[CardId.Temple]);
             Assert.IsFalse(canPlayCard);
 
             bool buildSuccess = players[1].BuildStructure(
@@ -98,7 +98,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.TreeFarm]);
@@ -122,14 +122,14 @@ namespace _7WondersGameTests.PlayerTests
             int expPlayer2Coins = 3;
 
             // Test
-            players[0].PlayableCards = players[0].GetPlayableCards(players[0].HandCards);
-            bool canPlayCard = players[0].PlayableCards.Contains<Card>(player0Card);
+            List<Card> playable0 = players[0].GetPlayableCards(players[0].HandCards);
+            bool canPlayCard = playable0.Contains<Card>(player0Card);
             Assert.IsTrue(canPlayCard);
-            players[1].PlayableCards = players[1].GetPlayableCards(players[1].HandCards);
-            canPlayCard = players[1].PlayableCards.Contains<Card>(player1Card);
+            List<Card> playable1 = players[1].GetPlayableCards(players[1].HandCards);
+            canPlayCard = playable1.Contains<Card>(player1Card);
             Assert.IsTrue(canPlayCard);
-            players[2].PlayableCards = players[2].GetPlayableCards(players[2].HandCards);
-            canPlayCard = players[2].PlayableCards.Contains<Card>(player2Card);
+            List<Card> playable2 = players[2].GetPlayableCards(players[2].HandCards);
+            canPlayCard = playable2.Contains<Card>(player2Card);
             Assert.IsTrue(canPlayCard);
 
             bool build0Success = players[0].BuildStructure(

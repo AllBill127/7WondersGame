@@ -14,7 +14,7 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
             List<Wonder> selectWonders = allWonders.GetRange(0, 3);
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(selectWonders);
+            List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
@@ -32,12 +32,12 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 3;
 
             // Test
-            players[1].CheckCanBuildWonder();
+            players[1].CanBuildWonder();
             bool canBuildWonder = players[1].BuildWonder(player1Card, players[1].HandCards);
 
             // Evaluate
             Assert.IsTrue(canBuildWonder);
-            Assert.IsFalse(players[1].CanBuildWonder);
+            Assert.IsFalse(players[1].CanBuildWonder());
             // eval hand card change
             bool cardInHand = players[1].HandCards.Contains<Card>(player1Card);
             Assert.IsFalse(cardInHand);

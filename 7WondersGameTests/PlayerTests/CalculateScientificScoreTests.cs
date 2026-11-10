@@ -28,9 +28,9 @@ namespace _7WondersGameTests.PlayerTests
         [DataRow(2, 1, 0, 2, 18)]   // split: one gear, one tablet (old code gave 17)
         public void CalculateScientificScore_PlacesWildcardsBest(int gear, int compass, int tablet, int wildcards, int expected)
         {
-            List<Player> players = MockHelper.MockRandomChoiceAIPlayers(
+            List<PlayerState> players = MockHelper.MockPlayers(
                 new List<Wonder> { new BabylonA(), new GizahA(), new GizahA() });
-            Player player = players[0];
+            PlayerState player = players[0];
             player.Resources[Resource.Gear] = gear;
             player.Resources[Resource.Compass] = compass;
             player.Resources[Resource.Tablet] = tablet;
@@ -47,9 +47,9 @@ namespace _7WondersGameTests.PlayerTests
                 for (int c = 0; c <= 4; c++)
                     for (int t = 0; t <= 4; t++)
                     {
-                        int best1 = new[] { Player.ScienceScore(g + 1, c, t), Player.ScienceScore(g, c + 1, t), Player.ScienceScore(g, c, t + 1) }.Max();
-                        Assert.AreEqual(best1, Player.BestScienceScore(g, c, t, 1), $"{g},{c},{t} k=1");
-                        Assert.IsTrue(Player.BestScienceScore(g, c, t, 2) >= best1, $"{g},{c},{t} k=2 never worse than k=1");
+                        int best1 = new[] { Rules.ScienceScore(g + 1, c, t), Rules.ScienceScore(g, c + 1, t), Rules.ScienceScore(g, c, t + 1) }.Max();
+                        Assert.AreEqual(best1, Rules.BestScienceScore(g, c, t, 1), $"{g},{c},{t} k=1");
+                        Assert.IsTrue(Rules.BestScienceScore(g, c, t, 2) >= best1, $"{g},{c},{t} k=2 never worse than k=1");
                     }
         }
     }
