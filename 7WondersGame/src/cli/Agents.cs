@@ -1,14 +1,13 @@
 ﻿using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
-using _7WondersGame.src.models.MCTS;
 using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.cli
 {
     /// <summary>
     /// One seat's agent as written on the command line: <c>Name[:setting=value...]</c>,
-    /// e.g. <c>MCTSAIv10:c=1.5:iterations=2000</c>. A value may be a range <c>a..b</c> (see <see cref="Sweep"/>).
+    /// e.g. <c>Agent:c=1.5:iterations=2000</c>. A value may be a range <c>a..b</c> (see <see cref="Sweep"/>).
     /// </summary>
     public sealed record AgentSpec(string Name, IReadOnlyList<KeyValuePair<string, string>> Settings)
     {
@@ -64,37 +63,35 @@ namespace _7WondersGame.src.cli
     {
         public sealed record Entry(string Name, Func<int, Player> Create, string Description);
 
-        /// <summary>Short names for the common settings (the full field names work too).</summary>
-        public static readonly IReadOnlyDictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["c"] = "EXPLORATION_WEIGHT",
-            ["cwl"] = "EXPLORATION_WEIGHT_WL",
-            ["iterations"] = "MaxIterations",
-        };
+        /// <summary>
+        /// Short names for settings (the full field names work too). Empty until the configurable MCTS agent
+        /// (fix plan step 6) adds its own.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // MCTS constructors take the exploration constants; the values passed here are the classes' own field defaults.
-        public static readonly IReadOnlyList<Entry> Entries = new List<Entry>
+        private static readonly List<Entry> BuiltIn = new()
         {
             new("DeterministicAI", id => new DeterministicAI(id), "rule-based heuristic (era-specific card scores)"),
-            new("DeterministicAIv2", id => new DeterministicAIv2(id), "copy of DeterministicAI"),
             new("RandomChoiceAI", id => new RandomChoiceAI(id), "random legal move"),
             new("PriorityStructureRandomChoiceAI", id => new PriorityStructureRandomChoiceAI(id), "random, prefers building a card"),
             new("PriorityWonderRandomChoiceAI", id => new PriorityWonderRandomChoiceAI(id), "random, prefers building a wonder stage"),
-            new("MCTSAI_old", id => new MCTSAI_old(id), "first MCTS (see docs/12-mcts-agents.md)"),
-            new("MCTSAIv1", id => new MCTSAIv1(id), "MCTS v1"),
-            new("MCTSAIv2", id => new MCTSAIv2(id), "MCTS v2"),
-            new("MCTSAIv3", id => new MCTSAIv3(id, 50, 1.41), "MCTS v3"),
-            new("MCTSAIv4", id => new MCTSAIv4(id, 50, 1.41), "MCTS v4"),
-            new("MCTSAIv5", id => new MCTSAIv5(id, 50, 1.41), "MCTS v5"),
-            new("MCTSAIv7", id => new MCTSAIv7(id, 136, 5), "MCTS v7"),
-            new("MCTSAIv8", id => new MCTSAIv8(id, 136, 5), "MCTS v8"),
-            new("MCTSAIv9", id => new MCTSAIv9(id, 136, 5), "MCTS v9"),
-            new("MCTSAIv10", id => new MCTSAIv10(id, 136, 5), "MCTS v10 (the current main agent)"),
-            new("MCTSAIv11", id => new MCTSAIv11(id, 136, 5), "MCTS v11"),
-            new("MCTSAIv12", id => new MCTSAIv12(id, 136, 5), "MCTS v12"),
-            new("JMMCTSAIv1", id => new JMMCTSAIv1(id), "joint-move MCTS v1"),
-            new("JMMCTSAIv2", id => new JMMCTSAIv2(id, 50), "joint-move MCTS v2"),
         };
+
+        private static readonly List<Entry> Registered = new();
+
+        /// <summary>Every agent the command line knows: the built-in ones, then any added with <see cref="Register"/>.</summary>
+        public static IReadOnlyList<Entry> Entries
+        {
+            get { lock (Registered) return BuiltIn.Concat(Registered).ToList(); }
+        }
+
+        /// <summary>Adds an agent defined outside this project (the tests use it). A name already known is ignored.</summary>
+        public static void Register(Entry entry)
+        {
+            lock (Registered)
+                if (!BuiltIn.Concat(Registered).Any(e => e.Name.Equals(entry.Name, StringComparison.OrdinalIgnoreCase)))
+                    Registered.Add(entry);
+        }
 
         public static Entry Find(string name) =>
             Entries.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase))

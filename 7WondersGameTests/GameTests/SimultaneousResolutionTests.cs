@@ -61,21 +61,12 @@ namespace _7WondersGameTests.GameTests
         {
             Card lumberYard = CardsDataset.GameCards[CardId.LumberYard];
 
-            // one seat at a time (Loop and the sequential tree): the turn resolves on the last move
+            // one seat at a time: the turn resolves on the last move
             Game game = TradingTurn(seat0Coins: 2, seat1Coins: 0);
             game.Players[2].HandCards.Add(lumberYard);
             game.Submit(0, new Command(ActionType.Build, Stockade));
             game.Submit(1, new Command(ActionType.Build, Baths));
             Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, new Command(ActionType.Build, lumberYard)));
-
-            // joint-move tree
-            game = TradingTurn(seat0Coins: 2, seat1Coins: 0);
-            game.Players[2].HandCards.Add(lumberYard);
-            var joint = new List<Command>
-            {
-                new(ActionType.Build, Stockade), new(ActionType.Build, Baths), new(ActionType.Build, lumberYard),
-            };
-            Assert.ThrowsException<InvalidOperationException>(() => game.SubmitJointMove(joint));
         }
 
         [TestMethod]

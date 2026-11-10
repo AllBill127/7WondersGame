@@ -42,7 +42,7 @@ Logging (all commands): --log <level>, or the {Logging.EnvVar} environment varia
 Exit codes: 0 done, 1 some games failed, 2 bad command line.
 
 Example:
-  {Exe} run --players DeterministicAI,RandomChoiceAI,MCTSAIv10:c=1.5 --games 100 --seed 42 --parallel 4
+  {Exe} run --players DeterministicAI,RandomChoiceAI,RandomChoiceAI --games 100 --seed 42 --parallel 4
 ";
 
         public static readonly string Run = $@"run: play games and append the results to a CSV, one row per player.
@@ -51,9 +51,9 @@ Example:
 
 Required:
   --players <agents>  The agent in each seat, in seat order, comma-separated (3 to 7).
-                      Each one is Name[:setting=value...], e.g. MCTSAIv10:c=1.5:iterations=2000.
-                      Short setting names: c (EXPLORATION_WEIGHT), cwl (EXPLORATION_WEIGHT_WL),
-                      iterations (MaxIterations). '{Exe} agents' lists every agent and setting.
+                      Each one is Name[:setting=value...], e.g. Agent:c=1.5:iterations=2000.
+                      '{Exe} agents' lists every agent and setting. (The heuristic and random
+                      agents have none; the MCTS agent of fix-plan step 6 will.)
                       One setting may be a range a..b (see --steps).
   --games <n>         Number of deals to play (with a range: per value).
   --seed <seed>       Run seed: decimal or 0x hex, or 'random' for a new one (it is printed and saved).
@@ -76,10 +76,8 @@ Optional:
 Examples:
   Heuristic against random, 1000 games, 8 at a time:
     {Exe} run --players DeterministicAI,RandomChoiceAI,RandomChoiceAI --games 1000 --seed 1 --parallel 8
-  MCTS with a fixed C and a smaller budget:
-    {Exe} run --players DeterministicAI,RandomChoiceAI,MCTSAIv10:c=1.5:cwl=1:iterations=2000 --games 100 --seed 42 --parallel 4
-  Sweep C from 0 to 2 in 11 values, 50 deals each (550 games), to its own file:
-    {Exe} run --players DeterministicAI,RandomChoiceAI,MCTSAIv10:c=0..2:cwl=1 --steps 11 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
+  Sweep a setting c from 0 to 2 in 11 values, 50 deals each (550 games), to its own file:
+    {Exe} run --players DeterministicAI,RandomChoiceAI,Agent:c=0..2 --steps 11 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
 ";
 
         public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.

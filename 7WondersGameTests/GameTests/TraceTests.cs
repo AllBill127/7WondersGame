@@ -79,30 +79,6 @@ namespace _7WondersGameTests.GameTests
         }
 
         [TestMethod]
-        public void MctsRollouts_DoNotTrace()
-        {
-            // an MCTS agent plays in a traced game; its searches run on copies, which must stay silent:
-            // one choice line per seat per turn, never more
-            var (logger, sink) = Capture(LogEventLevel.Debug);
-            var mcts = new _7WondersGame.src.models.MCTS.MCTSAIv10(2, 1.5, 1);
-            typeof(_7WondersGame.src.models.MCTS.MCTSAIv10)
-                .GetField("MaxIterations", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .SetValue(mcts, 30);
-            var game = new Game(9)
-            {
-                Players = new List<Player> { new DeterministicAI(0), new RandomChoiceAI(1), mcts },
-                Trace = logger,
-            };
-            game.InitGame();
-            game.Loop(record: true);
-
-            int setupLines = sink.Messages.Count(m => m.StartsWith("Game seed"));
-            int scoreLines = sink.Messages.Count(m => m.Contains(" VP = military"));
-            Assert.AreEqual(1, setupLines, "one setup: rollouts don't trace");
-            Assert.AreEqual(3, scoreLines, "one final score per seat");
-        }
-
-        [TestMethod]
         public void DebugTrace_HasTheMainSteps()
         {
             var (logger, sink) = Capture(LogEventLevel.Debug);

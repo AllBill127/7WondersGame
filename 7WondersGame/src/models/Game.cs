@@ -309,7 +309,7 @@ namespace _7WondersGame.src.models
 
 
         // ============ Turn state machine (E1) ============
-        // The turn rules live here once. Loop and the MCTS trees all go through PendingPlayers and Submit.
+        // The turn rules live here once. Loop and search agents all go through PendingPlayers and Submit.
 
         /// <summary>What the game is waiting for.</summary>
         public Phase Phase { get; private set; } = Phase.ChooseMoves;
@@ -560,8 +560,7 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// Plays the game to the end and scores it.
         /// </summary>
-        /// <param name="record">true for a real game (not an MCTS rollout): keep <see cref="Results"/> and the final
-        /// state (players, cards, discard pile) instead of releasing it.</param>
+        /// <param name="record">true for a real game (not a search rollout): fill <see cref="Results"/>.</param>
         /// <returns>Each seat's final VP.</returns>
         public Dictionary<int, int> Loop(bool record = false)
         {
@@ -599,14 +598,11 @@ namespace _7WondersGame.src.models
             if (Tracing)
                 TraceScores();
 
-            // keep the results before the game memory is released
             if (record)
                 Results = GameResult.ForPlayers(Players);
 
             var scores = new Dictionary<int, int>();
             Players.ForEach(p => scores.Add(p.Id, p.VictoryPoints));
-            if (!record)
-                ReleaseGameMemory();
             return scores;
         }
 
@@ -802,11 +798,8 @@ namespace _7WondersGame.src.models
         }
 
 
-        // ================= MCTS related =================
-        /// <summary>
-        /// Every move a seat may make now. A seat with nothing to decide gets a single Skip, which is what a joint
-        /// move holds for it.
-        /// </summary>
+        // ================= Legal moves (for search agents) =================
+        /// <summary>Every move a seat may make now. A seat with nothing to decide gets a single Skip.</summary>
         public List<Command> LegalMoves(int seat) => Moves(seat, pruned: false);
 
         /// <summary>
@@ -853,63 +846,6 @@ namespace _7WondersGame.src.models
                 moves.Add(new Command(ActionType.Skip, null));
             // the same card twice in a hand gives the same move twice
             return moves.Distinct().ToList();
-        }
-
-        /// <summary>Every combination of the seats' <see cref="LegalMoves"/>, indexed by seat.</summary>
-        public List<List<Command>> JointMoves() => Combinations(LegalMoves);
-
-        /// <summary>Every combination of the seats' <see cref="LegalMovesPruned"/>, indexed by seat.</summary>
-        public List<List<Command>> JointMovesPruned() => Combinations(LegalMovesPruned);
-
-        private List<List<Command>> Combinations(Func<int, List<Command>> movesOf)
-        {
-            List<Command>[] perSeat = Players.Select(p => movesOf(p.Id)).ToArray();
-            var all = new List<List<Command>>();
-            GetAllCombinationsRecursive(perSeat, 0, new List<Command>(), all);
-            return all;
-        }
-
-        /// <summary>A joint move (one per seat): every pending seat's move is submitted; the other seats' are ignored.</summary>
-        public void SubmitJointMove(IReadOnlyList<Command> jointMove)
-        {
-            foreach (int seat in PendingPlayers())
-                Submit(seat, jointMove[seat]);
-        }
-
-
-        private static void GetAllCombinationsRecursive(List<Command>[] arrayOfLists, int currentIndex, List<Command> currentCombination, List<List<Command>> allCombinations)
-        {
-            if (currentIndex == arrayOfLists.Length)
-            {
-                allCombinations.Add(new List<Command>(currentCombination));
-                return;
-            }
-
-            foreach (var command in arrayOfLists[currentIndex])
-            {
-                currentCombination.Add(command);
-                GetAllCombinationsRecursive(arrayOfLists, currentIndex + 1, currentCombination, allCombinations);
-                currentCombination.RemoveAt(currentCombination.Count - 1);
-            }
-        }
-
-        public void ReleaseGameMemory()
-        {
-            foreach (var player in Players)
-            {
-                player.HandCards.Clear();
-                player.PlayableCards.Clear();
-                player.PlayedCards.Clear();
-                player.Resources.Clear();
-                player.PlayerEast = null;
-                player.PlayerWest = null;
-                player.Board = null;
-            }
-            this.Players.Clear();
-            Decks[0].Clear();
-            Decks[0].Clear();
-            Decks[0].Clear();
-            DiscardedCards.Clear();
         }
     }
 }

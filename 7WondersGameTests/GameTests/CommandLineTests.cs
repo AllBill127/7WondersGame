@@ -1,6 +1,5 @@
 ﻿using _7WondersGame.src.cli;
 using _7WondersGame.src.models;
-using _7WondersGame.src.models.MCTS;
 using Serilog.Events;
 
 namespace _7WondersGameTests.GameTests
@@ -11,6 +10,9 @@ namespace _7WondersGameTests.GameTests
     [TestClass]
     public class CommandLineTests
     {
+        [ClassInitialize]
+        public static void RegisterTestAgent(TestContext _) => SettingsTestAgent.Register();
+
         [TestMethod]
         public void NoArguments_MeansHelp()
         {
@@ -48,32 +50,32 @@ namespace _7WondersGameTests.GameTests
         }
 
         [TestMethod]
-        public void AgentSpec_SettingsAndAliases()
+        public void AgentSpec_Settings()
         {
-            List<AgentSpec> specs = AgentSpec.ParseList("DeterministicAI, RandomChoiceAI ,MCTSAIv10:c=1.5:CWL=2:iterations=500");
+            List<AgentSpec> specs = AgentSpec.ParseList("DeterministicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
 
             Assert.AreEqual(3, specs.Count);
-            var mcts = AgentCatalog.Create(specs[2], 2);
-            Assert.IsInstanceOfType(mcts, typeof(MCTSAIv10));
-            Assert.AreEqual(2, mcts.Id);
-            Assert.AreEqual("{\"EXPLORATION_WEIGHT\":1.5,\"EXPLORATION_WEIGHT_WL\":2,\"MaxIterations\":500}", mcts.ConfigJson());
+            var agent = AgentCatalog.Create(specs[2], 2);
+            Assert.IsInstanceOfType(agent, typeof(SettingsTestAgent));
+            Assert.AreEqual(2, agent.Id);
+            Assert.AreEqual("{\"C\":1.5,\"Iterations\":500}", agent.ConfigJson());
         }
 
         [TestMethod]
         public void AgentSpec_Defaults_AreTheClassDefaults()
         {
-            var mcts = AgentCatalog.Create(AgentSpec.Parse("mctsaiv10"), 0);
-            Assert.AreEqual("{\"EXPLORATION_WEIGHT\":136,\"EXPLORATION_WEIGHT_WL\":5,\"MaxIterations\":20000}", mcts.ConfigJson());
+            var agent = AgentCatalog.Create(AgentSpec.Parse("settingstestagent"), 0);
+            Assert.AreEqual("{\"C\":1,\"Iterations\":100}", agent.ConfigJson());
         }
 
         [TestMethod]
         public void AgentSpec_Mistakes_AreUsageErrors()
         {
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("Nobody"), 0));
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("MCTSAIv10:x=1"), 0));
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("MCTSAIv10:c=abc"), 0));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:x=1"), 0));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=abc"), 0));
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("DeterministicAI:c=1"), 0));
-            Assert.ThrowsException<UsageException>(() => AgentSpec.Parse("MCTSAIv10:c"));
+            Assert.ThrowsException<UsageException>(() => AgentSpec.Parse("SettingsTestAgent:c"));
         }
 
         [TestMethod]
@@ -89,7 +91,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void ResultRow_RebuildsTheSameAgent()
         {
-            var original = AgentCatalog.Create(AgentSpec.Parse("MCTSAIv10:c=0.1:cwl=1:iterations=1234"), 2);
+            var original = AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=0.1:iterations=1234"), 2);
             AgentSpec fromRow = AgentCatalog.FromResultRow(original.GetType().Name, original.ConfigJson());
 
             Assert.AreEqual(original.ConfigJson(), AgentCatalog.Create(fromRow, 2).ConfigJson());
@@ -98,13 +100,13 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void Range_GivesASweep()
         {
-            var specs = AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,MCTSAIv10:c=0..2:cwl=1");
+            var specs = AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,SettingsTestAgent:c=0..2:iterations=7");
             Sweep? sweep = AgentCatalog.Validate(specs, 5);
 
             Assert.IsNotNull(sweep);
             Assert.AreEqual(2, sweep.Seat);
             CollectionAssert.AreEqual(new[] { 0, 0.5, 1, 1.5, 2 }, Enumerable.Range(0, 5).Select(sweep.ValueAt).ToArray());
-            StringAssert.Contains(AgentCatalog.Create(specs[2], 2, sweep.ValueAt(3)).ConfigJson(), "\"EXPLORATION_WEIGHT\":1.5");
+            StringAssert.Contains(AgentCatalog.Create(specs[2], 2, sweep.ValueAt(3)).ConfigJson(), "\"C\":1.5");
         }
 
         [TestMethod]
@@ -121,12 +123,12 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void Range_Mistakes_AreUsageErrors()
         {
-            var oneRange = AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,MCTSAIv10:c=0..2");
+            var oneRange = AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,SettingsTestAgent:c=0..2");
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(oneRange, null), "range without --steps");
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(
                 AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,RandomChoiceAI"), 3), "--steps without a range");
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(
-                AgentSpec.ParseList("MCTSAIv10:c=0..1,RandomChoiceAI,MCTSAIv10:c=0..2"), 3), "two ranges");
+                AgentSpec.ParseList("SettingsTestAgent:c=0..1,RandomChoiceAI,SettingsTestAgent:c=0..2"), 3), "two ranges");
         }
 
         [TestMethod]
@@ -153,7 +155,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void ResultsCsv_RowsReadBack()
         {
-            var seat = new SeatResult(1, "MCTSAIv10", "{\"a\":1,\"b\":\"x,y\"}", "Gizah", "B", 50, 3, 1, 0.5);
+            var seat = new SeatResult(1, "SomeAgent", "{\"a\":1,\"b\":\"x,y\"}", "Gizah", "B", 50, 3, 1, 0.5);
             string row = ResultsCsvWriter.FormatRow("run1", 4, 2, 99, seat);
 
             List<string> fields = ResultsCsvWriter.SplitRow(row);

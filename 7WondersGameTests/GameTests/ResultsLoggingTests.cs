@@ -1,5 +1,4 @@
 ﻿using _7WondersGame.src.models;
-using _7WondersGame.src.models.MCTS;
 using _7WondersGame.src.models.Players;
 
 namespace _7WondersGameTests.GameTests
@@ -64,19 +63,17 @@ namespace _7WondersGameTests.GameTests
         public void ConfigJson_ListsTheAgentsOwnSettings()
         {
             Assert.AreEqual("{}", new RandomChoiceAI(0).ConfigJson());
-            Assert.AreEqual(
-                "{\"EXPLORATION_WEIGHT\":1.5,\"EXPLORATION_WEIGHT_WL\":2,\"MaxIterations\":20000}",
-                new MCTSAIv10(0, 1.5, 2).ConfigJson());
+            Assert.AreEqual("{\"C\":2.5,\"Iterations\":100}", new SettingsTestAgent(0) { C = 2.5 }.ConfigJson());
         }
 
         [TestMethod]
         public void FormatRow_QuotesJsonAndUsesInvariantNumbers()
         {
-            var seat = new SeatResult(2, "MCTSAIv10", "{\"c\":1.5,\"n\":2}", "Gizah", "B", 51, 7, 1, 0.5);
+            var seat = new SeatResult(2, "SomeAgent", "{\"c\":1.5,\"n\":2}", "Gizah", "B", 51, 7, 1, 0.5);
 
             string row = ResultsCsvWriter.FormatRow("run1", 4, 1, 18446744073709551615UL, seat);
 
-            Assert.AreEqual("run1,4,1,18446744073709551615,2,MCTSAIv10,\"{\"\"c\"\":1.5,\"\"n\"\":2}\",Gizah,B,51,7,1,0.5", row);
+            Assert.AreEqual("run1,4,1,18446744073709551615,2,SomeAgent,\"{\"\"c\"\":1.5,\"\"n\"\":2}\",Gizah,B,51,7,1,0.5", row);
         }
 
         [TestMethod]
