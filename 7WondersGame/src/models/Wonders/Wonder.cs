@@ -9,57 +9,75 @@ namespace _7WondersGame.src.models.Wonders
         public int Stage { get; set; } = 0;
         public int WonderPoints { get; set; } = 0;
         public Resource Production { get; private set; }
-        public Dictionary<Resource, int> Cost = new Dictionary<Resource, int>()
-        {
-            { Resource.Wood, 0 },
-            { Resource.Stone, 0 },
-            { Resource.Ore, 0 },
-            { Resource.Clay, 0 },
-            { Resource.Glass, 0 },
-            { Resource.Loom, 0 },
-            { Resource.Papyrus, 0 },
-        };
-        public Dictionary<Resource, int> HighestCosts = new Dictionary<Resource, int>()
-        {
-            { Resource.Wood, 0 },
-            { Resource.Stone, 0 },
-            { Resource.Ore, 0 },
-            { Resource.Clay, 0 },
-            { Resource.Glass, 0 },
-            { Resource.Loom, 0 },
-            { Resource.Papyrus, 0 },
-        };
 
-        public Wonder(WonderId id, string name, Resource production, Dictionary<Resource, int> cost, Dictionary<Resource, int> highestCosts)
+        /// <summary>The cost of each stage in building order. Shared by copies and never changed.</summary>
+        private readonly IReadOnlyDictionary<Resource, int>[] stageCosts;
+
+        /// <summary>The most of each raw and manufactured resource that any one stage needs (used by the heuristics).</summary>
+        public IReadOnlyDictionary<Resource, int> HighestCosts { get; }
+
+        protected Wonder(WonderId id, string name, Resource production, params IReadOnlyDictionary<Resource, int>[] stageCosts)
         {
             Id = id;
             Name = name;
             Production = production;
-            foreach (var kvp in cost)
-                Cost[kvp.Key] = kvp.Value;
-            foreach (var kvp in highestCosts)
-                HighestCosts[kvp.Key] = kvp.Value;
+            this.stageCosts = stageCosts;
+
+            var highest = new Dictionary<Resource, int>();
+            for (Resource r = Resource.Wood; r <= Resource.Papyrus; r++)
+                highest[r] = stageCosts.Max(cost => cost.TryGetValue(r, out int n) ? n : 0);
+            HighestCosts = highest;
         }
 
-        public abstract object DeepCopy();
+        /// <summary>A stage cost, written in the order its resources are paid.</summary>
+        protected static IReadOnlyDictionary<Resource, int> Cost(params (Resource Resource, int Amount)[] parts) =>
+            parts.ToDictionary(p => p.Resource, p => p.Amount);
+
+        public int StageCount => stageCosts.Length;
+
+        /// <summary>What the next stage costs, or null when every stage is built.</summary>
+        public IReadOnlyDictionary<Resource, int>? NextStageCost => Stage < stageCosts.Length ? stageCosts[Stage] : null;
+
+        /// <summary>Only the stage counter and points change during a game, so a shallow copy is a full copy.</summary>
+        public object DeepCopy() => MemberwiseClone();
 
         /// <summary>
         /// Checks if a player can build the next stage of a wonder. <br/>
         /// - Calling function is responsible to backup and reset player and his neighbors resource and usedOnDemandResource dictionaries
         /// </summary>
-        /// <param name="player"></param>
-        /// <returns></returns>
-        public abstract bool CanAddStage(Player player);
+        public bool CanAddStage(Player player)
+        {
+            var cost = NextStageCost;
+            if (cost == null)
+                return false;
+            foreach (var (resource, amount) in cost)
+                if (!player.ProduceResource(resource, amount))
+                    return false;
+            return true;
+        }
 
         /// <summary>
         /// Build the next stage of a wonder. <br/>
         /// - Calling function is responsible to backup and reset player and his neighbors resource and usedOnDemandResource dictionaries if unsuccessfull
         /// </summary>
-        /// <param name="player"></param>
         /// <returns>
         /// true if successfull; otherwise false
         /// </returns>
-        public abstract bool AddStage(Player player);
+        public bool AddStage(Player player)
+        {
+            if (!CanAddStage(player))
+                return false;
+            Stage++;
+            ApplyStageEffect(player, Stage);
+            return true;
+        }
+
+        /// <summary>
+        /// The immediate effect of the stage just built (1 = first stage): points, coins, shields or a flag.
+        /// Effects read later from <see cref="Stage"/> (Babylon's science symbol, Alexandria's wildcards,
+        /// Olympia B's guild copy) need nothing here.
+        /// </summary>
+        protected abstract void ApplyStageEffect(Player player, int stage);
     }
 
     public enum WonderId{
