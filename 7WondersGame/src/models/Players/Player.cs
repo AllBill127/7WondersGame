@@ -31,21 +31,6 @@ namespace _7WondersGame.src.models.Players
         public bool ExtraScience = false;
         public bool CanBuildWonder = false;
 
-        // flags used to check multichoice materials only once
-        public Dictionary<string, int> UsedOnDemandResource = new Dictionary<string, int>()
-        {
-            { "UsedTreeFarm", -1},
-            { "UsedForestCave", -1},
-            { "UsedTimberYard", -1},
-            { "UsedExcavation", -1},
-            { "UsedMine", -1 },
-            { "UsedClayPit", -1},
-            { "UsedForum", -1},
-            { "UsedCaravansery", -1},
-            { "UsedRawExtra", -1},
-            { "UsedManufExtra", -1},
-        };
-
         public Dictionary<Resource, int> Resources = new Dictionary<Resource, int>()
         {
             { Resource.Wood, 0 },
@@ -126,89 +111,33 @@ namespace _7WondersGame.src.models.Players
 
         // =========== Build related functions ===========
         // =========== Wonder related ===========
+        /// <summary>Sets and returns <see cref="CanBuildWonder"/>: is there a next stage, and can the player pay for it?</summary>
         public bool CheckCanBuildWonder()
         {
-            Dictionary<Resource, int> resourcesEastBckp = PlayerEast.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesWestBckp = PlayerWest.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesBckp = Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            // check if possible to build wonder stage
-            CanBuildWonder = Board.CanAddStage(this);
-
-            Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            ResetUsed();
-            PlayerEast.ResetUsed();
-            PlayerWest.ResetUsed();
-
-            resourcesBckp.Clear();
-            resourcesEastBckp.Clear();
-            resourcesWestBckp.Clear();
-
+            CanBuildWonder = Board.NextStageCost is { } cost && PlanPayment(cost) != null;
             return CanBuildWonder;
         }
 
         /// <summary>
-        /// Build wonder with a card from a provided cards list.
+        /// Build the next wonder stage with a card from a provided cards list: pay for it, bury the card, apply the stage.
         /// </summary>
-        /// <param name="card"></param>
-        /// <param name="cardsList"></param>
-        /// <returns></returns>
+        /// <returns>true if the stage was built; otherwise false (nothing changes)</returns>
         public bool BuildWonder(Card card, List<Card> cardsList)
         {
-            // Backup resource dicts in case building wonder fails
-            Dictionary<Resource, int> resourcesEastBckp = PlayerEast.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesWestBckp = PlayerWest.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesBckp = Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            if (CanBuildWonder)
+            if (!CanBuildWonder || Board.NextStageCost is not { } cost || PlanPayment(cost) is not { } plan ||
+                !cardsList.Contains(card))
             {
-                bool buildSuccess = Board.AddStage(this);
-                if (buildSuccess)
-                {
-                    int i;
-                    for (i = 0; i < cardsList.Count; i++)
-                    {
-                        if (cardsList[i].Equals(card))
-                            break;
-                    }
-
-                    cardsList.RemoveAt(i);
-
-                    // Reset resources and usedOnDemandResource dict when all resources needed were produced and wonder stage was added successfully
-                    ResetUsed();
-                    PlayerEast.ResetUsed();
-                    PlayerWest.ResetUsed();
-
-                    Trace.Verbose("SUCCESSFULLY built {WonderName} stage {stage} by Player {PlayerId}", Board.Name, Board.Stage, Id);
-                    CanBuildWonder = false;
-                    return true;
-                }
-                else
-                    Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId}\n" +
-                        " -> CanBuildWonder: {CanBuildWonder} but buildStage: {buildSuccess}",
-                        Board.Name, Board.Stage+1, Id, CanBuildWonder, buildSuccess);
+                Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId} (CanBuildWonder: {CanBuildWonder})",
+                    Board.Name, Board.Stage + 1, Id, CanBuildWonder);
+                return false;
             }
-            else
-                Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId}\n" +
-                    " -> CanBuildWonder: {CanBuildWonder}",
-                    Board.Name, Board.Stage+1, Id, CanBuildWonder);
 
-            // Reset usedOnDemandResource dict when adding wonder stage fails
-            Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            ResetUsed();
-            PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerEast.ResetUsed();
-            PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerWest.ResetUsed();
-
-            resourcesBckp.Clear();
-            resourcesEastBckp.Clear();
-            resourcesWestBckp.Clear();
-
-            return false;
+            Pay(plan);
+            cardsList.Remove(card);
+            Board.AddStage(this);
+            Trace.Verbose("SUCCESSFULLY built {WonderName} stage {stage} by Player {PlayerId}", Board.Name, Board.Stage, Id);
+            CanBuildWonder = false;
+            return true;
         }
 
         // =========== Card related ===========
@@ -225,69 +154,17 @@ namespace _7WondersGame.src.models.Players
         public List<Card> GetPlayableCards(List<Card> cardList, bool playAllFree = false)
         {
             List<Card> playableCards = new List<Card>();
-
-            // Backup resources to revert changes after checking if needed resources can be succeffully bought 
-            Dictionary<Resource, int> resourcesEastBckp = PlayerEast.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesWestBckp = PlayerWest.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesBckp = Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-
             foreach (Card card in cardList)
             {
-                bool playable = true;
-
-                // Skip this card if player has already played it
+                // the same card can't be built twice
                 if (HasPlayedCard(card))
                     continue;
 
-                // Check if player can play all cards in list for free flag is on
-                if (!playAllFree)
-                {
-                    // Check if player can chain build this card
-                    if (!CanChainBuildCard(card))
-                    {
-                        IReadOnlyDictionary<Resource, int> resourcesNeeded = card.Cost;
-                        foreach (var resourceKvp in resourcesNeeded)
-                        {
-                            int quantNeeded = resourceKvp.Value;
-                            if (quantNeeded > 0)
-                            {
-                                bool couldProduce = ProduceResource(resourceKvp.Key, quantNeeded);
-                                // If it was not possible to produce/buy, revert changes to resource and onDemandResource dicts and return.
-                                if (!couldProduce)
-                                {
-                                    Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                                    ResetUsed();
-                                    PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                                    PlayerEast.ResetUsed();
-                                    PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                                    PlayerWest.ResetUsed();
-                                    Trace.Verbose("Player {PlayerId} -> CANT BUILD {cardName} -> couldn't produce resources.", Id, card.Name);
-                                    playable = false;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Add card to playable cards list
-                if (playable)
+                if (playAllFree || CanChainBuildCard(card) || PlanPayment(card.Cost) != null)
                     playableCards.Add(card);
-
-                // Reset resource and useOnDemandResource dicts for the next card evaluation
-                Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                ResetUsed();
-                PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                PlayerEast.ResetUsed();
-                PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                PlayerWest.ResetUsed();
+                else
+                    Trace.Verbose("Player {PlayerId} -> CANT BUILD {cardName} -> can't pay for it.", Id, card.Name);
             }
-
-            resourcesBckp.Clear();
-            resourcesEastBckp.Clear();
-            resourcesWestBckp.Clear();
-
-            // Return the playable cards list
             return playableCards;
         }
 
@@ -322,56 +199,21 @@ namespace _7WondersGame.src.models.Players
                 return false;
             }
 
-            // Check if the card can be played for free, otherwise try to produce the resources needed.
+            // Free (chain or a wonder effect), or the cheapest way to pay for its resources.
+            PaymentPlan plan = PaymentPlan.Free;
             if (!free_card)
             {
-                // Check if player can chain build this card
                 if (CanChainBuildCard(card))
                     free_card = true;
+                else if (PlanPayment(card.Cost) is { } cheapest)
+                    plan = cheapest;
                 else
                 {
-                    // Backup resource dicts in case building structure fails
-                    Dictionary<Resource, int> resourcesEastBckp = PlayerEast.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    Dictionary<Resource, int> resourcesWestBckp = PlayerWest.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    Dictionary<Resource, int> resourcesBckp = Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-                    IReadOnlyDictionary<Resource, int> resourcesNeeded = card.Cost;
-                    foreach (var resourceKvp in resourcesNeeded)
-                    {
-                        int quantNeeded = resourceKvp.Value;
-                        if (quantNeeded > 0)
-                        {
-                            bool couldProduce = ProduceResource(resourceKvp.Key, quantNeeded);
-                            // If it was not possible to produce/buy, revert changes to resource and onDemandResource dicts and return.
-                            if (!couldProduce)
-                            {
-                                Trace.Verbose("Player {PlayerId} -> FAILURE -> couldn't produce resources.", Id);
-                                Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                                ResetUsed();
-                                PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                                PlayerEast.ResetUsed();
-                                PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-                                PlayerWest.ResetUsed();
-
-                                resourcesBckp.Clear();
-                                resourcesEastBckp.Clear();
-                                resourcesWestBckp.Clear();
-
-                                return false;
-                            }
-                        }
-                    }
-
-                    // Reset usedOnDemandResource dict when all resources needed were produced
-                    ResetUsed();
-                    PlayerEast.ResetUsed();
-                    PlayerWest.ResetUsed();
-
-                    resourcesBckp.Clear();
-                    resourcesEastBckp.Clear();
-                    resourcesWestBckp.Clear();
+                    Trace.Verbose("Player {PlayerId} -> FAILURE -> can't pay for {CardName}.", Id, card.Name);
+                    return false;
                 }
             }
+            Pay(plan);
 
             // Move played card from card list to players played cards.
             // The card is in the city before its effect applies, so the Lighthouse counts itself.
@@ -415,32 +257,32 @@ namespace _7WondersGame.src.models.Players
                     }
                     else if (cardId == CardId.TreeFarm)
                     {
-                        // wood or clay (won't be applied here, see ProduceResource)
+                        // wood or clay (used when paying, see PaymentPlanner)
                         cost = 1;
                     }
                     else if (cardId == CardId.Excavation)
                     {
-                        // stone or clay (won't be applied here, see ProduceResource)
+                        // stone or clay (used when paying, see PaymentPlanner)
                         cost = 1;
                     }
                     else if (cardId == CardId.ClayPit)
                     {
-                        // clay or ore (won't be applied here, see ProduceResource)
+                        // clay or ore (used when paying, see PaymentPlanner)
                         cost = 1;
                     }
                     else if (cardId == CardId.TimberYard)
                     {
-                        // stone or wood (won't be applied here, see ProduceResource)
+                        // stone or wood (used when paying, see PaymentPlanner)
                         cost = 1;
                     }
                     else if (cardId == CardId.ForestCave)
                     {
-                        // wood or ore (won't be applied here, see ProduceResource)
+                        // wood or ore (used when paying, see PaymentPlanner)
                         cost = 1;
                     }
                     else if (cardId == CardId.Mine)
                     {
-                        // ore or stone (won't be applied here, see ProduceResource)
+                        // ore or stone (used when paying, see PaymentPlanner)
                         cost = 1;
                     }
                     else if (cardId == CardId.Sawmill)
@@ -499,11 +341,11 @@ namespace _7WondersGame.src.models.Players
                     }
                     else if (cardId == CardId.Forum)
                     {
-                        // lomm or glass or papyrus (won't be applied here, see ProduceResource)
+                        // loom or glass or papyrus (used when paying, see PaymentPlanner)
                     }
                     else if (cardId == CardId.Caravansery)
                     {
-                        // clay or stone or ore or wood (won't be applied here, see ProduceResource)
+                        // clay or stone or ore or wood (used when paying, see PaymentPlanner)
                     }
                     else if (cardId == CardId.Vineyard)
                     {
@@ -699,285 +541,16 @@ namespace _7WondersGame.src.models.Players
 
 
         // =========== Resource related ===========
-        // =========== Resource gathering functions ===========
-        /// <summary>
-        /// Try producing a required quantity of some resource. <br/>
-        /// - function calling this method is responsible for reseting used on demand resources and resource maps if neccessery.
-        /// </summary>
-        /// <param name="resource"></param>
-        /// <param name="quant"></param>
-        /// <returns>
-        /// true if able to produce.
-        /// </returns>
-        public bool ProduceResource(Resource resource, int quant)
+        // =========== Paying ===========
+        /// <summary>The cheapest way to pay <paramref name="cost"/>, or null if the player can't (see <see cref="PaymentPlanner"/>).</summary>
+        public PaymentPlan? PlanPayment(IReadOnlyDictionary<Resource, int> cost) => PaymentPlanner.Plan(this, cost);
+
+        /// <summary>Pays the neighbours what the plan says. A card's own coin cost is paid by <see cref="BuildStructure"/>.</summary>
+        public void Pay(PaymentPlan plan)
         {
-            if (quant == 0) return true;
-
-            int missing = quant - GetResourceOnDemand(resource, quant, false);
-            if (missing <= 0)
-            {
-                return true;
-            }
-
-            return BuyMissingRessource(resource, missing);
-        }
-
-        bool AvailableCard(CardId card_id, Resource resource)
-        {
-            foreach (Card card in PlayedCards)
-            {
-                CardId cardId = card.Id;
-                // check if card in question has been played by the player
-                if (card.Id == card_id)
-                {
-                    // check if resource has been chosen already
-                    if (cardId == CardId.TreeFarm && UsedOnDemandResource["UsedTreeFarm"] == -1)
-                    {
-                        UsedOnDemandResource["UsedTreeFarm"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.ForestCave && UsedOnDemandResource["UsedForestCave"] == -1)
-                    {
-                        UsedOnDemandResource["UsedForestCave"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.TimberYard && UsedOnDemandResource["UsedTimberYard"] == -1)
-                    {
-                        UsedOnDemandResource["UsedTimberYard"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.Excavation && UsedOnDemandResource["UsedExcavation"] == -1)
-                    {
-                        UsedOnDemandResource["UsedExcavation"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.Mine && UsedOnDemandResource["UsedMine"] == -1)
-                    {
-                        UsedOnDemandResource["UsedMine"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.ClayPit && UsedOnDemandResource["UsedClayPit"] == -1)
-                    {
-                        UsedOnDemandResource["UsedClayPit"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.Forum && UsedOnDemandResource["UsedForum"] == -1)
-                    {
-                        UsedOnDemandResource["UsedForum"] = (int)resource;
-                        return true;
-                    }
-                    else if (cardId == CardId.Caravansery && UsedOnDemandResource["UsedCaravansery"] == -1)
-                    {
-                        UsedOnDemandResource["UsedCaravansery"] = (int)resource;
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Reset changes to on demand resource flags <br/>
-        /// - called at the end of a turn, after checking if enough resources and after failing to buy resources.
-        /// </summary>
-        void ResetUsed()
-        {
-            UsedOnDemandResource["UsedTreeFarm"] = -1;
-            UsedOnDemandResource["UsedForestCave"] = -1;
-            UsedOnDemandResource["UsedTimberYard"] = -1;
-            UsedOnDemandResource["UsedExcavation"] = -1;
-            UsedOnDemandResource["UsedMine"] = -1;
-            UsedOnDemandResource["UsedClayPit"] = -1;
-            UsedOnDemandResource["UsedForum"] = -1;
-            UsedOnDemandResource["UsedCaravansery"] = -1;
-            UsedOnDemandResource["UsedRawExtra"] = -1;
-            UsedOnDemandResource["UsedManufExtra"] = -1;
-        }
-
-        /// <summary>
-        /// The player chooses one of the 4 raw resources to receive for free from a wonder at each turn (untradable). <br/>
-        /// - called ONCE each turn; part of IncrementOnDemand().
-        /// </summary>
-        /// <param name="resource"></param>
-        /// <returns>
-        /// true if able to choose free resource
-        /// </returns>
-        bool ChooseExtraRaw(Resource resource)
-        {
-            if (resource == Resource.Wood || resource == Resource.Ore ||
-                resource == Resource.Clay || resource == Resource.Stone)
-            {
-                WonderId id = Board.Id;
-                int stage = Board.Stage;
-                if (id == WonderId.AlexandriaA && stage >= 2 ||
-                    id == WonderId.AlexandriaB && stage >= 1)
-                {
-                    if (UsedOnDemandResource["UsedRawExtra"] == -1)
-                    {
-                        UsedOnDemandResource["UsedRawExtra"] = (int)resource;
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// The player chooses one of the 3 manufactured resources to receive for free from a wonder at each turn (untradeable). <br/>
-        /// - called ONCE each turn; part of IncrementOnDemand().
-        /// </summary>
-        /// <param name="resource"></param>
-        /// <returns>
-        /// true if able to choose free resource
-        /// </returns>
-        bool ChooseExtraManuf(Resource resource)
-        {
-            if (resource == Resource.Loom || resource == Resource.Glass || resource == Resource.Papyrus)
-            {
-                if (Board.Id == WonderId.AlexandriaB && Board.Stage >= 2)
-                {
-                    if (UsedOnDemandResource["UsedManufExtra"] == -1)
-                    {
-                        UsedOnDemandResource["UsedManufExtra"] = (int)resource;
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Try gathering needed quantity of resource from players played cards. <br/>
-        /// Chooses resources from available on demand resource cards but no more than required.
-        /// </summary>
-        /// <param name="resource"></param>
-        /// <param name="needed"></param>
-        /// <param name="isNeighbor"></param>
-        /// <returns>
-        /// quantity of produced resource
-        /// </returns>
-        int GetResourceOnDemand(Resource resource, int needed, bool isNeighbor)
-        {
-            // From: https://github.com/dmag-ufsm/Game/blob/master/references/cards.csv
-            // Wood                 -> tree_farm  || forest_cave || timber_yard || caravansery (yellow)
-            // Clay                 -> tree_farm  || excavation  || clay_pit    || caravansery (yellow)
-            // Stone                -> excavation || timber_yard || mine        || caravansery (yellow)
-            // Ore                  -> clay_pit   || forest_cave || mine        || caravansery (yellow)
-            // Glass, Loom, Papyrus -> forum (yellow)
-
-            int curr_resource = Resources[resource];
-
-            // skip further checks if basic resources are enough
-            if (curr_resource >= needed) return needed; // to avoid all the extra checks below if needed
-
-            int missing = needed - curr_resource;
-            // choose resources on demand until missing amount is reached or all options are exhausted
-            if (resource == Resource.Wood)
-            {
-                if (missing > 0 && AvailableCard(CardId.TreeFarm, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.ForestCave, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.TimberYard, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && AvailableCard(CardId.Caravansery, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && ChooseExtraRaw(resource))
-                {
-                    missing--;
-                }
-            }
-            else if (resource == Resource.Clay)
-            {
-                if (missing > 0 && AvailableCard(CardId.TreeFarm, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.Excavation, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.ClayPit, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && AvailableCard(CardId.Caravansery, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && ChooseExtraRaw(resource))
-                {
-                    missing--;
-                }
-            }
-            else if (resource == Resource.Stone)
-            {
-                if (missing > 0 && AvailableCard(CardId.Excavation, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.TimberYard, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.Mine, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && AvailableCard(CardId.Caravansery, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && ChooseExtraRaw(resource))
-                {
-                    missing--;
-                }
-            }
-            else if (resource == Resource.Ore)
-            {
-                if (missing > 0 && AvailableCard(CardId.ClayPit, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.ForestCave, resource))
-                {
-                    missing--;
-                }
-                if (missing > 0 && AvailableCard(CardId.Mine, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && AvailableCard(CardId.Caravansery, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && ChooseExtraRaw(resource))
-                {
-                    missing--;
-                }
-            }
-            else if (resource == Resource.Glass || resource == Resource.Loom || resource == Resource.Papyrus)
-            {
-                if (!isNeighbor && missing > 0 && AvailableCard(CardId.Forum, resource))
-                {
-                    missing--;
-                }
-                if (!isNeighbor && missing > 0 && ChooseExtraManuf(resource))
-                {
-                    missing--;
-                }
-            }
-
-            return needed - missing; // Returns quantity of produced resource.
+            Resources[Resource.Coins] -= plan.Total;
+            PlayerWest.Resources[Resource.Coins] += plan.ToWest;
+            PlayerEast.Resources[Resource.Coins] += plan.ToEast;
         }
 
         /// <summary>
@@ -991,21 +564,8 @@ namespace _7WondersGame.src.models.Players
             if (count >= needed) return needed;
 
             foreach (Card card in PlayedCards)
-            {
-                bool gives = card.Id switch
-                {
-                    CardId.TreeFarm => resource == Resource.Wood || resource == Resource.Clay,
-                    CardId.ForestCave => resource == Resource.Wood || resource == Resource.Ore,
-                    CardId.TimberYard => resource == Resource.Wood || resource == Resource.Stone,
-                    CardId.Excavation => resource == Resource.Clay || resource == Resource.Stone,
-                    CardId.ClayPit => resource == Resource.Clay || resource == Resource.Ore,
-                    CardId.Mine => resource == Resource.Ore || resource == Resource.Stone,
-                    CardId.Caravansery => !isNeighbor && (int)resource <= (int)Resource.Stone,
-                    CardId.Forum => !isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus,
-                    _ => false,
-                };
-                if (gives) count++;
-            }
+                if ((PaymentPlanner.EitherOrMask(card.Id, isNeighbor) & (1 << (int)resource)) != 0)
+                    count++;
             if (!isNeighbor && (int)resource <= (int)Resource.Stone && HasExtraRaw()) count++;
             if (!isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus && HasExtraManuf()) count++;
 
@@ -1013,123 +573,11 @@ namespace _7WondersGame.src.models.Players
         }
 
         /// <summary>Alexandria A stage 2 / B stage 1: one raw resource of the player's choice each turn.</summary>
-        bool HasExtraRaw() =>
+        internal bool HasExtraRaw() =>
             Board.Id == WonderId.AlexandriaA && Board.Stage >= 2 || Board.Id == WonderId.AlexandriaB && Board.Stage >= 1;
 
         /// <summary>Alexandria B stage 2: one manufactured good of the player's choice each turn.</summary>
-        bool HasExtraManuf() => Board.Id == WonderId.AlexandriaB && Board.Stage >= 2;
-
-        // =========== Commerce functions ===========
-        /// <summary>
-        /// Buys quantity needed of a resource from a specific neighbor. <br/>
-        /// Chooses on demand resources available from neighbor.
-        /// </summary>
-        /// <param name="resource"></param>
-        /// <param name="needed"></param>
-        /// <param name="cheap_neighbor"></param>
-        /// <param name="neighbor"></param>
-        /// <returns>
-        /// quantity of resource unable to be bought.
-        /// </returns>
-        int BuyFromNeighbor(Resource resource, int needed, bool cheap_neighbor, Player neighbor)
-        {
-            bool is_raw = (int)resource <= 3 ? true : false; // Raw materials have index <= 3 in Resource enum
-
-            int produced = neighbor.GetResourceOnDemand(resource, needed, true);
-
-            if (produced > 0)
-            {
-                int cost;
-                if (is_raw && (cheap_neighbor || WonderRawCheap))
-                    cost = 1 * produced;
-                else if (!is_raw && ManufCheap)
-                    cost = 1 * produced;
-                else
-                    cost = 2 * produced;
-
-                if (Resources[Resource.Coins] >= cost)
-                {
-                    Resources[Resource.Coins] -= cost;
-                    neighbor.Resources[Resource.Coins] += cost;
-                }
-                else
-                    return needed;
-            }
-
-            return needed - produced;
-        }
-
-        /// <summary>
-        /// Buys x quantity of a certain resource from any neighbor. <br/>
-        /// - this function is a "step" in BuildStructure.
-        /// </summary>
-        /// <param name="resource"></param>
-        /// <param name="needed"></param>
-        /// <returns></returns>
-        bool BuyMissingRessource(Resource resource, int missing)
-        {
-            Dictionary<Resource, int> resourcesEastBckp = PlayerEast.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<string, int> usedResourcesEastBckp = PlayerEast.UsedOnDemandResource.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesWestBckp = PlayerWest.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<string, int> usedResourcesWestBckp = PlayerWest.UsedOnDemandResource.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Dictionary<Resource, int> resourcesBckp = Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            // Player will choose to buy from cheapest neighbor first.
-            if (RawCheapWest)
-            {
-                missing = BuyFromNeighbor(resource, missing, RawCheapWest, PlayerWest);
-                if (missing == 0)
-                {
-                    Trace.Verbose("Player {PlayerId} bought {resource} from west only!", Id, resource);
-                    return true;
-                }
-                else
-                {
-                    missing = BuyFromNeighbor(resource, missing, RawCheapEast, PlayerEast);
-                    if (missing == 0)
-                    {
-                        Trace.Verbose("Player {PlayerId} bought {resource} from east!", Id, resource);
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                missing = BuyFromNeighbor(resource, missing, RawCheapEast, PlayerEast);
-                if (missing == 0)
-                {
-                    Trace.Verbose("Player {PlayerId} bought {resource} from east only!", Id, resource);
-                    return true;
-                }
-                else
-                {
-                    missing = BuyFromNeighbor(resource, missing, RawCheapWest, PlayerWest);
-                    if (missing == 0)
-                    {
-                        Trace.Verbose("Player {PlayerId} bought {resource} from west!", Id, resource);
-                        return true;
-                    }
-                }
-            }
-
-            // If buying enough resources fails, undo resource map changes (coins spent/gained and on demand resource flags changed in Neighbors).
-            PlayerEast.UsedOnDemandResource = usedResourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerWest.UsedOnDemandResource = usedResourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerEast.Resources = resourcesEastBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            PlayerWest.Resources = resourcesWestBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-            Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            usedResourcesEastBckp.Clear();
-            usedResourcesWestBckp.Clear();
-            resourcesBckp.Clear();
-            resourcesEastBckp.Clear();
-            resourcesWestBckp.Clear();
-
-            Trace.Verbose("FAILURE -> Player {PlayerId} couldn't buy enough {resource}.", Id, resource);
-            return false; // Couldn't buy
-        }
-
-
+        internal bool HasExtraManuf() => Board.Id == WonderId.AlexandriaB && Board.Stage >= 2;
 
         // =========== Scoring related ===========
         // =========== Pre scoring related ===========

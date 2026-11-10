@@ -1338,7 +1338,6 @@ namespace _7WondersGame.src.models
                 player.HandCards.Clear();
                 player.PlayableCards.Clear();
                 player.PlayedCards.Clear();
-                player.UsedOnDemandResource.Clear();
                 player.Resources.Clear();
                 player.PlayerEast = null;
                 player.PlayerWest = null;

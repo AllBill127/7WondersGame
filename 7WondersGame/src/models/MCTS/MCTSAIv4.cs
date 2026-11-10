@@ -44,7 +44,6 @@ namespace _7WondersGame.src.models.MCTS
                 CanBuildWonder = this.CanBuildWonder,
 
                 // flags used to check multichoice materials only once
-                UsedOnDemandResource = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                 Resources = this.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             };
 
@@ -305,7 +304,6 @@ namespace _7WondersGame.src.models.MCTS
                         CanBuildWonder = player.CanBuildWonder,
 
                         // flags used to check multichoice materials only once
-                        UsedOnDemandResource = player.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                         Resources = player.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
                     };
                     simGame.Players[player.Id] = simPlayer;

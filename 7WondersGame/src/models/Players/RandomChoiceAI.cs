@@ -35,7 +35,6 @@ namespace _7WondersGame.src.models.Players
                 CanBuildWonder = this.CanBuildWonder,
 
                 // flags used to check multichoice materials only once
-                UsedOnDemandResource = this.UsedOnDemandResource.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                 Resources = this.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             };
 

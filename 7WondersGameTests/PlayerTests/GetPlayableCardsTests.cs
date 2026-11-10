@@ -41,26 +41,6 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expEastPlayerCoins, players[0].Resources[Resource.Coins]);
             Assert.AreEqual(expThisPlayerCoins, players[1].Resources[Resource.Coins]);
             Assert.AreEqual(expWestPlayerCoins, players[2].Resources[Resource.Coins]);
-            // eval usedOnDemandResource reset success
-            Dictionary<string, int> expUsedOnDemandResources = new Dictionary<string, int>()
-                {
-                    { "UsedTreeFarm", -1},
-                    { "UsedForestCave", -1},
-                    { "UsedTimberYard", -1},
-                    { "UsedExcavation", -1},
-                    { "UsedMine", -1 },
-                    { "UsedClayPit", -1},
-                    { "UsedForum", -1},
-                    { "UsedCaravansery", -1},
-                    { "UsedRawExtra", -1},
-                    { "UsedManufExtra", -1},
-            };
-            for (int i = 0; i < players.Count; ++i)
-            {
-                bool isMatch = players[0].UsedOnDemandResource.OrderBy(kvp => kvp.Key)
-                    .SequenceEqual(expUsedOnDemandResources.OrderBy(kvp => kvp.Key));
-                Assert.IsTrue(isMatch);
-            }
         }
 
         [TestMethod]
@@ -95,26 +75,6 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expEastPlayerCoins, players[0].Resources[Resource.Coins]);
             Assert.AreEqual(expThisPlayerCoins, players[1].Resources[Resource.Coins]);
             Assert.AreEqual(expWestPlayerCoins, players[2].Resources[Resource.Coins]);
-            // eval usedOnDemandResource reset success
-            Dictionary<string, int> expUsedOnDemandResources = new Dictionary<string, int>()
-                {
-                    { "UsedTreeFarm", -1},
-                    { "UsedForestCave", -1},
-                    { "UsedTimberYard", -1},
-                    { "UsedExcavation", -1},
-                    { "UsedMine", -1 },
-                    { "UsedClayPit", -1},
-                    { "UsedForum", -1},
-                    { "UsedCaravansery", -1},
-                    { "UsedRawExtra", -1},
-                    { "UsedManufExtra", -1},
-            };
-            for (int i = 0; i < players.Count; ++i)
-            {
-                bool isMatch = players[0].UsedOnDemandResource.OrderBy(kvp => kvp.Key)
-                    .SequenceEqual(expUsedOnDemandResources.OrderBy(kvp => kvp.Key));
-                Assert.IsTrue(isMatch);
-            }
         }
 
         [TestMethod]
@@ -151,26 +111,6 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expEastPlayerCoins, players[0].Resources[Resource.Coins]);
             Assert.AreEqual(expThisPlayerCoins, players[1].Resources[Resource.Coins]);
             Assert.AreEqual(expWestPlayerCoins, players[2].Resources[Resource.Coins]);
-            // eval usedOnDemandResource reset success
-            Dictionary<string, int> expUsedOnDemandResources = new Dictionary<string, int>()
-                {
-                    { "UsedTreeFarm", -1},
-                    { "UsedForestCave", -1},
-                    { "UsedTimberYard", -1},
-                    { "UsedExcavation", -1},
-                    { "UsedMine", -1 },
-                    { "UsedClayPit", -1},
-                    { "UsedForum", -1},
-                    { "UsedCaravansery", -1},
-                    { "UsedRawExtra", -1},
-                    { "UsedManufExtra", -1},
-            };
-            for (int i = 0; i < players.Count; ++i)
-            {
-                bool isMatch = players[0].UsedOnDemandResource.OrderBy(kvp => kvp.Key)
-                    .SequenceEqual(expUsedOnDemandResources.OrderBy(kvp => kvp.Key));
-                Assert.IsTrue(isMatch);
-            }
         }
 
         [TestMethod]
@@ -215,26 +155,6 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expEastPlayerCoins, players[0].Resources[Resource.Coins]);
             Assert.AreEqual(expThisPlayerCoins, players[1].Resources[Resource.Coins]);
             Assert.AreEqual(expWestPlayerCoins, players[2].Resources[Resource.Coins]);
-            // eval usedOnDemandResource reset success
-            Dictionary<string, int> expUsedOnDemandResources = new Dictionary<string, int>()
-                {
-                    { "UsedTreeFarm", -1},
-                    { "UsedForestCave", -1},
-                    { "UsedTimberYard", -1},
-                    { "UsedExcavation", -1},
-                    { "UsedMine", -1 },
-                    { "UsedClayPit", -1},
-                    { "UsedForum", -1},
-                    { "UsedCaravansery", -1},
-                    { "UsedRawExtra", -1},
-                    { "UsedManufExtra", -1},
-            };
-            for (int i = 0; i < players.Count; ++i)
-            {
-                bool isMatch = players[0].UsedOnDemandResource.OrderBy(kvp => kvp.Key)
-                    .SequenceEqual(expUsedOnDemandResources.OrderBy(kvp => kvp.Key));
-                Assert.IsTrue(isMatch);
-            }
         }
 
         [TestMethod]

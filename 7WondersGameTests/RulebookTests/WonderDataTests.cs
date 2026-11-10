@@ -150,8 +150,7 @@ namespace _7WondersGameTests.RulebookTests
                 foreach (Resource r in covered)
                 {
                     SetResources(player, new Dictionary<Resource, int>());
-                    Assert.IsTrue(player.ProduceResource(r, 1), $"wildcard gives {r}");
-                    ResetOnDemand(player);
+                    Assert.AreEqual(PaymentPlan.Free, player.PlanPayment(new Dictionary<Resource, int> { { r, 1 } }), $"wildcard gives {r}");
                 }
             }
 
@@ -194,13 +193,6 @@ namespace _7WondersGameTests.RulebookTests
             foreach (var kvp in amounts)
                 player.Resources[kvp.Key] = kvp.Value;
             player.Resources[Resource.Coins] = 0;
-            ResetOnDemand(player);
-        }
-
-        private static void ResetOnDemand(Player player)
-        {
-            foreach (string key in player.UsedOnDemandResource.Keys.ToList())
-                player.UsedOnDemandResource[key] = -1;
         }
 
         private static Dictionary<Resource, int> ParseCost(string cost)

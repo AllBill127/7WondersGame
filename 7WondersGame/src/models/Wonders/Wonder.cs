@@ -42,30 +42,12 @@ namespace _7WondersGame.src.models.Wonders
         public object DeepCopy() => MemberwiseClone();
 
         /// <summary>
-        /// Checks if a player can build the next stage of a wonder. <br/>
-        /// - Calling function is responsible to backup and reset player and his neighbors resource and usedOnDemandResource dictionaries
+        /// Adds the next stage and applies its effect. The caller has already paid for it (see <see cref="Player.BuildWonder"/>).
         /// </summary>
-        public bool CanAddStage(Player player)
-        {
-            var cost = NextStageCost;
-            if (cost == null)
-                return false;
-            foreach (var (resource, amount) in cost)
-                if (!player.ProduceResource(resource, amount))
-                    return false;
-            return true;
-        }
-
-        /// <summary>
-        /// Build the next stage of a wonder. <br/>
-        /// - Calling function is responsible to backup and reset player and his neighbors resource and usedOnDemandResource dictionaries if unsuccessfull
-        /// </summary>
-        /// <returns>
-        /// true if successfull; otherwise false
-        /// </returns>
+        /// <returns>false if every stage is already built</returns>
         public bool AddStage(Player player)
         {
-            if (!CanAddStage(player))
+            if (Stage >= stageCosts.Length)
                 return false;
             Stage++;
             ApplyStageEffect(player, Stage);
