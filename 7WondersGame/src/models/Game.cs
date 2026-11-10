@@ -618,34 +618,44 @@ namespace _7WondersGame.src.models
             new($"Seat {player.Id} ({player.GetType().Name}) could not {move} {card.Name} on turn {Turn} " +
                 $"(era {Era}, game seed {Seed}).");
 
-        public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList)
+        /// <summary>One player's move on its own (Babylon's 7th card, and everywhere that still goes seat by seat).</summary>
+        public void HandlePlayerCommand(Player player, Command playerCommand, List<Card> cardsList) =>
+            ResolveMoves(new[] { (player, playerCommand, cardsList) });
+
+        /// <summary>
+        /// Carries out moves made at the same time (R5). Every move is checked and priced against the state before any
+        /// of them; then every player pays and places their card; then trade income, discard coins and the effects of
+        /// the cards and wonder stages arrive. Coins received can't be spent in the same turn, and seat order doesn't
+        /// change the result.
+        /// </summary>
+        public void ResolveMoves(IReadOnlyList<(Player Player, Command Command, List<Card> Source)> moves)
         {
-            ActionType command = playerCommand.Action;
-            Card? cardPlayed = playerCommand.Card;
-            TraceSnapshot? before = Tracing ? TraceSnapshot.Of(player) : null;
+            TraceSnapshot[]? before = Tracing ? moves.Select(m => TraceSnapshot.Of(m.Player)).ToArray() : null;
 
-            if (command != ActionType.Skip && cardPlayed != null)
+            var planned = new PlannedMove?[moves.Count];
+            for (int i = 0; i < moves.Count; i++)
             {
-                bool done = command switch
-                {
-                    ActionType.Build => player.BuildStructure(cardPlayed, cardsList, false),
-                    ActionType.BuildFreeOnce => player.BuildHandFree(cardPlayed, cardsList),
-                    ActionType.BuildWonder => player.BuildWonder(cardPlayed, cardsList),
-                    ActionType.Discard => true,
-                    _ => false,
-                };
-                if (!done)
-                    throw MoveFailed(player, command.ToString(), cardPlayed);
-
-                if (command == ActionType.Discard)
-                {
-                    player.Discard(cardPlayed); //Gives player 3 coins.
-                    DiscardedCards.Add(cardPlayed);
-                }
+                var (player, command, source) = moves[i];
+                if (command.Action != ActionType.Skip && command.Card is { } card)
+                    planned[i] = player.PlanMove(command.Action, card, source) ?? throw MoveFailed(player, command.Action.ToString(), card);
             }
 
+            foreach (PlannedMove? move in planned)
+            {
+                if (move == null)
+                    continue;
+                move.Player.Place(move);
+                if (move.Action == ActionType.Discard)
+                    DiscardedCards.Add(move.Card);
+            }
+
+            foreach (PlannedMove? move in planned)
+                if (move != null)
+                    move.Player.Settle(move);
+
             if (before != null)
-                TraceResult(player, command, cardPlayed, before);
+                for (int i = 0; i < moves.Count; i++)
+                    TraceResult(moves[i].Player, planned[i], before[i]);
         }
 
         // ================= Trace (Debug / Verbose) =================
@@ -682,25 +692,29 @@ namespace _7WondersGame.src.models
             Trace.Debug("Seat {Seat} chooses {Action} {Card}", p.Id, c.Action, c.Card?.Name ?? "-");
         }
 
-        /// <summary>What a move changed: coins (own and paid to each neighbour), wonder stage and effect flags.</summary>
-        private void TraceResult(Player p, ActionType command, Card? card, TraceSnapshot before)
+        /// <summary>What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.</summary>
+        private void TraceResult(Player p, PlannedMove? m, TraceSnapshot before)
         {
             TraceSnapshot after = TraceSnapshot.Of(p);
-            string name = card?.Name ?? "";
-            string move = command switch
+            string name = m?.Card.Name ?? "";
+            string move = m == null ? "skips the move" : m.Action switch
             {
-                ActionType.Build => $"builds {name}",
                 ActionType.BuildFreeOnce => $"builds {name} for free (Olympia A)",
                 ActionType.BuildWonder => $"builds wonder stage {after.Stage} using {name}",
                 ActionType.Discard => $"discards {name}",
-                _ => "skips the move",
+                _ => $"builds {name}",
             };
 
             var details = new List<string>();
-            if (after.WestCoins != before.WestCoins)
-                details.Add($"paid {after.WestCoins - before.WestCoins} to seat {p.PlayerWest.Id} (west)");
-            if (after.EastCoins != before.EastCoins)
-                details.Add($"paid {after.EastCoins - before.EastCoins} to seat {p.PlayerEast.Id} (east)");
+            if (m != null)
+            {
+                if (m.Payment.ToWest > 0)
+                    details.Add($"paid {m.Payment.ToWest} to seat {p.PlayerWest.Id} (west)");
+                if (m.Payment.ToEast > 0)
+                    details.Add($"paid {m.Payment.ToEast} to seat {p.PlayerEast.Id} (east)");
+                if (m.CoinCost > 0)
+                    details.Add($"paid {m.CoinCost} to the bank");
+            }
             var gained = after.Flags.Except(before.Flags).ToList();
             var lost = before.Flags.Except(after.Flags).ToList();
             if (gained.Count > 0)
@@ -734,7 +748,7 @@ namespace _7WondersGame.src.models
                     p.CalculateGuildScore(), p.CalculateScientificScore(), p.Resources[Resource.Coins]);
         }
 
-        private sealed record TraceSnapshot(int Coins, int WestCoins, int EastCoins, int Stage, List<string> Flags)
+        private sealed record TraceSnapshot(int Coins, int Stage, List<string> Flags)
         {
             public static TraceSnapshot Of(Player p)
             {
@@ -747,8 +761,7 @@ namespace _7WondersGame.src.models
                 if (p.RawCheapEast) flags.Add(nameof(p.RawCheapEast));
                 if (p.ManufCheap) flags.Add(nameof(p.ManufCheap));
                 if (p.ExtraScience) flags.Add(nameof(p.ExtraScience));
-                return new TraceSnapshot(p.Resources[Resource.Coins], p.PlayerWest.Resources[Resource.Coins],
-                    p.PlayerEast.Resources[Resource.Coins], p.Board.Stage, flags);
+                return new TraceSnapshot(p.Resources[Resource.Coins], p.Board.Stage, flags);
             }
         }
 

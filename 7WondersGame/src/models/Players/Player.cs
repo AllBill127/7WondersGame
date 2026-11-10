@@ -122,23 +122,7 @@ namespace _7WondersGame.src.models.Players
         /// Build the next wonder stage with a card from a provided cards list: pay for it, bury the card, apply the stage.
         /// </summary>
         /// <returns>true if the stage was built; otherwise false (nothing changes)</returns>
-        public bool BuildWonder(Card card, List<Card> cardsList)
-        {
-            if (!CanBuildWonder || Board.NextStageCost is not { } cost || PlanPayment(cost) is not { } plan ||
-                !cardsList.Contains(card))
-            {
-                Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId} (CanBuildWonder: {CanBuildWonder})",
-                    Board.Name, Board.Stage + 1, Id, CanBuildWonder);
-                return false;
-            }
-
-            Pay(plan);
-            cardsList.Remove(card);
-            Board.AddStage(this);
-            Trace.Verbose("SUCCESSFULLY built {WonderName} stage {stage} by Player {PlayerId}", Board.Name, Board.Stage, Id);
-            CanBuildWonder = false;
-            return true;
-        }
+        public bool BuildWonder(Card card, List<Card> cardsList) => Resolve(PlanWonder(card, cardsList));
 
         // =========== Card related ===========
         /// <summary>
@@ -169,72 +153,122 @@ namespace _7WondersGame.src.models.Players
         }
 
         /// <summary>
-        /// Play a card from a provided cards list.
+        /// Play a card from a provided cards list: pay for it (unless <paramref name="free_card"/> or chained), move it
+        /// into the city and apply its effect.
         /// </summary>
-        /// <param name="card"></param>
-        /// <param name="cards"></param>
-        /// <param name="free_card"></param>
-        /// <returns></returns>
-        public bool BuildStructure(Card card, List<Card> cards, bool free_card)
+        /// <returns>true if the card was built; otherwise false (nothing changes)</returns>
+        public bool BuildStructure(Card card, List<Card> cards, bool free_card) =>
+            Resolve(PlanBuild(ActionType.Build, card, cards, free_card));
+
+        // =========== Moves: plan, place, settle (R5) ===========
+        /// <summary>
+        /// Step 1: checks a move against the current state and works out what it costs, changing nothing.
+        /// Null if the rules don't allow it. <paramref name="source"/> is where the card comes from.
+        /// </summary>
+        public PlannedMove? PlanMove(ActionType action, Card card, List<Card> source) => action switch
         {
-            // Returns false if the card has already been played (cannot play the same card twice).
-            if (HasPlayedCard(card))
-            {
-                Trace.Verbose(" -> FAILURE: Card Already played but was an option in cards_playable.");
-                return false;
-            }
+            ActionType.Build => PlanBuild(action, card, source, free: false),
+            // Olympia A stage 2: one free card per era
+            ActionType.BuildFreeOnce => Board.Id == WonderId.OlympiaA && Board.Stage >= 2 && FreeCardOnce
+                ? PlanBuild(action, card, source, free: true) : null,
+            ActionType.BuildWonder => PlanWonder(card, source),
+            ActionType.Discard => source.Contains(card) ? new PlannedMove(this, action, card, source, PaymentPlan.Free, 0) : null,
+            _ => null,
+        };
 
-            // Checks if card is in hand.
-            int i = 0;
-            for (i = 0; i < cards.Count; i++)
-            {
-                if (cards[i].Equals(card))
-                    break;
-            }
+        /// <summary>Step 1 for Halikarnassos: a free build from the discard pile while <see cref="DiscardFree"/> is on.</summary>
+        public PlannedMove? PlanDiscardPileBuild(Card card, List<Card> discardPile)
+        {
+            bool halikarnassos = Board.Id == WonderId.HalikarnassosA && Board.Stage == 2 ||
+                                 Board.Id == WonderId.HalikarnassosB && Board.Stage >= 1;
+            return halikarnassos && DiscardFree && PlanBuild(ActionType.Build, card, discardPile, free: true) is { } move
+                ? move with { FromDiscardPile = true }
+                : null;
+        }
 
-            if (i == cards.Count)
+        private PlannedMove? PlanBuild(ActionType action, Card card, List<Card> source, bool free)
+        {
+            if (HasPlayedCard(card) || !source.Contains(card))
             {
-                // ERROR: Card played was not found in the vector
-                Trace.Verbose(" -> FAILURE: Card not found in vector.");
-                return false;
+                Trace.Verbose("Player {PlayerId} -> FAILURE -> {CardName} is already built or not available.", Id, card.Name);
+                return null;
             }
+            if (free || CanChainBuildCard(card))
+                return new PlannedMove(this, action, card, source, PaymentPlan.Free, 0);
+            if (PlanPayment(card.Cost) is { } plan)
+                return new PlannedMove(this, action, card, source, plan, card.Cost.TryGetValue(Resource.Coins, out int coins) ? coins : 0);
 
-            // Free (chain or a wonder effect), or the cheapest way to pay for its resources.
-            PaymentPlan plan = PaymentPlan.Free;
-            if (!free_card)
-            {
-                if (CanChainBuildCard(card))
-                    free_card = true;
-                else if (PlanPayment(card.Cost) is { } cheapest)
-                    plan = cheapest;
-                else
-                {
-                    Trace.Verbose("Player {PlayerId} -> FAILURE -> can't pay for {CardName}.", Id, card.Name);
-                    return false;
-                }
-            }
-            Pay(plan);
+            Trace.Verbose("Player {PlayerId} -> FAILURE -> can't pay for {CardName}.", Id, card.Name);
+            return null;
+        }
 
-            // Move played card from card list to players played cards.
+        private PlannedMove? PlanWonder(Card card, List<Card> source)
+        {
+            if (CanBuildWonder && Board.NextStageCost is { } cost && PlanPayment(cost) is { } plan && source.Contains(card))
+                return new PlannedMove(this, ActionType.BuildWonder, card, source, plan, 0);
+
+            Trace.Verbose("FAILED to build {WonderName} stage {stage} by Player {PlayerId} (CanBuildWonder: {CanBuildWonder})",
+                Board.Name, Board.Stage + 1, Id, CanBuildWonder);
+            return null;
+        }
+
+        /// <summary>
+        /// Step 2: the player pays their own coins (to the neighbours and the bank) and the card leaves where it came
+        /// from. A built card goes into the city. Nobody receives anything yet.
+        /// </summary>
+        public void Place(PlannedMove move)
+        {
+            Resources[Resource.Coins] -= move.Payment.Total + move.CoinCost;
+            move.Source.Remove(move.Card);
             // The card is in the city before its effect applies, so the Lighthouse counts itself.
             // Sources: https://rules.dized.com/7-wonders/rule/question/19075b63-591e-4e99-8dfc-5fa34b726973,
             //          https://rules.dized.com/7-wonders/rule/symbols/third-age-cards
-            cards.RemoveAt(i);
-            PlayedCards.Add(card);
+            if (move.Action is ActionType.Build or ActionType.BuildFreeOnce)
+                PlayedCards.Add(move.Card);
+        }
 
-            // Apply card effects and calculate Coin costs
-            int cost = ApplyCardEffect_GetCost(card);
+        /// <summary>
+        /// Step 3: the neighbours receive their trade coins and the move takes effect: the card's effect, the wonder
+        /// stage, or 3 coins for a discard. A discarded card goes to the discard pile in <see cref="Game.ResolveMoves"/>.
+        /// </summary>
+        public void Settle(PlannedMove move)
+        {
+            PlayerWest.Resources[Resource.Coins] += move.Payment.ToWest;
+            PlayerEast.Resources[Resource.Coins] += move.Payment.ToEast;
+            switch (move.Action)
+            {
+                case ActionType.Build:
+                case ActionType.BuildFreeOnce:
+                    ApplyCardEffect(move.Card);
+                    // used up: Olympia A's is re-armed at the start of the next era
+                    if (move.Action == ActionType.BuildFreeOnce)
+                        FreeCardOnce = false;
+                    if (move.FromDiscardPile)
+                        DiscardFree = false;
+                    break;
+                case ActionType.BuildWonder:
+                    Board.AddStage(this);
+                    CanBuildWonder = false;
+                    break;
+                case ActionType.Discard:
+                    Resources[Resource.Coins] += 3;
+                    break;
+            }
+        }
 
-            // Pay for the card if necessary
-            if (!free_card) Resources[Resource.Coins] -= cost;
-            Trace.Verbose("Player {PlayerId} -> SUCCESSFULLY -> builds {CardName}", Id, card.Name);
-
+        /// <summary>One player's move on its own (outside a normal turn, and in tests): plan, place, settle.</summary>
+        private bool Resolve(PlannedMove? move)
+        {
+            if (move == null)
+                return false;
+            Place(move);
+            Settle(move);
             return true;
         }
 
-        protected int ApplyCardEffect_GetCost(Card card)
+        /// <summary>A card's effect when it is built: production, coins, shields, science or a trading flag.</summary>
+        protected void ApplyCardEffect(Card card)
         {
-            int cost = 0;
             CardId cardId = card.Id;
             switch (card.Type)
             {
@@ -258,52 +292,42 @@ namespace _7WondersGame.src.models.Players
                     else if (cardId == CardId.TreeFarm)
                     {
                         // wood or clay (used when paying, see PaymentPlanner)
-                        cost = 1;
                     }
                     else if (cardId == CardId.Excavation)
                     {
                         // stone or clay (used when paying, see PaymentPlanner)
-                        cost = 1;
                     }
                     else if (cardId == CardId.ClayPit)
                     {
                         // clay or ore (used when paying, see PaymentPlanner)
-                        cost = 1;
                     }
                     else if (cardId == CardId.TimberYard)
                     {
                         // stone or wood (used when paying, see PaymentPlanner)
-                        cost = 1;
                     }
                     else if (cardId == CardId.ForestCave)
                     {
                         // wood or ore (used when paying, see PaymentPlanner)
-                        cost = 1;
                     }
                     else if (cardId == CardId.Mine)
                     {
                         // ore or stone (used when paying, see PaymentPlanner)
-                        cost = 1;
                     }
                     else if (cardId == CardId.Sawmill)
                     {
                         Resources[Resource.Wood] += 2;
-                        cost = 1;
                     }
                     else if (cardId == CardId.Quarry)
                     {
                         Resources[Resource.Stone] += 2;
-                        cost = 1;
                     }
                     else if (cardId == CardId.Brickyard)
                     {
                         Resources[Resource.Clay] += 2;
-                        cost = 1;
                     }
                     else if (cardId == CardId.Foundry)
                     {
                         Resources[Resource.Ore] += 2;
-                        cost = 1;
                     }
                     break;
 
@@ -428,8 +452,6 @@ namespace _7WondersGame.src.models.Players
                 default:
                     break;
             }
-
-            return cost;
         }
 
         /// <summary>The no-duplicates rule: true if the city already has a card with this name.</summary>
@@ -478,74 +500,31 @@ namespace _7WondersGame.src.models.Players
         /// <summary>
         /// Discard a card from HandCards and gain 3 coins
         /// </summary>
-        /// <param name="card"></param>
         public void Discard(Card card)
         {
-            if (!HandCards.Remove(card))
+            if (!Resolve(PlanMove(ActionType.Discard, card, HandCards)))
                 throw new InvalidOperationException($"Seat {Id} can't discard {card.Name}: it isn't in their hand.");
-            Resources[Resource.Coins] += 3;
         }
 
         // =========== Wonder effect related ===========
         /// <summary>
-        /// If DiscardFree effect is active, builds a card from the discarded cards list passed into the function <br/>
-        /// - caller is responsible to ensure that the card is playable (No duplicate cards played rule)
+        /// If DiscardFree effect is active, builds a card from the discarded cards list passed into the function for free.
         /// </summary>
-        /// <param name="card"></param>
-        /// <param name="discardedCards"></param>
-        /// <returns>
-        /// true if building structure was successfull; otherwise false
-        /// </returns>
-        public bool BuildDiscardFree(Card card, List<Card> discardedCards)
-        {
-            WonderId id = Board.Id;
-            int stage = Board.Stage;
-
-            if (id == WonderId.HalikarnassosA && stage == 2 ||
-                id == WonderId.HalikarnassosB && stage >= 1)
-            {
-                if (DiscardFree && BuildStructure(card, discardedCards, true))
-                {
-                    // the effect is used up
-                    DiscardFree = false;
-                    return true;
-                }
-            }
-            return false;
-        }
+        /// <returns>true if the card was built; otherwise false (nothing changes)</returns>
+        public bool BuildDiscardFree(Card card, List<Card> discardedCards) => Resolve(PlanDiscardPileBuild(card, discardedCards));
 
         /// <summary>
-        /// If FreeCardOnce Olympia A stage 2 effect is active, builds a card from the cards list passed into the function <br/>
-        /// - should work only once per game era
+        /// If FreeCardOnce Olympia A stage 2 effect is active, builds a card from the cards list passed into the function
+        /// for free. Works once per era.
         /// </summary>
-        /// <param name="card"></param>
-        /// <param name="cardList"></param>
-        /// <returns></returns>
-        public bool BuildHandFree(Card card, List<Card> cardList)
-        {
-            WonderId id = Board.Id;
-            int stage = Board.Stage;
-
-            if (id == WonderId.OlympiaA && stage >= 2)
-            {
-                if (FreeCardOnce && BuildStructure(card, cardList, true))
-                {
-                    // used up for this era; re-armed at the start of the next one
-                    FreeCardOnce = false;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-
+        public bool BuildHandFree(Card card, List<Card> cardList) => Resolve(PlanMove(ActionType.BuildFreeOnce, card, cardList));
 
         // =========== Resource related ===========
         // =========== Paying ===========
         /// <summary>The cheapest way to pay <paramref name="cost"/>, or null if the player can't (see <see cref="PaymentPlanner"/>).</summary>
         public PaymentPlan? PlanPayment(IReadOnlyDictionary<Resource, int> cost) => PaymentPlanner.Plan(this, cost);
 
-        /// <summary>Pays the neighbours what the plan says. A card's own coin cost is paid by <see cref="BuildStructure"/>.</summary>
+        /// <summary>Pays the neighbours what the plan says, all at once (a turn pays in <see cref="Place"/> and <see cref="Settle"/>).</summary>
         public void Pay(PaymentPlan plan)
         {
             Resources[Resource.Coins] -= plan.Total;
@@ -1713,7 +1692,7 @@ namespace _7WondersGame.src.models.Players
             {
                 // add before applying the effect, like BuildStructure (the Lighthouse counts itself)
                 this.PlayedCards.Add(card);
-                this.ApplyCardEffect_GetCost(card);
+                this.ApplyCardEffect(card);
             }
 
             // do battle and copy guild
