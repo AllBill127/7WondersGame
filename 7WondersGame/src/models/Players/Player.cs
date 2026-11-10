@@ -1678,7 +1678,8 @@ namespace _7WondersGame.src.models.Players
 
             // backup relevant player data before scoring
             //          Player related:  VictoryTokens, DefeatTokens, ResourcesDict, PlayedCards, VictoryPoints,
-            //          Card related:    ExtraScience,
+            //          Card related:    ExtraScience and the trading flags (a trading post or the Marketplace
+            //                           tried from the discard pile must not give the discount for free)
             //
             int victoryTokensBckp = this.VictoryTokens;
             int defeatTokensBckp = this.DefeatTokens;
@@ -1686,6 +1687,7 @@ namespace _7WondersGame.src.models.Players
             Dictionary<Resource, int> resourcesBckp = this.Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
             List<Card> playedCardsBckp = this.PlayedCards.Select(e => e).ToList();
             bool extraScienceBckp = this.ExtraScience;
+            bool rawCheapEastBckp = this.RawCheapEast, rawCheapWestBckp = this.RawCheapWest, manufCheapBckp = this.ManufCheap;
 
             // play card
             if (card != null)
@@ -1708,6 +1710,9 @@ namespace _7WondersGame.src.models.Players
             this.Resources = resourcesBckp.ToDictionary(entry => entry.Key, entry => entry.Value);
             this.PlayedCards = playedCardsBckp.Select(e => e).ToList();
             this.ExtraScience = extraScienceBckp;
+            this.RawCheapEast = rawCheapEastBckp;
+            this.RawCheapWest = rawCheapWestBckp;
+            this.ManufCheap = manufCheapBckp;
 
             resourcesBckp.Clear();
             playedCardsBckp.Clear();
