@@ -39,21 +39,7 @@ namespace _7WondersGame.src.models.Players
         /// <summary>Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.</summary>
         public bool DiscardFree = false;
 
-        public Dictionary<Resource, int> Resources = new()
-        {
-            { Resource.Wood, 0 },
-            { Resource.Stone, 0 },
-            { Resource.Ore, 0 },
-            { Resource.Clay, 0 },
-            { Resource.Glass, 0 },
-            { Resource.Loom, 0 },
-            { Resource.Papyrus, 0 },
-            { Resource.Gear, 0 },
-            { Resource.Compass, 0 },
-            { Resource.Tablet, 0 },
-            { Resource.Coins, 3 },
-            { Resource.Shields, 0 },
-        };
+        public ResourceCounts Resources = new() { [Resource.Coins] = 3 };
 
         public PlayerState PlayerEast { get; set; } = null!;
         public PlayerState PlayerWest { get; set; } = null!;
@@ -68,7 +54,7 @@ namespace _7WondersGame.src.models.Players
             copy.Board = (Wonder)Board.DeepCopy();
             copy.HandCards = HandCards.ToList();
             copy.PlayedCards = PlayedCards.ToList();
-            copy.Resources = new Dictionary<Resource, int>(Resources);
+            copy.Resources = Resources.Clone();
             return copy;
         }
 
