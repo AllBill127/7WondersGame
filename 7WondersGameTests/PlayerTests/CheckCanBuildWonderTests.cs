@@ -5,7 +5,7 @@ using _7WondersGame.src.models;
 namespace _7WondersGameTests.PlayerTests
 {
     [TestClass]
-    public class CheckCanBuilDWonderTests
+    public class CheckCanBuildWonderTests
     {
 
         [TestMethod]

@@ -67,6 +67,35 @@ namespace _7WondersGameTests.GameTests
         }
 
         [TestMethod]
+        public void ASearchersTrace_SaysWhyItChose_AndChangesNothing()
+        {
+            Game Play(ILogger? trace)
+            {
+                var game = new Game(5)
+                {
+                    Agents = new List<IAgent> { new HeuristicAI(), MctsAgentTests.Mcts(":n=40"), new HeuristicAI() },
+                };
+                if (trace != null)
+                    game.Trace = trace;
+                game.InitGame();
+                game.Loop(record: true);
+                return game;
+            }
+
+            var (logger, sink) = Capture(LogEventLevel.Debug);
+            // the stats column holds search times, which differ between any two runs; the game itself doesn't
+            static string Outcome(Game g) => string.Join(" | ", g.Results!.Select(r => $"{r.VictoryPoints} {r.Coins} {r.Rank}"));
+            Assert.AreEqual(Outcome(Play(null)), Outcome(Play(logger)));
+
+            List<string> notes = sink.Messages.Where(m => m.StartsWith("Seat 1 MctsAgent: ")).ToList();
+            Assert.IsTrue(notes.Count >= 15, string.Join(" / ", notes));
+            StringAssert.Matches(notes[0], new System.Text.RegularExpressions.Regex(
+                @"^Seat 1 MctsAgent: 40 iterations in \d+ ms; \w+ .+ \d+ visits, reward [\d.]+, wins \d+%"));
+            Assert.IsTrue(sink.Messages.Where(m => m.Contains(" iterations in ")).All(m => m.StartsWith("Seat 1 ")),
+                "agents without a note write none");
+        }
+
+        [TestMethod]
         public void DeepCopy_IsSilent()
         {
             var (logger, _) = Capture(LogEventLevel.Verbose);

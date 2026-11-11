@@ -61,12 +61,12 @@ namespace _7WondersGame.src.models
         }
 
         /// <summary>
-        /// Play a card from a provided cards list: pay for it (unless <paramref name="free_card"/> or chained), move it
+        /// Play a card from a provided cards list: pay for it (unless <paramref name="freeCard"/> or chained), move it
         /// into the city and apply its effect.
         /// </summary>
         /// <returns>true if the card was built; otherwise false (nothing changes)</returns>
-        public static bool BuildStructure(this PlayerState p, Card card, List<Card> cards, bool free_card) =>
-            p.Resolve(p.PlanBuild(ActionType.Build, card, cards, free_card));
+        public static bool BuildStructure(this PlayerState p, Card card, List<Card> cards, bool freeCard) =>
+            p.Resolve(p.PlanBuild(ActionType.Build, card, cards, freeCard));
 
         // =========== Moves: plan, place, settle (R5) ===========
         /// <summary>

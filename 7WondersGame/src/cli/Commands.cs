@@ -21,25 +21,31 @@ namespace _7WondersGame.src.cli
 
         public static async Task<int> Run(CliArgs cli, string[] args)
         {
-            cli.AllowOnly("players", "games", "seed", "steps", "parallel", "out", "dataset", "log");
-            List<AgentSpec> specs = ParsePlayers(cli);
-            int games = cli.RequireInt("games", 1);
-            ulong runSeed = ParseRunSeed(cli.Require("seed"));
-            int? steps = cli.GetInt("steps", 2);
-            int parallel = cli.GetInt("parallel", 1) ?? 1;
-            Sweep? sweep = AgentCatalog.Validate(specs, steps);
-            var (level, levelSource) = Logging.Resolve(cli.Get("log"));
+            RunPlan plan = RunPlan.FromCli(cli);
+            List<AgentSpec> specs = plan.Players;
+            Sweep? sweep = plan.Sweep;
+            ulong runSeed = plan.Seed;
+            var (level, levelSource) = Logging.Resolve(plan.Log);
             Logging.Configure(level);
 
-            Filer.SetDataPath(ProgramDir);
-            string? datasetName = cli.Get("dataset");
-            Dictionary<int, List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, games);
+            string? datasetName = plan.Dataset;
+            List<List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, plan.Games);
 
-            string csvPath = Path.GetFullPath(OutputPath(cli.Get("out") ?? "results.csv"));
+            string csvPath = Path.GetFullPath(OutputPath(plan.Out));
             DateTime started = DateTime.UtcNow;
             string runId = RunManifest.NewRunId(started, runSeed);
-            string manifestPath = Path.Combine(Path.GetDirectoryName(csvPath)!, $"{runId}.run.json");
-            int total = games * (sweep?.Steps ?? 1);
+            string runDir = Path.GetDirectoryName(csvPath)!;
+            string manifestPath = Path.Combine(runDir, $"{runId}.run.json");
+            int total = plan.Total;
+
+            // the experiment file goes with the results, so the run can be repeated from them
+            string? experimentCopy = null;
+            if (plan.Experiment != null)
+            {
+                Directory.CreateDirectory(runDir);
+                experimentCopy = Path.Combine(runDir, $"{runId}.experiment.json");
+                File.Copy(plan.Experiment, experimentCopy, overwrite: true);
+            }
 
             var manifest = new RunManifest
             {
@@ -50,11 +56,15 @@ namespace _7WondersGame.src.cli
                 {
                     ["command"] = "run",
                     ["players"] = string.Join(",", specs),
-                    ["games"] = games.ToString(Inv),
+                    ["games"] = plan.Games.ToString(Inv),
                     ["steps"] = sweep?.Steps.ToString(Inv) ?? "",
-                    ["sweep"] = sweep == null ? "" : $"seat {sweep.Seat} {sweep.Setting} from {sweep.From.ToString(Inv)} to {sweep.To.ToString(Inv)}",
-                    ["parallel"] = parallel.ToString(Inv),
+                    ["sweep"] = sweep == null ? "" : $"{sweep.Setting} of {specs[sweep.Seat]} (listed {sweep.Seat + 1}.) from {sweep.From.ToString(Inv)} to {sweep.To.ToString(Inv)}",
+                    ["rotate"] = plan.Rotate ? $"yes ({plan.Rotations} seatings per deal)" : "no",
+                    ["parallel"] = plan.Parallel.ToString(Inv),
                     ["dataset"] = datasetName == null ? "" : ResolveInput(datasetName, ProgramDir),
+                    ["experiment"] = plan.Experiment ?? "",
+                    ["experimentCopy"] = experimentCopy ?? "",
+                    ["description"] = plan.Description ?? "",
                     ["log"] = $"{level} ({levelSource})",
                 },
                 ResultsCsv = csvPath,
@@ -64,31 +74,36 @@ namespace _7WondersGame.src.cli
 
             Log.Information("Run {RunId} | seed {RunSeed} (0x{SeedHex}) | commit {Commit} | log level {Level} ({Source})",
                 runId, runSeed, runSeed.ToString("x16"), manifest.GitCommit, level, levelSource);
+            if (plan.Experiment != null)
+                Log.Information("Experiment: {File}{Description}", plan.Experiment, plan.Description == null ? "" : $" ({plan.Description})");
             Log.Information("Players: {Players}", string.Join(", ", specs));
-            Log.Information("{Total} games{Sweep}, {Parallel} at a time", total,
-                sweep == null ? "" : $" ({games} deals x {sweep.Steps} values of {sweep.Setting})", parallel);
+            Log.Information("{Total} games ({Deals} deals{Rotations}{Sweep}), {Parallel} at a time", total, plan.Games,
+                plan.Rotate ? $" x {plan.Rotations} seatings" : "",
+                sweep == null ? "" : $" x {sweep.Steps} values of {sweep.Setting}", plan.Parallel);
             Log.Information("Results: {Csv}", csvPath);
+            WarnIfClockBudget(specs, sweep, plan.Parallel);
 
             int completed = 0, failed = 0;
             object setupLock = new();
+            var runClock = System.Diagnostics.Stopwatch.StartNew();
             using (var writer = new ResultsCsvWriter(csvPath))
             {
-                Parallel.For(0, total, new ParallelOptions { MaxDegreeOfParallelism = parallel }, i =>
+                Parallel.For(0, total, new ParallelOptions { MaxDegreeOfParallelism = plan.Parallel }, i =>
                 {
-                    // game i always gets the same deal, seed and sweep value, whatever the thread timing;
-                    // every sweep value plays the same deals
-                    int step = i / games;
-                    int deal = i % games;
-                    double? value = sweep?.ValueAt(step);
+                    // game i always gets the same deal, seating, seed and sweep value, whatever the thread timing;
+                    // every sweep value and every seating plays the same deals
+                    GameSlot slot = plan.At(i);
+                    List<AgentSpec> seats = plan.SeatsFor(slot.Rotation);
+                    double? value = slot.Value;
                     ILogger log = Logging.ForGame(i);
 
                     Game game;
                     lock (setupLock)
                     {
-                        List<IAgent> agents = specs.Select(s => AgentCatalog.Create(s, value)).ToList();
-                        game = new Game(Seeding.GameSeed(runSeed, deal)) { Agents = agents, Trace = log };
+                        List<IAgent> agents = seats.Select(s => AgentCatalog.Create(s, value)).ToList();
+                        game = new Game(Seeding.GameSeed(runSeed, slot.Deal)) { Agents = agents, Trace = log };
                         if (deals != null)
-                            game.InitGameNotRandom(deals[deal]);
+                            game.InitGameNotRandom(deals[slot.Deal]);
                         else
                             game.InitGame();
                     }
@@ -97,19 +112,20 @@ namespace _7WondersGame.src.cli
                     try
                     {
                         game.Loop(record: true);
-                        writer.WriteGame(runId, i, deal, game.Seed, game.Results!);
+                        writer.WriteGame(runId, i, slot.Deal, game.Seed, game.Results!);
                         int done = Interlocked.Increment(ref completed);
-                        log.Information("{Done}/{Total} done in {Seconds:0.0}s{Value}: {Summary}", done, total,
-                            watch.Elapsed.TotalSeconds,
+                        TimeSpan elapsed = runClock.Elapsed;
+                        log.Information("{Done}/{Total} done in {Seconds:0.0}s{Value}: {Summary} | run {Elapsed}, about {Left} left",
+                            done, total, watch.Elapsed.TotalSeconds,
                             sweep == null ? "" : $" ({sweep.Setting}={value!.Value.ToString("0.####", Inv)})",
-                            Summary(game.Results!));
+                            Summary(game.Results!), Clock(elapsed), Clock(elapsed / done * (total - done)));
                     }
                     catch (Exception ex)
                     {
                         Interlocked.Increment(ref failed);
-                        string replay = $"replay --players {string.Join(",", specs.Select(s => WithValue(s, value)))} " +
+                        string replay = $"replay --players {string.Join(",", seats.Select(s => WithValue(s, value)))} " +
                                         $"--game-seed 0x{game.Seed:x16}" +
-                                        (datasetName != null ? $" --dataset {datasetName} --deal {deal}" : "");
+                                        (datasetName != null ? $" --dataset {datasetName} --deal {slot.Deal}" : "");
                         log.Error(ex, "Game failed (seed 0x{Seed}). To replay it: {Replay}", game.Seed.ToString("x16"), replay);
                     }
                 });
@@ -120,9 +136,31 @@ namespace _7WondersGame.src.cli
             manifest.GamesFailed = failed;
             manifest.Save(manifestPath);
 
-            Log.Information("Run {RunId} finished: {Completed} games, {Failed} failed. Manifest: {Manifest}",
-                runId, completed, failed, manifestPath);
+            Log.Information("Run {RunId} finished in {Elapsed}: {Completed} games, {Failed} failed. Manifest: {Manifest}",
+                runId, Clock(runClock.Elapsed), completed, failed, manifestPath);
             return failed == 0 ? Ok : GamesFailed;
+        }
+
+        /// <summary>A duration as h:mm:ss.</summary>
+        private static string Clock(TimeSpan t) => $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}";
+
+        /// <summary>
+        /// A time budget makes the results depend on the machine; games run side by side also slow each other down,
+        /// so a searcher gets fewer iterations than it would alone.
+        /// </summary>
+        private static void WarnIfClockBudget(List<AgentSpec> specs, Sweep? sweep, int parallel)
+        {
+            var timed = specs.Select((s, i) => (Spec: s, Seat: i))
+                .Where(x => AgentCatalog.Create(x.Spec, sweep?.Seat == x.Seat ? sweep.ValueAt(0) : null).UsesClock)
+                .Select(x => x.Spec.ToString()).Distinct().ToList();
+            if (timed.Count == 0)
+                return;
+            if (parallel > 1)
+                Log.Warning("{Agents} search for a time, not a number of iterations, and {Parallel} games run at a time: " +
+                            "they slow each other down, so each search gets fewer iterations than alone. For results that " +
+                            "repeat, give an iteration budget (e.g. n=1000) or use --parallel 1.", string.Join(", ", timed), parallel);
+            else
+                Log.Information("{Agents} search for a time: the results depend on this machine.", string.Join(", ", timed));
         }
 
         private static string Summary(IEnumerable<SeatResult> seats) =>
@@ -181,7 +219,7 @@ namespace _7WondersGame.src.cli
             }
             else
             {
-                specs = ParsePlayers(cli);
+                specs = RunPlan.ParsePlayers(cli.Require("players"), "replay");
                 if (specs.Any(s => s.Settings.Any(kv => Sweep.TryParseRange(kv.Value, out _, out _))))
                     throw new UsageException("replay takes single setting values, not ranges a..b.", "replay");
                 gameSeed = cli.GetSeed("game-seed") ?? throw new UsageException(
@@ -192,8 +230,7 @@ namespace _7WondersGame.src.cli
                 throw new UsageException("--dataset and --deal go together.", "replay");
             AgentCatalog.Validate(specs, null);
 
-            Filer.SetDataPath(ProgramDir);
-            Dictionary<int, List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, deal!.Value + 1);
+            List<List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, deal!.Value + 1);
 
             var game = new Game(gameSeed)
             {
@@ -221,6 +258,9 @@ namespace _7WondersGame.src.cli
                     p.First["wonder"] == p.Second.Wonder && p.First["side"] == p.Second.Side);
                 if (same)
                     Log.Information("Same result as recorded in the CSV.");
+                else if (game.Agents.Any(a => a.UsesClock))
+                    Log.Information("The result differs from the CSV row, as expected: an agent searches for a time, " +
+                                    "so its choices depend on how fast the machine was then.");
                 else
                     Log.Warning("The result differs from the CSV row: the code has changed since that run " +
                                 "(its commit is in the run's .run.json), or its dataset file is missing.");
@@ -238,10 +278,9 @@ namespace _7WondersGame.src.cli
             ulong seed = ParseRunSeed(cli.Require("seed"));
             Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
 
-            string outName = cli.Get("out") ?? $"gameDataset_{seats}p_{games}g.txt";
-            Filer.SetDataPath(ProgramDir);
+            string outPath = Path.GetFullPath(Path.Combine(ProgramDir, cli.Get("out") ?? $"gameDataset_{seats}p_{games}g.txt"));
 
-            var gameDatasets = new Dictionary<int, List<int>[]>();
+            var gameDatasets = new List<List<int>[]>();
             for (int i = 0; i < games; ++i)
             {
                 // the same deal 'run --seed <seed>' plays as game i
@@ -255,12 +294,11 @@ namespace _7WondersGame.src.cli
                 for (int era = 0; era < 3; era++)
                     gameData[era].AddRange(game.Decks[era].Select(card => (int)card.Id));
                 gameData[3].AddRange(game.Players.Select(p => (int)p.Board.Id));
-                gameDatasets.Add(i, gameData);
+                gameDatasets.Add(gameData);
             }
 
-            await Filer.WriteGameDatasetToFile(outName, gameDatasets);
-            Log.Information("Wrote {Games} deals for {Seats} players (seed {Seed}) to {File}",
-                games, seats, seed, Path.GetFullPath(Path.Combine(ProgramDir, outName)));
+            await Filer.WriteGameDatasetToFile(outPath, seats, gameDatasets);
+            Log.Information("Wrote {Games} deals for {Seats} players (seed {Seed}) to {File}", games, seats, seed, outPath);
             return Ok;
         }
 
@@ -295,16 +333,8 @@ namespace _7WondersGame.src.cli
 
         // ============ shared ============
 
-        private static List<AgentSpec> ParsePlayers(CliArgs cli)
-        {
-            List<AgentSpec> specs = AgentSpec.ParseList(cli.Require("players"));
-            if (specs.Count is < 3 or > 7)
-                throw new UsageException($"--players lists {specs.Count} agents; a game has 3 to 7 players.", cli.Command);
-            return specs;
-        }
-
         /// <summary>A number, or "random" for a fresh one (it is printed and saved in the manifest).</summary>
-        private static ulong ParseRunSeed(string text)
+        internal static ulong ParseRunSeed(string text)
         {
             if (text.Equals("random", StringComparison.OrdinalIgnoreCase))
                 return BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(8));
@@ -320,17 +350,27 @@ namespace _7WondersGame.src.cli
         private static string ResolveInput(string name, string fallbackDir) =>
             Path.IsPathRooted(name) || File.Exists(name) ? Path.GetFullPath(name) : Path.Combine(fallbackDir, name);
 
-        private static async Task<Dictionary<int, List<int>[]>> LoadDataset(string name, int seats, int dealsNeeded)
+        /// <summary>The deals of a dataset file, checked against the line-up (X8).</summary>
+        private static async Task<List<List<int>[]>> LoadDataset(string name, int seats, int dealsNeeded)
         {
             string path = ResolveInput(name, ProgramDir);
             if (!File.Exists(path))
                 throw new UsageException($"Dataset file not found: {path}");
-            var deals = await Filer.ReadGameDatasetFromFile(path);
+            int players;
+            List<List<int>[]> deals;
+            try
+            {
+                (players, deals) = await Filer.ReadGameDatasetFromFile(path);
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new UsageException(ex.Message);
+            }
+            if (players != seats)
+                throw new UsageException($"{path} deals are for {players} players, but the line-up has {seats}.");
             if (deals.Count < dealsNeeded)
                 throw new UsageException($"{path} has {deals.Count} deals; {dealsNeeded} are needed.");
-            int fileSeats = deals.Values.First()[3].Count;
-            if (fileSeats != seats)
-                throw new UsageException($"{path} deals are for {fileSeats} players, but --players lists {seats}.");
+            Log.Information("Dataset {File}: {Deals} deals for {Players} players, all checked", path, deals.Count, players);
             return deals;
         }
     }

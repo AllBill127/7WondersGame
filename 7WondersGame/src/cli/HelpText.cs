@@ -48,6 +48,7 @@ Example:
         public static readonly string Run = $@"run: play games and append the results to a CSV, one row per player.
 
   {Exe} run --players <agents> --games <n> --seed <seed> [options]
+  {Exe} run --experiment <file.json> [--parallel <n>] [--out <file>] [--log <level>]
 
 Required:
   --players <agents>  The agent in each seat, in seat order, comma-separated (3 to 7).
@@ -64,6 +65,10 @@ Optional:
   --steps <n>         With a range a..b: the number of evenly spaced values, both ends included.
                       Every value plays the same deals, so values are compared on equal games.
                       The value each game used is in the configJson column.
+  --rotate yes|no     yes: play each deal once per rotation of the line-up (as many seatings as
+                      players), so every agent sits in every seat on the same deals and seat
+                      advantage cancels out. Each seat keeps its wonder; the agents move on one
+                      seat per rotation. The games of one deal have the same dealIndex. Default no.
   --parallel <n>      Games played at the same time. Default 1.
   --out <file>        Results CSV. Default results.csv. A relative name goes in the results
                       folder next to the program. Rows are appended to an existing file (it must
@@ -71,7 +76,24 @@ Optional:
                       seed, settings and git commit.
   --dataset <file>    Take the deals from a dataset file ('{Exe} help dataset') instead of the
                       seed: game i uses deal i. Agents' random choices still come from the seed.
+                      The file's first line says its player count, which must match --players.
   --log <level>       {Logging.Levels}. debug traces every game; for one game use 'replay'.
+
+Experiment file (--experiment): a JSON object with the same option names, so the run is
+described by a file that is kept with its results (copied to <runId>.experiment.json next to
+the CSV). players may be a list. A relative dataset name is looked for next to the file
+first. ""description"" is free text for the manifest. Comments are allowed. Only --parallel,
+--out and --log may also be given on the command line (they win over the file).
+  {{
+    ""description"": ""MCTS C sweep against two heuristic players"",
+    ""players"": [""MctsAgent:C=0.3..2"", ""HeuristicAI"", ""HeuristicAI""],
+    ""steps"": 6,
+    ""games"": 50,
+    ""seed"": 7,
+    ""rotate"": true,
+    ""out"": ""c-sweep.csv""
+  }}
+Games played: games x steps (with a range) x players (with rotate).
 
 Examples:
   Heuristic against random, 1000 games, 8 at a time:
@@ -81,6 +103,8 @@ Examples:
     {Exe} run --players MctsAgent:n=1000:Information=PerfectInformation,HeuristicAI,HeuristicAI --games 100 --seed 1 --parallel 8
   Sweep MCTS's C from 0.3 to 2 in 6 values, 50 deals each (300 games), to its own file:
     {Exe} run --players MctsAgent:C=0.3..2,HeuristicAI,HeuristicAI --steps 6 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
+  The same sweep in every seat (900 games), from a file:
+    {Exe} run --experiment experiments/example.json --parallel 8
 ";
 
         public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.
@@ -121,6 +145,10 @@ Examples:
   --games <n>         Number of deals.
   --seed <seed>       Deal i is the deal 'run --seed <seed>' plays as game i.
   --out <file>        Default gameDataset_<seats>p_<games>g.txt in the program folder.
+
+The file starts with 'Players: <seats>'. When a run reads it, the count must match the line-up
+and every deal is checked (deck sizes, card copies for that player count, guilds, wonders).
+A file made before this header existed needs it added as its first line.
 
 Example:
   {Exe} dataset --seats 3 --games 100 --seed 5

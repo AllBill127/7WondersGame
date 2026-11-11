@@ -10,7 +10,7 @@ namespace _7WondersGameTests.GameTests
     [TestClass]
     public class MctsAgentTests
     {
-        private static MctsAgent Mcts(string settings = "") =>
+        internal static MctsAgent Mcts(string settings = "") =>
             (MctsAgent)AgentCatalog.Create(AgentSpec.Parse("MctsAgent" + settings));
 
         private static Game NewGame(ulong seed, params IAgent[] agents)
@@ -132,6 +132,15 @@ namespace _7WondersGameTests.GameTests
             Assert.IsTrue(searches >= 15, game.Results[0].StatsJson);
             Assert.AreEqual(25L * searches, stats.GetProperty("iterations").GetInt64());
             Assert.AreEqual("{}", game.Results[1].StatsJson);
+            Assert.IsTrue(stats.GetProperty("allocatedMb").GetDouble() > 0, "it measures the memory its searches allocate");
+        }
+
+        [TestMethod]
+        public void OnlyATimeBudget_UsesTheClock()
+        {
+            Assert.IsFalse(((IAgent)Mcts(":n=10")).UsesClock);
+            Assert.IsTrue(((IAgent)Mcts(":Budget=Time:TimeMs=5")).UsesClock);
+            Assert.IsFalse(((IAgent)new HeuristicAI()).UsesClock);
         }
 
         /// <summary>A sanity check (a sign error in the tree policy would fail it); strength is measured in experiments.</summary>

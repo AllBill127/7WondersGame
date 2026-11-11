@@ -86,6 +86,31 @@ namespace _7WondersGame.src.cli
 
         public bool Has(string name) => _options.ContainsKey(name);
 
+        /// <summary>The options given, as written (without the dashes).</summary>
+        public IEnumerable<string> Names => _options.Keys;
+
+        /// <summary>These options plus <paramref name="defaults"/> (e.g. from an experiment file); an option given here wins.</summary>
+        public CliArgs WithDefaults(IReadOnlyDictionary<string, string> defaults)
+        {
+            var merged = new Dictionary<string, string>(defaults, StringComparer.OrdinalIgnoreCase);
+            foreach (var (name, value) in _options)
+                merged[name] = value;
+            return new CliArgs(Command, merged, HelpRequested);
+        }
+
+        /// <summary>yes/no (or true/false), or null if not given.</summary>
+        public bool? GetYesNo(string name)
+        {
+            string? text = Get(name);
+            return text?.ToLowerInvariant() switch
+            {
+                null => null,
+                "yes" or "true" => true,
+                "no" or "false" => false,
+                _ => throw new UsageException($"--{name} must be yes or no, not '{text}'.", Command),
+            };
+        }
+
         public string? Get(string name) => _options.TryGetValue(name, out string? v) ? v : null;
 
         public string Require(string name) =>

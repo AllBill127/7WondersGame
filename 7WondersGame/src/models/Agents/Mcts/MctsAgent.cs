@@ -23,14 +23,20 @@ namespace _7WondersGame.src.models.Agents.Mcts
             public long Iterations;
             public double SearchMs;
             public double LongestMs;
+            public long AllocatedBytes;
+            public string? LastNote;
         }
 
         public Command Choose(GameView view)
         {
             List<Command> legal = view.LegalMoves();
             if (legal.Count == 1)
+            {
+                _stats.LastNote = null;
                 return legal[0];
+            }
 
+            long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
             var clock = Stopwatch.StartNew();
             var search = new MctsSearch(Config, view.Seat, view.CopyGame(), view.Known, view.Random);
             Command move = search.Run(clock);
@@ -40,16 +46,28 @@ namespace _7WondersGame.src.models.Agents.Mcts
             _stats.Iterations += search.Iterations;
             _stats.SearchMs += ms;
             _stats.LongestMs = Math.Max(_stats.LongestMs, ms);
+            _stats.AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
+            _stats.LastNote = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"{search.Iterations} iterations in {ms:0} ms; {search.TopMoves(3)}");
             return move;
         }
 
-        /// <summary>Searches made, iterations in all, and search time in milliseconds (in all and the longest).</summary>
+        string? IAgent.LastChoiceNote => _stats.LastNote;
+
+        bool IAgent.UsesClock => Config.Budget == MctsBudget.Time;
+
+        /// <summary>
+        /// Searches made, iterations in all, search time in milliseconds (in all and the longest), and the memory the
+        /// searches allocated in MB (the garbage collector's work grows with it).
+        /// </summary>
         public string StatsJson() => JsonSerializer.Serialize(new
         {
             searches = _stats.Searches,
             iterations = _stats.Iterations,
             searchMs = Math.Round(_stats.SearchMs),
             longestSearchMs = Math.Round(_stats.LongestMs),
+            allocatedMb = Math.Round(_stats.AllocatedBytes / 1048576.0),
         });
     }
 }
