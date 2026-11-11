@@ -8,7 +8,8 @@ namespace _7WondersGame.src.models.Agents
     /// much the player's score would go up if the move were made now and the era then ended (a battle; Olympia B
     /// copies a guild), plus the bonuses in <see cref="HeuristicWeights"/> for what that score can't see yet
     /// (resources a wonder stage lacks, trading discounts, a first science card...).
-    /// One object is one decision: it caches card values. It works on copies, so the player doesn't change.
+    /// One object is one decision: it caches card values. It works on a copy (one, reset before each try), so the
+    /// player doesn't change.
     /// </summary>
     public sealed class HeuristicValues
     {
@@ -16,29 +17,51 @@ namespace _7WondersGame.src.models.Agents
         private readonly int _era;
         private readonly HeuristicWeights _w;
         private readonly int _baseline;
-        private readonly Dictionary<CardId, double> _gains = new();
+        // the gains worked out so far (a decision looks at a handful of cards, so a list beats a dictionary)
+        private CardId[] _gainIds = new CardId[8];
+        private double[] _gains = new double[8];
+        private int _gainCount;
         private HeuristicValues? _next;
+        // the copy each try is made on, reset to the player first
+        private PlayerState? _scratch;
 
         public HeuristicValues(PlayerState player, int era, HeuristicWeights weights)
         {
             _p = player;
             _era = era;
             _w = weights;
-            _baseline = ScoreIfEraEnded(player.Clone());
+            _baseline = ScoreIfEraEnded(Copy());
+        }
+
+        /// <summary>The player as it is now, on the scratch copy.</summary>
+        private PlayerState Copy()
+        {
+            if (_scratch == null)
+                _scratch = _p.Clone();
+            else
+                _scratch.CopyFrom(_p);
+            return _scratch;
         }
 
         /// <summary>What building the card would add, before its price.</summary>
         public double Gain(Card card)
         {
-            if (_gains.TryGetValue(card.Id, out double gain))
-                return gain;
-            PlayerState s = _p.Clone();
+            for (int i = 0; i < _gainCount; i++)
+                if (_gainIds[i] == card.Id)
+                    return _gains[i];
+            PlayerState s = Copy();
             int coins = s.Resources[Resource.Coins];
             // in the city before its effect applies, like a real build (the Lighthouse counts itself)
             s.PlayedCards.Add(card);
             s.ApplyCardEffect(card);
-            gain = ScoreIfEraEnded(s) - _baseline + Bonus(card, s.Resources[Resource.Coins] - coins);
-            _gains[card.Id] = gain;
+            double gain = ScoreIfEraEnded(s) - _baseline + Bonus(card, s.Resources[Resource.Coins] - coins);
+            if (_gainCount == _gains.Length)
+            {
+                Array.Resize(ref _gainIds, _gainCount * 2);
+                Array.Resize(ref _gains, _gainCount * 2);
+            }
+            _gainIds[_gainCount] = card.Id;
+            _gains[_gainCount++] = gain;
             return gain;
         }
 
@@ -48,7 +71,7 @@ namespace _7WondersGame.src.models.Agents
         /// <summary>What building the next wonder stage would add to the score.</summary>
         public double WonderGain()
         {
-            PlayerState s = _p.Clone();
+            PlayerState s = Copy();
             s.Board.AddStage(s);
             return ScoreIfEraEnded(s) - _baseline;
         }
@@ -59,7 +82,7 @@ namespace _7WondersGame.src.models.Agents
         /// <summary>What a discard's 3 coins would add to the score.</summary>
         public double DiscardGain()
         {
-            PlayerState s = _p.Clone();
+            PlayerState s = Copy();
             s.Resources[Resource.Coins] += 3;
             return ScoreIfEraEnded(s) - _baseline;
         }
@@ -90,7 +113,9 @@ namespace _7WondersGame.src.models.Agents
         {
             double bonus = ProductionBonus(card);
 
-            Ability grants = card.Effects.Aggregate(Ability.None, (a, e) => a | e.Grants);
+            Ability grants = Ability.None;
+            for (int i = 0; i < card.Effects.Count; i++)
+                grants |= card.Effects[i].Grants;
             if ((grants & Ability.RawCheapEast) != 0)
                 bonus += TradingPostBonus(_p.PlayerEast);
             if ((grants & Ability.RawCheapWest) != 0)
@@ -113,20 +138,31 @@ namespace _7WondersGame.src.models.Agents
         /// <summary>A resource card: is it a resource the wonder stages still to build lack?</summary>
         private double ProductionBonus(Card card)
         {
-            var goods = new List<Resource>();
-            bool eitherOr = false;
-            foreach (IEffect effect in card.Effects)
+            // the goods the card makes, listed once per effect (no list: this runs for every card a rollout looks at)
+            int count = 0;
+            for (int i = 0; i < card.Effects.Count; i++)
             {
-                if (effect is Gain gain && gain.Resource <= Resource.Papyrus)
-                    goods.Add(gain.Resource);
-                else if (effect is OneOf oneOf)
+                if (card.Effects[i] is Gain gain && gain.Resource <= Resource.Papyrus)
+                    count++;
+                else if (card.Effects[i] is OneOf oneOf)
+                    count += oneOf.Choices.Length;
+            }
+            if (count == 0)
+                return 0;
+            Span<Resource> goods = stackalloc Resource[count];
+            bool eitherOr = false;
+            int n = 0;
+            for (int i = 0; i < card.Effects.Count; i++)
+            {
+                if (card.Effects[i] is Gain gain && gain.Resource <= Resource.Papyrus)
+                    goods[n++] = gain.Resource;
+                else if (card.Effects[i] is OneOf oneOf)
                 {
-                    goods.AddRange(oneOf.Choices);
+                    foreach (Resource r in oneOf.Choices)
+                        goods[n++] = r;
                     eitherOr = true;
                 }
             }
-            if (goods.Count == 0)
-                return 0;
 
             // era 3 has no resource cards (only a Halikarnassos discard-pile build can bring one back)
             double wonderResource = _era switch
@@ -135,17 +171,33 @@ namespace _7WondersGame.src.models.Agents
                 2 => _w.WonderResourceEra2,
                 _ => 0,
             };
-            List<Resource> lacking = goods.Where(r => Need(r) > Available(r)).ToList();
-            if (lacking.Count > 0 && wonderResource != 0)
+            int lacking = 0;
+            bool lackingAllRaw = true, anyGood = false;
+            foreach (Resource r in goods)
+            {
+                if (Need(r) > Available(r))
+                {
+                    lacking++;
+                    lackingAllRaw &= IsRaw(r);
+                }
+                anyGood |= IsGood(r);
+            }
+            if (lacking > 0 && wonderResource != 0)
             {
                 double bonus = wonderResource;
                 if (eitherOr)
-                    bonus += _w.PerUsefulChoice * goods.Count(r => Need(r) > 0);
-                if (lacking.All(IsRaw) && CheapRawTrade())
+                {
+                    int useful = 0;
+                    foreach (Resource r in goods)
+                        if (Need(r) > 0)
+                            useful++;
+                    bonus += _w.PerUsefulChoice * useful;
+                }
+                if (lackingAllRaw && CheapRawTrade())
                     bonus -= _w.CheapRawTradePenalty;
                 return bonus;
             }
-            if (_era == 2 && goods.Any(IsGood) && !GoodsNearby())
+            if (_era == 2 && anyGood && !GoodsNearby())
                 return _w.NoGoodsNearbyEra2;
             return 0;
         }
@@ -190,13 +242,10 @@ namespace _7WondersGame.src.models.Agents
             return GoodsCards(_p) <= _w.FewOwnGoods && theirs >= 1 ? _w.TradeDiscount + _w.TradeDiscountPerCard * theirs : 0;
         }
 
-        private bool GoodsNearby()
-        {
-            foreach (PlayerState q in new[] { _p, _p.PlayerWest, _p.PlayerEast })
-                if (q.Resources[Resource.Loom] + q.Resources[Resource.Glass] + q.Resources[Resource.Papyrus] > 0)
-                    return true;
-            return false;
-        }
+        private bool GoodsNearby() => MakesGoods(_p) || MakesGoods(_p.PlayerWest) || MakesGoods(_p.PlayerEast);
+
+        private static bool MakesGoods(PlayerState q) =>
+            q.Resources[Resource.Loom] + q.Resources[Resource.Glass] + q.Resources[Resource.Papyrus] > 0;
 
         /// <summary>Raw material cards, plus 1 for a board that makes a raw material.</summary>
         private static int RawCards(PlayerState q) => q.AmountOfType(CardType.Materials) + (IsRaw(q.Board.Production) ? 1 : 0);

@@ -165,8 +165,8 @@ namespace _7WondersGame.src.models
         /// <summary>A card's effects when it is built: production, coins, shields, science or an ability (see <see cref="Card.Effects"/>).</summary>
         public static void ApplyCardEffect(this PlayerState p, Card card)
         {
-            foreach (IEffect effect in card.Effects)
-                effect.OnBuild(p);
+            for (int i = 0; i < card.Effects.Count; i++)
+                card.Effects[i].OnBuild(p);
         }
 
         /// <summary>The no-duplicates rule: true if the city already has a card with this name.</summary>
@@ -186,8 +186,10 @@ namespace _7WondersGame.src.models
             if (freeWithId != CardId.None)
             {
                 // Forum is free with either trading post
-                if (freeWithId == CardId.AnyTradingPost && p.PlayedCards.Any(c => c.Id is CardId.EastTradingPost or CardId.WestTradingPost))
-                    return true;
+                if (freeWithId == CardId.AnyTradingPost)
+                    foreach (Card playedCard in p.PlayedCards)
+                        if (playedCard.Id is CardId.EastTradingPost or CardId.WestTradingPost)
+                            return true;
 
                 // General case:
                 foreach (Card playedCard in p.PlayedCards)

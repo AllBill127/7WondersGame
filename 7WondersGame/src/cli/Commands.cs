@@ -8,7 +8,7 @@ using Serilog.Events;
 
 namespace _7WondersGame.src.cli
 {
-    /// <summary>The program's commands: run, replay, dataset, agents. Each returns the exit code.</summary>
+    /// <summary>The program's commands: run, replay, analyze, dataset, agents. Each returns the exit code.</summary>
     public static class Commands
     {
         public const int Ok = 0, GamesFailed = 1, BadUsage = 2;
@@ -60,6 +60,9 @@ namespace _7WondersGame.src.cli
                     ["steps"] = sweep?.Steps.ToString(Inv) ?? "",
                     ["sweep"] = sweep == null ? "" : $"{sweep.Setting} of {specs[sweep.Seat]} (listed {sweep.Seat + 1}.) from {sweep.From.ToString(Inv)} to {sweep.To.ToString(Inv)}",
                     ["rotate"] = plan.Rotate ? $"yes ({plan.Rotations} seatings per deal)" : "no",
+                    // for 'analyze': which row of a game is the swept agent (listed position, moved on by the rotation)
+                    ["rotations"] = plan.Rotations.ToString(Inv),
+                    ["sweepSeat"] = sweep?.Seat.ToString(Inv) ?? "",
                     ["parallel"] = plan.Parallel.ToString(Inv),
                     ["dataset"] = datasetName == null ? "" : ResolveInput(datasetName, ProgramDir),
                     ["experiment"] = plan.Experiment ?? "",
@@ -264,6 +267,90 @@ namespace _7WondersGame.src.cli
                 else
                     Log.Warning("The result differs from the CSV row: the code has changed since that run " +
                                 "(its commit is in the run's .run.json), or its dataset file is missing.");
+            }
+            return Ok;
+        }
+
+        // ============ analyze ============
+
+        public static int Analyze(CliArgs cli)
+        {
+            cli.AllowOnly("from", "run", "by", "vs", "out", "log");
+            Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
+
+            string csv = ResolveInput(cli.Require("from"), ResultsDir);
+            if (!File.Exists(csv))
+                throw new UsageException($"Results file not found: {csv}", "analyze");
+            List<ResultRow> rows = ResultRow.Read(ResultsCsvWriter.ReadRows(csv));
+            List<string> runsInFile = rows.Select(r => r.RunId).Distinct().ToList();
+
+            // several runs in one file may be different experiments, so mixing them is asked for, not assumed
+            string? runOption = cli.Get("run");
+            List<string> runs;
+            if (runOption == null)
+            {
+                if (runsInFile.Count > 1)
+                    throw new UsageException($"{csv} has {runsInFile.Count} runs: {string.Join(", ", runsInFile)}. " +
+                                             "Give --run <runId>[,<runId>...] or --run all.", "analyze");
+                runs = runsInFile;
+            }
+            else if (runOption.Equals("all", StringComparison.OrdinalIgnoreCase))
+                runs = runsInFile;
+            else
+            {
+                runs = runOption.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+                string? missing = runs.FirstOrDefault(r => !runsInFile.Contains(r));
+                if (missing != null)
+                    throw new UsageException($"No run {missing} in {csv}. Runs there: {string.Join(", ", runsInFile)}.", "analyze");
+            }
+            rows = rows.Where(r => runs.Contains(r.RunId)).ToList();
+            if (rows.Count == 0)
+                throw new UsageException($"{csv} has no result rows.", "analyze");
+
+            // the swept agent is its own group even where a value equals an opponent's settings
+            var sweeps = new Dictionary<string, SweptSeat>();
+            foreach (string run in runs)
+            {
+                RunManifest? manifest = RunManifest.Load(Path.Combine(Path.GetDirectoryName(csv)!, $"{run}.run.json"));
+                if (SweptSeat.From(manifest) is SweptSeat swept)
+                    sweeps[run] = swept;
+            }
+            rows = Analysis.MarkSwept(rows, sweeps);
+
+            string byText = cli.Get("by") ?? "player";
+            if (!Enum.TryParse(byText, ignoreCase: true, out GroupBy by) || !Enum.IsDefined(by))
+                throw new UsageException($"--by must be player, agent, seat or wonder, not '{byText}'.", "analyze");
+
+            List<GroupStats> groups = Analysis.Groups(rows, by);
+            int? vs = cli.GetInt("vs", 1, groups.Count);
+            // all pairs of many groups (e.g. 14 wonders: 91 pairs) is a long list where some differ by chance alone
+            bool allPairs = vs != null || groups.Count <= Analysis.MaxAllPairsGroups;
+            List<PairStats> pairs = allPairs ? Analysis.Pairs(rows, by, groups, vs) : new();
+
+            int games = rows.Select(r => (r.RunId, r.GameIndex)).Distinct().Count();
+            int deals = rows.Select(r => r.Seed).Distinct().Count();
+            Console.WriteLine($"{csv}: {games} games on {deals} deals, run{(runs.Count == 1 ? "" : "s")} " +
+                              $"{string.Join(", ", runs)}, grouped by {by.ToString().ToLowerInvariant()}");
+            Console.WriteLine();
+            Console.WriteLine(Analysis.GroupsTable(groups));
+            if (pairs.Count > 0)
+            {
+                Console.WriteLine("Paired differences on the same deals (A - B; VP, and win share where a win counts 1):");
+                Console.WriteLine(Analysis.PairsTable(pairs));
+            }
+            else if (!allPairs)
+                Console.WriteLine($"{groups.Count} groups: give --vs <n> for paired differences against group n.");
+            else if (groups.Count > 1)
+                Console.WriteLine("No two groups played the same deals, so there are no paired differences.");
+
+            if (cli.Get("out") is string outName)
+            {
+                string outPath = Path.IsPathRooted(outName) ? outName : Path.Combine(Path.GetDirectoryName(csv)!, outName);
+                string pairsPath = Path.Combine(Path.GetDirectoryName(outPath)!, Path.GetFileNameWithoutExtension(outPath) + ".pairs.csv");
+                Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+                File.WriteAllLines(outPath, Analysis.GroupsCsv(groups));
+                File.WriteAllLines(pairsPath, Analysis.PairsCsv(pairs));
+                Console.WriteLine($"Wrote {outPath} and {pairsPath}");
             }
             return Ok;
         }
