@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Text.Json;
 using _7WondersGame.src.models.Agents;
+using _7WondersGame.src.models.Agents.Mcts;
 
 namespace _7WondersGame.src.cli
 {
@@ -62,14 +63,16 @@ namespace _7WondersGame.src.cli
     {
         public sealed record Entry(string Name, Func<IAgent> Create, string Description);
 
-        /// <summary>
-        /// Short names for settings (the full field names work too). Empty until the configurable MCTS agent
-        /// (fix plan step 6) adds its own.
-        /// </summary>
-        public static readonly IReadOnlyDictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>Short names for settings (the full names work too, in any case).</summary>
+        public static readonly IReadOnlyDictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "n", nameof(MctsConfig.Iterations) },
+            { "eps", nameof(MctsConfig.Epsilon) },
+        };
 
         private static readonly List<Entry> BuiltIn = new()
         {
+            new("MctsAgent", () => new MctsAgent(), "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAI rollouts); 3-4 players"),
             new("HeuristicAI", () => new HeuristicAI(), "values every move (card worth, price, wonder, denial); settings are its weights"),
             new("DeterministicAI", () => new DeterministicAI(), "the old rule-based heuristic (era-specific card scores), kept as a baseline"),
             new("RandomChoiceAI", () => new RandomChoiceAI(), "random legal move"),

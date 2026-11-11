@@ -51,9 +51,9 @@ Example:
 
 Required:
   --players <agents>  The agent in each seat, in seat order, comma-separated (3 to 7).
-                      Each one is Name[:setting=value...], e.g. Agent:c=1.5:iterations=2000.
-                      '{Exe} agents' lists every agent and setting. (The heuristic and random
-                      agents have none; the MCTS agent of fix-plan step 6 will.)
+                      Each one is Name[:setting=value...], e.g. MctsAgent:C=1.2:Iterations=2000
+                      (setting names in any case; n = Iterations, eps = Epsilon).
+                      '{Exe} agents' lists every agent and setting. MctsAgent: 3-4 players.
                       One setting may be a range a..b (see --steps).
   --games <n>         Number of deals to play (with a range: per value).
   --seed <seed>       Run seed: decimal or 0x hex, or 'random' for a new one (it is printed and saved).
@@ -76,8 +76,11 @@ Optional:
 Examples:
   Heuristic against random, 1000 games, 8 at a time:
     {Exe} run --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --games 1000 --seed 1 --parallel 8
-  Sweep a setting c from 0 to 2 in 11 values, 50 deals each (550 games), to its own file:
-    {Exe} run --players HeuristicAI,RandomChoiceAI,Agent:c=0..2 --steps 11 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
+  MCTS against two heuristic players, then the cheating (perfect information) version:
+    {Exe} run --players MctsAgent:n=1000,HeuristicAI,HeuristicAI --games 100 --seed 1 --parallel 8
+    {Exe} run --players MctsAgent:n=1000:Information=PerfectInformation,HeuristicAI,HeuristicAI --games 100 --seed 1 --parallel 8
+  Sweep MCTS's C from 0.3 to 2 in 6 values, 50 deals each (300 games), to its own file:
+    {Exe} run --players MctsAgent:C=0.3..2,HeuristicAI,HeuristicAI --steps 6 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
 ";
 
         public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.
