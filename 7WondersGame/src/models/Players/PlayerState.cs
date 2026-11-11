@@ -58,6 +58,35 @@ namespace _7WondersGame.src.models.Players
             return copy;
         }
 
+        /// <summary>
+        /// Makes this player a copy of <paramref name="source"/> again (as <see cref="Clone"/> would), reusing its own
+        /// lists and counts: for a heuristic that tries a move on a copy, scores it and tries the next one, thousands
+        /// of times a second in a search's rollouts. Both must be the same seat. A new field must be copied here too
+        /// (a test checks that every field is).
+        /// </summary>
+        public void CopyFrom(PlayerState source)
+        {
+            if (source.Id != Id)
+                throw new ArgumentException($"Seat {Id} can't copy seat {source.Id}.", nameof(source));
+            if (Board.Id == source.Board.Id)
+                Board.Stage = source.Board.Stage;
+            else
+                Board = (Wonder)source.Board.DeepCopy();
+            HandCards.Clear();
+            HandCards.AddRange(source.HandCards);
+            PlayedCards.Clear();
+            PlayedCards.AddRange(source.PlayedCards);
+            VictoryTokens = source.VictoryTokens;
+            DefeatTokens = source.DefeatTokens;
+            VictoryPoints = source.VictoryPoints;
+            Abilities = source.Abilities;
+            FreeCardOnce = source.FreeCardOnce;
+            DiscardFree = source.DiscardFree;
+            Resources.CopyFrom(source.Resources);
+            PlayerEast = source.PlayerEast;
+            PlayerWest = source.PlayerWest;
+        }
+
         /// <summary>A copy of every player at a table (indexed by seat), with the neighbours pointing at the copies.</summary>
         public static List<PlayerState> CloneTable(IReadOnlyList<PlayerState> players)
         {

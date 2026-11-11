@@ -8,7 +8,8 @@ namespace _7WondersGame.src.models.Agents
     /// much the player's score would go up if the move were made now and the era then ended (a battle; Olympia B
     /// copies a guild), plus the bonuses in <see cref="HeuristicWeights"/> for what that score can't see yet
     /// (resources a wonder stage lacks, trading discounts, a first science card...).
-    /// One object is one decision: it caches card values. It works on copies, so the player doesn't change.
+    /// One object is one decision: it caches card values. It works on a copy (one, reset before each try), so the
+    /// player doesn't change.
     /// </summary>
     public sealed class HeuristicValues
     {
@@ -21,13 +22,25 @@ namespace _7WondersGame.src.models.Agents
         private double[] _gains = new double[8];
         private int _gainCount;
         private HeuristicValues? _next;
+        // the copy each try is made on, reset to the player first
+        private PlayerState? _scratch;
 
         public HeuristicValues(PlayerState player, int era, HeuristicWeights weights)
         {
             _p = player;
             _era = era;
             _w = weights;
-            _baseline = ScoreIfEraEnded(player.Clone());
+            _baseline = ScoreIfEraEnded(Copy());
+        }
+
+        /// <summary>The player as it is now, on the scratch copy.</summary>
+        private PlayerState Copy()
+        {
+            if (_scratch == null)
+                _scratch = _p.Clone();
+            else
+                _scratch.CopyFrom(_p);
+            return _scratch;
         }
 
         /// <summary>What building the card would add, before its price.</summary>
@@ -36,7 +49,7 @@ namespace _7WondersGame.src.models.Agents
             for (int i = 0; i < _gainCount; i++)
                 if (_gainIds[i] == card.Id)
                     return _gains[i];
-            PlayerState s = _p.Clone();
+            PlayerState s = Copy();
             int coins = s.Resources[Resource.Coins];
             // in the city before its effect applies, like a real build (the Lighthouse counts itself)
             s.PlayedCards.Add(card);
@@ -58,7 +71,7 @@ namespace _7WondersGame.src.models.Agents
         /// <summary>What building the next wonder stage would add to the score.</summary>
         public double WonderGain()
         {
-            PlayerState s = _p.Clone();
+            PlayerState s = Copy();
             s.Board.AddStage(s);
             return ScoreIfEraEnded(s) - _baseline;
         }
@@ -69,7 +82,7 @@ namespace _7WondersGame.src.models.Agents
         /// <summary>What a discard's 3 coins would add to the score.</summary>
         public double DiscardGain()
         {
-            PlayerState s = _p.Clone();
+            PlayerState s = Copy();
             s.Resources[Resource.Coins] += 3;
             return ScoreIfEraEnded(s) - _baseline;
         }

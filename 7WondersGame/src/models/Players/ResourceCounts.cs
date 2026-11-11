@@ -29,6 +29,9 @@ namespace _7WondersGame.src.models.Players
 
         public int Count => Size;
 
+        /// <summary>Makes these counts equal to <paramref name="source"/>'s.</summary>
+        public void CopyFrom(ResourceCounts source) => Array.Copy(source._counts, _counts, Size);
+
         public ResourceCounts Clone()
         {
             var copy = new ResourceCounts();
