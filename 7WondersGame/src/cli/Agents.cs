@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Reflection;
 using System.Text.Json;
 using _7WondersGame.src.models.Agents;
 
@@ -71,7 +70,8 @@ namespace _7WondersGame.src.cli
 
         private static readonly List<Entry> BuiltIn = new()
         {
-            new("DeterministicAI", () => new DeterministicAI(), "rule-based heuristic (era-specific card scores)"),
+            new("HeuristicAI", () => new HeuristicAI(), "values every move (card worth, price, wonder, denial); settings are its weights"),
+            new("DeterministicAI", () => new DeterministicAI(), "the old rule-based heuristic (era-specific card scores), kept as a baseline"),
             new("RandomChoiceAI", () => new RandomChoiceAI(), "random legal move"),
             new("PriorityStructureRandomChoiceAI", () => new PriorityRandomChoiceAI(ActionPriority.Structure), "random card, prefers building a card"),
             new("PriorityWonderRandomChoiceAI", () => new PriorityRandomChoiceAI(ActionPriority.Wonder), "random card, prefers building a wonder stage"),
@@ -97,21 +97,21 @@ namespace _7WondersGame.src.cli
             Entries.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
             ?? throw new UsageException($"Unknown agent '{name}'. Run 'agents' to list them.");
 
-        /// <summary>The settable fields of an agent type, with their defaults.</summary>
+        /// <summary>The settings of an agent type, with their defaults.</summary>
         public static List<(string Name, Type Type, object? Default)> SettingsOf(Entry entry)
         {
             IAgent sample = entry.Create();
-            return AgentSettings.Fields(sample.GetType())
-                .Select(s => (s.Name, s.Field.FieldType, s.Field.GetValue(sample)))
+            return AgentSettings.Of(sample.GetType())
+                .Select(s => (s.Name, s.Type, s.GetValue(sample)))
                 .OrderBy(s => s.Name, StringComparer.Ordinal)
                 .ToList();
         }
 
         /// <summary>The setting a key names (an alias or a field name, any case), or a usage error.</summary>
-        public static (string Name, FieldInfo Field) ResolveSetting(Type agentType, string key)
+        public static AgentSetting ResolveSetting(Type agentType, string key)
         {
             string wanted = Aliases.TryGetValue(key, out string? full) ? full : key;
-            var fields = AgentSettings.Fields(agentType).ToList();
+            var fields = AgentSettings.Of(agentType).ToList();
             foreach (var f in fields)
                 if (f.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
                     return f;
@@ -129,12 +129,12 @@ namespace _7WondersGame.src.cli
             IAgent agent = entry.Create();
             foreach (var (key, value) in spec.Settings)
             {
-                var (name, field) = ResolveSetting(agent.GetType(), key);
+                AgentSetting setting = ResolveSetting(agent.GetType(), key);
                 string text = value;
                 if (Sweep.TryParseRange(value, out _, out _))
                     text = (sweepValue ?? throw new InvalidOperationException("range setting without a sweep value"))
                         .ToString("R", CultureInfo.InvariantCulture);
-                field.SetValue(agent, ConvertValue(text, field.FieldType, $"{spec.Name}:{key}"));
+                setting.SetValue(agent, ConvertValue(text, setting.Type, $"{spec.Name}:{key}"));
             }
             return agent;
         }

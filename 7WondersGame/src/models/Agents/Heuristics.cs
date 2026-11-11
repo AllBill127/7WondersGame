@@ -4,8 +4,8 @@ using _7WondersGame.src.models.Players;
 namespace _7WondersGame.src.models.Agents
 {
     /// <summary>
-    /// DeterministicAI's card scores for each era (the old heuristic, unchanged; G replaces it). They read the
-    /// players and never change them.
+    /// DeterministicAI's card scores for each era: the old heuristic, unchanged, kept as a baseline. HeuristicAI
+    /// (fix plan step 5, G) replaces it as the opponent and the rollout policy. They read the players and never change them.
     /// </summary>
     public static class Heuristics
     {
@@ -746,7 +746,7 @@ namespace _7WondersGame.src.models.Agents
         /// every either/or source that can give it (for a neighbour, only the brown cards they could sell).
         /// Read-only; the heuristics use it to judge what is missing.
         /// </summary>
-        private static int CountProducible(this PlayerState p, Resource resource, int needed, bool isNeighbor)
+        internal static int CountProducible(this PlayerState p, Resource resource, int needed, bool isNeighbor)
         {
             int count = p.Resources[resource];
             if (count >= needed) return needed;

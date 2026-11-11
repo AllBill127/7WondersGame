@@ -42,7 +42,7 @@ Logging (all commands): --log <level>, or the {Logging.EnvVar} environment varia
 Exit codes: 0 done, 1 some games failed, 2 bad command line.
 
 Example:
-  {Exe} run --players DeterministicAI,RandomChoiceAI,RandomChoiceAI --games 100 --seed 42 --parallel 4
+  {Exe} run --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --games 100 --seed 42 --parallel 4
 ";
 
         public static readonly string Run = $@"run: play games and append the results to a CSV, one row per player.
@@ -75,9 +75,9 @@ Optional:
 
 Examples:
   Heuristic against random, 1000 games, 8 at a time:
-    {Exe} run --players DeterministicAI,RandomChoiceAI,RandomChoiceAI --games 1000 --seed 1 --parallel 8
+    {Exe} run --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --games 1000 --seed 1 --parallel 8
   Sweep a setting c from 0 to 2 in 11 values, 50 deals each (550 games), to its own file:
-    {Exe} run --players DeterministicAI,RandomChoiceAI,Agent:c=0..2 --steps 11 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
+    {Exe} run --players HeuristicAI,RandomChoiceAI,Agent:c=0..2 --steps 11 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
 ";
 
         public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.
@@ -107,7 +107,7 @@ To keep the trace, redirect it: ... > trace.txt
 
 Examples:
   {Exe} replay --from results.csv --run 20261109-191254-0000000000003039 --game 12
-  {Exe} replay --players DeterministicAI,RandomChoiceAI,RandomChoiceAI --game-seed 0x9e3779b97f4a7c15 --log verbose
+  {Exe} replay --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --game-seed 0x9e3779b97f4a7c15 --log verbose
 ";
 
         public static readonly string Dataset = $@"dataset: write pre-shuffled deals (decks and wonders) to a file, for 'run --dataset'.

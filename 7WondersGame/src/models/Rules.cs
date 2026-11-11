@@ -48,6 +48,19 @@ namespace _7WondersGame.src.models
         }
 
         /// <summary>
+        /// The coins building the card would cost the player now (trade plus the card's own coin cost; 0 when chained),
+        /// or null if they can't build it. Changes nothing.
+        /// </summary>
+        public static int? BuildPrice(this PlayerState p, Card card)
+        {
+            if (p.HasPlayedCard(card))
+                return null;
+            if (p.CanChainBuildCard(card))
+                return 0;
+            return p.PlanPayment(card.Cost) is { } plan ? plan.Total + card.Cost.GetValueOrDefault(Resource.Coins) : null;
+        }
+
+        /// <summary>
         /// Play a card from a provided cards list: pay for it (unless <paramref name="free_card"/> or chained), move it
         /// into the city and apply its effect.
         /// </summary>
