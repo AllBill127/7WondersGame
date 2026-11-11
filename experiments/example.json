@@ -1,0 +1,12 @@
+{
+  // An example experiment file: 'run --experiment experiments/example.json --parallel 8'.
+  // Keys are run's option names ('7WondersGame help run'). Only --parallel, --out and --log
+  // may be added on the command line.
+  "description": "MCTS C sweep against two heuristic players, every seating",
+  "players": ["MctsAgent:C=0.3..2", "HeuristicAI", "HeuristicAI"],
+  "steps": 6,
+  "games": 50,
+  "seed": 7,
+  "rotate": true,
+  "out": "c-sweep.csv"
+}
