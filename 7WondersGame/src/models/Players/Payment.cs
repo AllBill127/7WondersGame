@@ -37,6 +37,10 @@ namespace _7WondersGame.src.models.Players
         /// The cheapest plan for <paramref name="buyer"/> to pay <paramref name="cost"/>, or null if they can't
         /// (the resources aren't available, or buying them plus the coin cost is more than their coins).
         /// </summary>
+        // One search per thread, reused: planning runs for every card a heuristic looks at (thousands of times a
+        // second in a search's rollouts), and a new one each time was a large share of what a rollout allocates.
+        [ThreadStatic] private static Search? _search;
+
         public static PaymentPlan? Plan(PlayerState buyer, IReadOnlyDictionary<Resource, int> cost)
         {
             int budget = buyer.Resources[Resource.Coins] - (cost.TryGetValue(Resource.Coins, out int coinCost) ? coinCost : 0);
@@ -44,38 +48,66 @@ namespace _7WondersGame.src.models.Players
                 return null;
 
             // What the fixed production doesn't cover. Usually nothing, and then no search is needed.
-            int[]? need = null;
-            foreach (var (resource, amount) in cost)
+            Search search = _search ??= new Search();
+            int[] need = search.Need;
+            Array.Clear(need);
+            bool missing = false;
+            if (cost is Dictionary<Resource, int> dictionary)
             {
-                if (resource > Resource.Papyrus)
-                    continue;
-                int missing = amount - buyer.Resources[resource];
-                if (missing > 0)
-                {
-                    need ??= new int[Goods];
-                    need[(int)resource] = missing;
-                }
+                // (the costs are dictionaries; enumerating one through the interface would allocate)
+                foreach (var (resource, amount) in dictionary)
+                    missing |= AddMissing(buyer, need, resource, amount);
             }
-            if (need == null)
+            else
+            {
+                foreach (var (resource, amount) in cost)
+                    missing |= AddMissing(buyer, need, resource, amount);
+            }
+            if (!missing)
                 return PaymentPlan.Free;
 
-            PaymentPlan? best = new Search(buyer, need).Run();
+            PaymentPlan? best = search.Run(buyer);
             return best is { } plan && plan.Total <= budget ? plan : null;
+        }
+
+        private static bool AddMissing(PlayerState buyer, int[] need, Resource resource, int amount)
+        {
+            if (resource > Resource.Papyrus)
+                return false;
+            int missing = amount - buyer.Resources[resource];
+            if (missing <= 0)
+                return false;
+            need[(int)resource] = missing;
+            return true;
         }
 
         private sealed class Search
         {
+            public readonly int[] Need = new int[Goods];
             private readonly int[] need;
             private readonly List<int> ownSources = new();
             private readonly List<int> sellerSources = new();   // west neighbour's first, then east's
-            private readonly int westSourceCount;
+            private int westSourceCount;
             private readonly int[] westSupply = new int[Goods], eastSupply = new int[Goods];
             private readonly int[] westPrice = new int[Goods], eastPrice = new int[Goods];
-            private int bestTotal = int.MaxValue, bestEast = int.MaxValue;
+            private int bestTotal, bestEast;
 
-            public Search(PlayerState buyer, int[] need)
+            public Search() => need = Need;
+
+            /// <summary>The cheapest plan for what <see cref="Need"/> holds, or null.</summary>
+            public PaymentPlan? Run(PlayerState buyer)
             {
-                this.need = need;
+                Reset(buyer);
+                UseOwn(0);
+                return bestTotal == int.MaxValue ? null : new PaymentPlan(bestTotal - bestEast, bestEast);
+            }
+
+            private void Reset(PlayerState buyer)
+            {
+                ownSources.Clear();
+                sellerSources.Clear();
+                bestTotal = int.MaxValue;
+                bestEast = int.MaxValue;
 
                 foreach (Card card in buyer.PlayedCards)
                 {
@@ -110,12 +142,6 @@ namespace _7WondersGame.src.models.Players
                     if (mask != 0)
                         sellerSources.Add(mask);
                 }
-            }
-
-            public PaymentPlan? Run()
-            {
-                UseOwn(0);
-                return bestTotal == int.MaxValue ? null : new PaymentPlan(bestTotal - bestEast, bestEast);
             }
 
             private int NeedMask()

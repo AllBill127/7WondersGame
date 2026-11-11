@@ -39,21 +39,7 @@ namespace _7WondersGame.src.models.Players
         /// <summary>Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.</summary>
         public bool DiscardFree = false;
 
-        public Dictionary<Resource, int> Resources = new()
-        {
-            { Resource.Wood, 0 },
-            { Resource.Stone, 0 },
-            { Resource.Ore, 0 },
-            { Resource.Clay, 0 },
-            { Resource.Glass, 0 },
-            { Resource.Loom, 0 },
-            { Resource.Papyrus, 0 },
-            { Resource.Gear, 0 },
-            { Resource.Compass, 0 },
-            { Resource.Tablet, 0 },
-            { Resource.Coins, 3 },
-            { Resource.Shields, 0 },
-        };
+        public ResourceCounts Resources = new() { [Resource.Coins] = 3 };
 
         public PlayerState PlayerEast { get; set; } = null!;
         public PlayerState PlayerWest { get; set; } = null!;
@@ -68,8 +54,37 @@ namespace _7WondersGame.src.models.Players
             copy.Board = (Wonder)Board.DeepCopy();
             copy.HandCards = HandCards.ToList();
             copy.PlayedCards = PlayedCards.ToList();
-            copy.Resources = new Dictionary<Resource, int>(Resources);
+            copy.Resources = Resources.Clone();
             return copy;
+        }
+
+        /// <summary>
+        /// Makes this player a copy of <paramref name="source"/> again (as <see cref="Clone"/> would), reusing its own
+        /// lists and counts: for a heuristic that tries a move on a copy, scores it and tries the next one, thousands
+        /// of times a second in a search's rollouts. Both must be the same seat. A new field must be copied here too
+        /// (a test checks that every field is).
+        /// </summary>
+        public void CopyFrom(PlayerState source)
+        {
+            if (source.Id != Id)
+                throw new ArgumentException($"Seat {Id} can't copy seat {source.Id}.", nameof(source));
+            if (Board.Id == source.Board.Id)
+                Board.Stage = source.Board.Stage;
+            else
+                Board = (Wonder)source.Board.DeepCopy();
+            HandCards.Clear();
+            HandCards.AddRange(source.HandCards);
+            PlayedCards.Clear();
+            PlayedCards.AddRange(source.PlayedCards);
+            VictoryTokens = source.VictoryTokens;
+            DefeatTokens = source.DefeatTokens;
+            VictoryPoints = source.VictoryPoints;
+            Abilities = source.Abilities;
+            FreeCardOnce = source.FreeCardOnce;
+            DiscardFree = source.DiscardFree;
+            Resources.CopyFrom(source.Resources);
+            PlayerEast = source.PlayerEast;
+            PlayerWest = source.PlayerWest;
         }
 
         /// <summary>A copy of every player at a table (indexed by seat), with the neighbours pointing at the copies.</summary>

@@ -46,37 +46,70 @@ namespace _7WondersGame.src.models.Agents
             if (hand.Count == 0)
                 return Skip;
 
-            double Denied(Card c) => w.Denial == 0 ? 0 : w.Denial * values.NextPlayerGain(c);
+            // This runs in every step of a search's rollouts, so each price and value is worked out once and nothing
+            // is allocated that needn't be. The values (and so the choices) are the same as working each out when needed.
+            // What taking each card keeps from the next player:
+            Span<double> denied = stackalloc double[hand.Count];
+            if (w.Denial != 0)
+                for (int i = 0; i < hand.Count; i++)
+                    denied[i] = w.Denial * values.NextPlayerGain(hand[i]);
 
-            Command best = Skip;
-            double bestValue = double.NegativeInfinity;
-            void Consider(ActionType action, Card card, double value)
+            var best = new BestMove();
+            for (int i = 0; i < hand.Count; i++)
             {
-                if (value > bestValue)
-                {
-                    best = new Command(action, card);
-                    bestValue = value;
-                }
+                // a price means the card can be built (the cards GetPlayableCards gives)
+                if (me.BuildPrice(hand[i]) is int price)
+                    best.Consider(ActionType.Build, hand[i], values.Gain(hand[i]) - w.CoinValue * price + denied[i]);
             }
-
-            foreach (Card c in me.GetPlayableCards(hand))
-                Consider(ActionType.Build, c, values.Gain(c) - w.CoinValue * values.Price(c) + Denied(c));
 
             if (phase == Phase.ChooseMoves && me.FreeCardOnce)
             {
                 // the charge is lost at the era end, so on the era's last choice keeping it is worth nothing
                 double keep = hand.Count <= 2 ? 0 : w.FreeBuildKeep;
                 foreach (Card c in me.GetPlayableCards(hand, playAllFree: true))
-                    Consider(ActionType.BuildFreeOnce, c, values.Gain(c) - keep + Denied(c));
+                    best.Consider(ActionType.BuildFreeOnce, c, values.Gain(c) - keep + denied[hand.IndexOf(c)]);
             }
 
-            Card giveUp = Best(hand, c => Denied(c) - values.Gain(c))!;
-            if (me.CanBuildWonder())
-                Consider(ActionType.BuildWonder, giveUp,
-                    values.WonderGain() + w.WonderStage - w.CoinValue * values.WonderPrice() + Denied(giveUp));
-            Consider(ActionType.Discard, giveUp, values.DiscardGain() - w.DiscardPenalty + Denied(giveUp));
+            // the card to give up for a wonder stage or a discard: the first with the highest denial minus gain
+            int giveUp = 0;
+            double giveUpValue = denied[0] - values.Gain(hand[0]);
+            for (int i = 1; i < hand.Count; i++)
+            {
+                double v = denied[i] - values.Gain(hand[i]);
+                if (v > giveUpValue)
+                {
+                    giveUp = i;
+                    giveUpValue = v;
+                }
+            }
+            // the stage's price, planned once (it is null when it can't be built, as CanBuildWonder says)
+            if (me.Board.NextStageCost is { } stageCost && me.PlanPayment(stageCost) is { } stagePlan)
+                best.Consider(ActionType.BuildWonder, hand[giveUp],
+                    values.WonderGain() + w.WonderStage - w.CoinValue * stagePlan.Total + denied[giveUp]);
+            best.Consider(ActionType.Discard, hand[giveUp], values.DiscardGain() - w.DiscardPenalty + denied[giveUp]);
 
-            return best;
+            return best.Card == null ? Skip : new Command(best.Action, best.Card);
+        }
+
+        /// <summary>The best move so far (none: Skip): the first one with the highest value.</summary>
+        private struct BestMove
+        {
+            public ActionType Action;
+            public Card? Card;
+            private double _value;
+
+            public BestMove() : this(default, null) { }
+            private BestMove(ActionType action, Card? card) => (Action, Card, _value) = (action, card, double.NegativeInfinity);
+
+            public void Consider(ActionType action, Card card, double value)
+            {
+                if (value > _value)
+                {
+                    Action = action;
+                    Card = card;
+                    _value = value;
+                }
+            }
         }
 
         /// <summary>The card with the highest value, the earliest one on a tie; null for no cards.</summary>

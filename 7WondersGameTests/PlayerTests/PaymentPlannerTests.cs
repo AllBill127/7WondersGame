@@ -198,7 +198,7 @@ namespace _7WondersGameTests.PlayerTests
             var after = new[] { west, buyer, east };
             for (int i = 0; i < 3; i++)
             {
-                CollectionAssert.AreEquivalent(before[i].Item1, after[i].Resources, $"resources of player {i}");
+                CollectionAssert.AreEquivalent(before[i].Item1, after[i].Resources.ToDictionary(kv => kv.Key, kv => kv.Value), $"resources of player {i}");
                 CollectionAssert.AreEqual(before[i].Item2, after[i].PlayedCards, $"cards of player {i}");
             }
         }
