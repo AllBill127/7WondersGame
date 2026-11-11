@@ -5,6 +5,8 @@
     <RootNamespace>_7WondersGameTests</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- step 8 (H2): the code has no nullable warnings; keep it that way -->
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>

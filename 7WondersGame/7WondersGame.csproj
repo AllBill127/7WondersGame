@@ -6,6 +6,8 @@
     <RootNamespace>_7WondersGame</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- step 8 (H2): the code has no nullable warnings; keep it that way -->
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
     <!-- step 8: the search copies the game every iteration, so games run in parallel fight over the workstation GC
          (8 parallel MCTS games: 5.4 s per game with it, 3.2 s with the server GC; one at a time also ~8% faster) -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
