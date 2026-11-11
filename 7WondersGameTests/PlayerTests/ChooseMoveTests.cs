@@ -1,13 +1,6 @@
 ﻿using _7WondersGame.src.models;
 using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _7WondersGameTests.PlayerTests
 {
@@ -30,33 +23,31 @@ namespace _7WondersGameTests.PlayerTests
             Game testGame = new Game();
             List<Wonder> wonders = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaA(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaA),
+                new Wonder(WonderId.BabylonA),
             };
-            List<Player> players = MockHelper.MockPriorityAIPlayers(wonders);
+            List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
-            testGame.PlayerCommands = new Command[players.Count];
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
             players[1].FreeCardOnce = true;
 
             // set played cards for situation
-            players[1].PlayedCards.Add(cardDS.GameCards[CardId.Forum]);
+            players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // set hand cards for situation
-            players[1].HandCards.Add(cardDS.GameCards[CardId.Forum]);
+            players[1].HandCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // Expected values
-            string expP1Subcommand = "discard";
+            ActionType expP1Action = ActionType.Discard;
 
             // Test
-            players[1].ChooseMoveCommand(testGame);
+            Command move = new PriorityRandomChoiceAI(ActionPriority.Wonder).Choose(new GameView(testGame, 1));
 
             // Evaluate
-            Assert.AreEqual(expP1Subcommand, testGame.PlayerCommands[players[1].Id].Subcommand);
+            Assert.AreEqual(expP1Action, move.Action);
         }
 
         [TestMethod]
@@ -66,33 +57,31 @@ namespace _7WondersGameTests.PlayerTests
             Game testGame = new Game();
             List<Wonder> wonders = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaA(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaA),
+                new Wonder(WonderId.BabylonA),
             };
-            List<Player> players = MockHelper.MockPriorityAIPlayers(wonders);
+            List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
-            testGame.PlayerCommands = new Command[players.Count];
-            CardsDataset cardDS = CardsDataset.GetInstance(players.Count);
 
             // set wonder stage and effect
             players[1].Board.Stage = 2;
             players[1].FreeCardOnce = true;
 
             // set played cards for situation
-            players[1].PlayedCards.Add(cardDS.GameCards[CardId.Forum]);
+            players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
             // set hand cards for situation
-            players[1].HandCards.Add(cardDS.GameCards[CardId.Palace]);
+            players[1].HandCards.Add(CardsDataset.GameCards[CardId.Palace]);
 
             // Expected values
-            string expP1Subcommand = "build_hand_free";
+            ActionType expP1Action = ActionType.BuildFreeOnce;
 
             // Test
-            players[1].ChooseMoveCommand(testGame);
+            Command move = new PriorityRandomChoiceAI(ActionPriority.Wonder).Choose(new GameView(testGame, 1));
 
             // Evaluate
-            Assert.AreEqual(expP1Subcommand, testGame.PlayerCommands[players[1].Id].Subcommand);
+            Assert.AreEqual(expP1Action, move.Action);
         }
     }
 }

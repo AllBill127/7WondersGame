@@ -1,70 +1,107 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using _7WondersGame.src.models.Effects;
 using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.models.Wonders
 {
-    public abstract class Wonder
-    {
-        public WonderId Id { get; private set; }
-        public string Name { get; private set; }
-        public int Stage { get; set; } = 0;
-        public int WonderPoints { get; set; } = 0;
-        public Resource Production { get; private set; }
-        public Dictionary<Resource, int> Cost = new Dictionary<Resource, int>()
-        {
-            { Resource.Wood, 0 },
-            { Resource.Stone, 0 },
-            { Resource.Ore, 0 },
-            { Resource.Clay, 0 },
-            { Resource.Glass, 0 },
-            { Resource.Loom, 0 },
-            { Resource.Papyrus, 0 },
-        };
-        public Dictionary<Resource, int> HighestCosts = new Dictionary<Resource, int>()
-        {
-            { Resource.Wood, 0 },
-            { Resource.Stone, 0 },
-            { Resource.Ore, 0 },
-            { Resource.Clay, 0 },
-            { Resource.Glass, 0 },
-            { Resource.Loom, 0 },
-            { Resource.Papyrus, 0 },
-        };
+    /// <summary>One wonder stage: what it costs and what it does (E3).</summary>
+    public sealed record WonderStage(IReadOnlyDictionary<Resource, int> Cost, params IEffect[] Effects);
 
-        public Wonder(WonderId id, string name, Resource production, Dictionary<Resource, int> cost, Dictionary<Resource, int> highestCosts)
+    /// <summary>
+    /// A player's wonder board: its fixed description from <see cref="WonderBoards"/> plus how many stages are built.
+    /// </summary>
+    public sealed class Wonder
+    {
+        private readonly WonderBoard _board;
+
+        public Wonder(WonderId id)
+        {
+            _board = WonderBoards.All[id];
+        }
+
+        public WonderId Id => _board.Id;
+        public string Name => _board.Name;
+        public Resource Production => _board.Production;
+        public IReadOnlyList<WonderStage> Stages => _board.Stages;
+        public int StageCount => _board.Stages.Count;
+
+        /// <summary>How many stages are built.</summary>
+        public int Stage { get; set; } = 0;
+
+        /// <summary>The most of each raw and manufactured resource that any one stage needs (used by the heuristics).</summary>
+        public IReadOnlyDictionary<Resource, int> HighestCosts => _board.HighestCosts;
+
+        /// <summary>What the next stage costs, or null when every stage is built.</summary>
+        public IReadOnlyDictionary<Resource, int>? NextStageCost => Stage < StageCount ? _board.Stages[Stage].Cost : null;
+
+        /// <summary>The lasting abilities of the built stages.</summary>
+        public Ability Abilities => _board.AbilitiesAfter[Stage];
+
+        /// <summary>Science symbols of the player's choice from the built stages (Babylon).</summary>
+        public int ScienceWildcards => _board.ScienceWildcardsAfter[Stage];
+
+        /// <summary>The victory points of the built stages.</summary>
+        public int WonderPoints(PlayerState owner)
+        {
+            int vp = 0;
+            for (int s = 0; s < Stage; s++)
+                foreach (IEffect effect in _board.Stages[s].Effects)
+                    vp += effect.EndGameVp(owner);
+            return vp;
+        }
+
+        /// <summary>Only the stage counter changes during a game, so a shallow copy is a full copy.</summary>
+        public object DeepCopy() => MemberwiseClone();
+
+        /// <summary>
+        /// Adds the next stage and applies its effects. The caller has already paid for it (see <see cref="Rules.BuildWonder"/>).
+        /// </summary>
+        /// <returns>false if every stage is already built</returns>
+        public bool AddStage(PlayerState player)
+        {
+            if (Stage >= StageCount)
+                return false;
+            Stage++;
+            foreach (IEffect effect in _board.Stages[Stage - 1].Effects)
+                effect.OnBuild(player);
+            return true;
+        }
+
+        public override string ToString() => Name;
+    }
+
+    /// <summary>A board's fixed description, with what its built stages add up to precomputed.</summary>
+    public sealed class WonderBoard
+    {
+        public WonderId Id { get; }
+        public string Name { get; }
+        public Resource Production { get; }
+        public IReadOnlyList<WonderStage> Stages { get; }
+        public IReadOnlyDictionary<Resource, int> HighestCosts { get; }
+
+        /// <summary>Indexed by the number of built stages.</summary>
+        internal Ability[] AbilitiesAfter { get; }
+        internal int[] ScienceWildcardsAfter { get; }
+
+        public WonderBoard(WonderId id, string name, Resource production, params WonderStage[] stages)
         {
             Id = id;
             Name = name;
             Production = production;
-            foreach (var kvp in cost)
-                Cost[kvp.Key] = kvp.Value;
-            foreach (var kvp in highestCosts)
-                HighestCosts[kvp.Key] = kvp.Value;
+            Stages = stages;
+
+            var highest = new Dictionary<Resource, int>();
+            for (Resource r = Resource.Wood; r <= Resource.Papyrus; r++)
+                highest[r] = stages.Max(stage => stage.Cost.TryGetValue(r, out int n) ? n : 0);
+            HighestCosts = highest;
+
+            AbilitiesAfter = new Ability[stages.Length + 1];
+            ScienceWildcardsAfter = new int[stages.Length + 1];
+            for (int s = 0; s < stages.Length; s++)
+            {
+                AbilitiesAfter[s + 1] = AbilitiesAfter[s] | stages[s].Effects.Aggregate(Ability.None, (a, e) => a | e.Grants);
+                ScienceWildcardsAfter[s + 1] = ScienceWildcardsAfter[s] + stages[s].Effects.OfType<ScienceWildcard>().Count();
+            }
         }
-
-        public abstract object DeepCopy();
-
-        /// <summary>
-        /// Checks if a player can build the next stage of a wonder. <br/>
-        /// - Calling function is responsible to backup and reset player and his neighbors resource and usedOnDemandResource dictionaries
-        /// </summary>
-        /// <param name="player"></param>
-        /// <returns></returns>
-        public abstract bool CanAddStage(Player player);
-
-        /// <summary>
-        /// Build the next stage of a wonder. <br/>
-        /// - Calling function is responsible to backup and reset player and his neighbors resource and usedOnDemandResource dictionaries if unsuccessfull
-        /// </summary>
-        /// <param name="player"></param>
-        /// <returns>
-        /// true if successfull; otherwise false
-        /// </returns>
-        public abstract bool AddStage(Player player);
     }
 
     public enum WonderId{
