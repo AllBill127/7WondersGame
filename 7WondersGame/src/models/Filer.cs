@@ -132,8 +132,8 @@ namespace _7WondersGame.src.models
             for (int era = 1; era <= 3; era++)
             {
                 List<int> deck = deal[era - 1];
-                if (deck.Count != 7 * players)
-                    throw new InvalidDataException($"{where}: deck {era} has {deck.Count} cards; {players} players need {7 * players}.");
+                if (deck.Count != Game.HandSize * players)
+                    throw new InvalidDataException($"{where}: deck {era} has {deck.Count} cards; {players} players need {Game.HandSize * players}.");
 
                 var counts = new Dictionary<CardId, int>();
                 foreach (int id in deck)
@@ -166,7 +166,7 @@ namespace _7WondersGame.src.models
                 throw new InvalidDataException($"{where}: {wonders.Count} wonders for {players} players.");
             if (wonders.Any(w => !Enum.IsDefined(typeof(WonderId), w)))
                 throw new InvalidDataException($"{where}: wonder ids are 0 to 13.");
-            if (wonders.Select(w => w % 7).Distinct().Count() != players)
+            if (wonders.Select(Wonder.BoardOf).Distinct().Count() != players)
                 throw new InvalidDataException($"{where}: two seats have the same wonder.");
         }
     }

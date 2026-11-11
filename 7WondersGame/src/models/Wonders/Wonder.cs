@@ -11,6 +11,12 @@ namespace _7WondersGame.src.models.Wonders
     /// </summary>
     public sealed class Wonder
     {
+        /// <summary>Wonder boards, each with sides A and B: <see cref="WonderId"/> 0-6 are side A, 7-13 side B.</summary>
+        public const int Boards = 7;
+
+        /// <summary>The board of a wonder id, whatever the side (0-6).</summary>
+        public static int BoardOf(int wonderId) => wonderId % Boards;
+
         private readonly WonderBoard _board;
 
         public Wonder(WonderId id)

@@ -17,8 +17,19 @@ namespace _7WondersGame.src.models
         public List<IAgent> Agents { get; set; } = new();
         int NumPlayers { get; set; } = 3;
         public int Era { get; set; } = 1;
-        // 0, 7 , 14, 21 are new era turns (0 being the start of the game)
+        /// <summary>0-20, <see cref="TurnsPerEra"/> per era (the last is the 7th card slot); 7 and 14 start eras 2 and 3.</summary>
         public int Turn { get; set; } = 0;
+
+        /// <summary>Cards in each hand at the start of an era.</summary>
+        public const int HandSize = 7;
+        /// <summary>Six turns with a choice, then the 7th card slot (Babylon B, otherwise skipped).</summary>
+        public const int TurnsPerEra = HandSize;
+
+        /// <summary>Turns 6, 13 and 20: the last card of the hand, for Babylon B.</summary>
+        public static bool IsSeventhCardSlot(int turn) => turn % TurnsPerEra == TurnsPerEra - 1;
+
+        /// <summary>Turns 7, 14 and 21: an era is over.</summary>
+        public static bool IsEraEnd(int turn) => turn % TurnsPerEra == 0;
         public List<Card>[] Decks { get; set; } 
         public List<Card> DiscardedCards { get; set; }
 
@@ -238,19 +249,20 @@ namespace _7WondersGame.src.models
         private void GiveWonders()
         {
             Random rng = _rng;
-            bool[] wonder_availability = new bool[7];
-            for (int i = 0; i < 7; i++)
-                wonder_availability[i] = true;
+            bool[] available = new bool[Wonder.Boards];
+            for (int i = 0; i < Wonder.Boards; i++)
+                available[i] = true;
 
             foreach (PlayerState player in Players)
             {
                 while (true)
                 {
-                    int n = rng.Next(14);
-                    if (wonder_availability[n % 7])
+                    // a board and a side
+                    int n = rng.Next(2 * Wonder.Boards);
+                    if (available[Wonder.BoardOf(n)])
                     {
                         AssignWonder(player, n);
-                        wonder_availability[n % 7] = false;
+                        available[Wonder.BoardOf(n)] = false;
                         break;
                     }
                 }
@@ -322,7 +334,7 @@ namespace _7WondersGame.src.models
                     }
                     Array.Clear(_chosen);
                     Turn++;
-                    if (Turn % 7 == 6 && StartPhase(Phase.SeventhCard))
+                    if (IsSeventhCardSlot(Turn) && StartPhase(Phase.SeventhCard))
                         return;
                     AfterSeventhCard();
                     break;
@@ -390,11 +402,11 @@ namespace _7WondersGame.src.models
         private void AfterSeventhCard()
         {
             // the 7th card slot (6, 13, 20) is used up whether or not someone played it
-            if (Turn % 7 == 6)
+            if (IsSeventhCardSlot(Turn))
                 Turn++;
 
             // the last card of each hand is discarded at the end of an era (turns 7, 14 and 21)
-            if (Turn % 7 == 0)
+            if (IsEraEnd(Turn))
             {
                 _knowledge?.EraEndDiscards(Players);
                 if (Tracing)
@@ -415,7 +427,7 @@ namespace _7WondersGame.src.models
         /// <summary>The end of a turn: at the end of an era battles and the next era's hands, otherwise pass the hands.</summary>
         private void AfterDiscardBuild()
         {
-            if (Turn % 7 == 0)
+            if (IsEraEnd(Turn))
             {
                 foreach (PlayerState player in Players)
                 {
@@ -457,8 +469,8 @@ namespace _7WondersGame.src.models
                 p1,
                 neighbor;
             p1 = p = Players.First();
-            List<Card> neighbor_deck,
-                player_deck = p1.HandCards;
+            List<Card> neighborHand,
+                passedHand = p1.HandCards;
 
             bool clockwise = (Era == 1 || Era == 3);
             _knowledge?.HandsPassing(Players, west: clockwise);
@@ -471,13 +483,13 @@ namespace _7WondersGame.src.models
                 // Continue until you reach the first player again
                 neighbor = clockwise ? p.PlayerWest : p.PlayerEast;
                 // backup neighbor card list
-                neighbor_deck = neighbor.HandCards;
+                neighborHand = neighbor.HandCards;
                 // change card list references
-                neighbor.HandCards = player_deck;
+                neighbor.HandCards = passedHand;
                 // go to next player
                 p = neighbor;
                 // set new list reference that is the neighbors hand card list copy
-                player_deck = neighbor_deck;
+                passedHand = neighborHand;
             } while (p1 != p);
         }
 

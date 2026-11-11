@@ -12,40 +12,40 @@ namespace _7WondersGame.src.models
         /// <param name="era"></param>
         public static void Battle(this PlayerState p, int era)
         {
-            int current_era_value = 1;
+            int eraValue = 1;
             // Age I   ->  +1 victory token
             // Age II  ->  +3 victory tokens
             // Age III ->  +5 victory tokens
             switch (era)
             {
                 case 2:
-                    current_era_value = 3;
+                    eraValue = 3;
                     break;
                 case 3:
-                    current_era_value = 5;
+                    eraValue = 5;
                     break;
                 default:
                     break;
             }
 
-            int this_shields = p.Resources[Resource.Shields];
+            int shields = p.Resources[Resource.Shields];
 
             // Battle with east neighbor
-            if (this_shields > p.PlayerEast.Resources[Resource.Shields])
+            if (shields > p.PlayerEast.Resources[Resource.Shields])
             {
-                p.VictoryTokens += current_era_value;
+                p.VictoryTokens += eraValue;
             }
-            else if (this_shields < p.PlayerEast.Resources[Resource.Shields])
+            else if (shields < p.PlayerEast.Resources[Resource.Shields])
             {
                 p.DefeatTokens += 1;
             }
 
             // Battle with west neighbor
-            if (this_shields > p.PlayerWest.Resources[Resource.Shields])
+            if (shields > p.PlayerWest.Resources[Resource.Shields])
             {
-                p.VictoryTokens += current_era_value;
+                p.VictoryTokens += eraValue;
             }
-            else if (this_shields < p.PlayerWest.Resources[Resource.Shields])
+            else if (shields < p.PlayerWest.Resources[Resource.Shields])
             {
                 p.DefeatTokens += 1;
             }
@@ -192,18 +192,18 @@ namespace _7WondersGame.src.models
         /// </returns>
         public static int CalculateScore(this PlayerState p)
         {
-            int civil_score = p.CalculateCivilianScore();
-            int commercial_score = p.CalculateCommercialScore();
-            int money_score = p.CalculateMoneyScore();
-            int guild_score = p.CalculateGuildScore();
-            int science_score = p.CalculateScientificScore();
-            int military_score = p.CalculateMilitaryScore();
-            int wonder_score = p.CalculateWonderScore();
+            int civilian = p.CalculateCivilianScore();
+            int commercial = p.CalculateCommercialScore();
+            int money = p.CalculateMoneyScore();
+            int guilds = p.CalculateGuildScore();
+            int science = p.CalculateScientificScore();
+            int military = p.CalculateMilitaryScore();
+            int wonder = p.CalculateWonderScore();
 
-            int total_score = civil_score + commercial_score + money_score + 
-                guild_score + science_score + military_score + wonder_score;
+            int total = civilian + commercial + money + 
+                guilds + science + military + wonder;
 
-            p.VictoryPoints = total_score;
+            p.VictoryPoints = total;
 
             return p.VictoryPoints;
         }
