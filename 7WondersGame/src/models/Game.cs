@@ -641,6 +641,10 @@ namespace _7WondersGame.src.models
         private void TraceChoice(int seat, Command c)
         {
             Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, c.Action, c.Card?.Name ?? "-");
+            // e.g. a search's top moves; the agent made the note when it chose, so reading it changes nothing
+            string? note = seat < Agents.Count ? Agents[seat].LastChoiceNote : null;
+            if (note != null)
+                Trace.Debug("Seat {Seat} {Agent}: {Note}", seat, AgentName(seat), note);
         }
 
         /// <summary>What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.</summary>

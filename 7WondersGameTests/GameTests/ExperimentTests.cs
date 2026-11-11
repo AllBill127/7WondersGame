@@ -1,4 +1,4 @@
-using _7WondersGame.src.cli;
+﻿using _7WondersGame.src.cli;
 using _7WondersGame.src.models;
 
 namespace _7WondersGameTests.GameTests
@@ -140,6 +140,9 @@ namespace _7WondersGameTests.GameTests
             RunManifest manifest = RunManifest.Load(Path.Combine(_dir, "out", $"{runId}.run.json"))!;
             Assert.AreEqual(file, manifest.Settings["experiment"]);
             Assert.AreEqual(2 * 3, manifest.GamesCompleted);
+            Assert.AreEqual(Environment.ProcessorCount, manifest.Machine.LogicalCores, "where it ran (step 8)");
+            Assert.IsFalse(string.IsNullOrEmpty(manifest.Machine.Cpu));
+            StringAssert.Contains(manifest.Machine.Runtime, ".NET");
         }
     }
 }

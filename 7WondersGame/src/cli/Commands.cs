@@ -81,9 +81,11 @@ namespace _7WondersGame.src.cli
                 plan.Rotate ? $" x {plan.Rotations} seatings" : "",
                 sweep == null ? "" : $" x {sweep.Steps} values of {sweep.Setting}", plan.Parallel);
             Log.Information("Results: {Csv}", csvPath);
+            WarnIfClockBudget(specs, sweep, plan.Parallel);
 
             int completed = 0, failed = 0;
             object setupLock = new();
+            var runClock = System.Diagnostics.Stopwatch.StartNew();
             using (var writer = new ResultsCsvWriter(csvPath))
             {
                 Parallel.For(0, total, new ParallelOptions { MaxDegreeOfParallelism = plan.Parallel }, i =>
@@ -112,10 +114,11 @@ namespace _7WondersGame.src.cli
                         game.Loop(record: true);
                         writer.WriteGame(runId, i, slot.Deal, game.Seed, game.Results!);
                         int done = Interlocked.Increment(ref completed);
-                        log.Information("{Done}/{Total} done in {Seconds:0.0}s{Value}: {Summary}", done, total,
-                            watch.Elapsed.TotalSeconds,
+                        TimeSpan elapsed = runClock.Elapsed;
+                        log.Information("{Done}/{Total} done in {Seconds:0.0}s{Value}: {Summary} | run {Elapsed}, about {Left} left",
+                            done, total, watch.Elapsed.TotalSeconds,
                             sweep == null ? "" : $" ({sweep.Setting}={value!.Value.ToString("0.####", Inv)})",
-                            Summary(game.Results!));
+                            Summary(game.Results!), Clock(elapsed), Clock(elapsed / done * (total - done)));
                     }
                     catch (Exception ex)
                     {
@@ -133,9 +136,31 @@ namespace _7WondersGame.src.cli
             manifest.GamesFailed = failed;
             manifest.Save(manifestPath);
 
-            Log.Information("Run {RunId} finished: {Completed} games, {Failed} failed. Manifest: {Manifest}",
-                runId, completed, failed, manifestPath);
+            Log.Information("Run {RunId} finished in {Elapsed}: {Completed} games, {Failed} failed. Manifest: {Manifest}",
+                runId, Clock(runClock.Elapsed), completed, failed, manifestPath);
             return failed == 0 ? Ok : GamesFailed;
+        }
+
+        /// <summary>A duration as h:mm:ss.</summary>
+        private static string Clock(TimeSpan t) => $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}";
+
+        /// <summary>
+        /// A time budget makes the results depend on the machine; games run side by side also slow each other down,
+        /// so a searcher gets fewer iterations than it would alone.
+        /// </summary>
+        private static void WarnIfClockBudget(List<AgentSpec> specs, Sweep? sweep, int parallel)
+        {
+            var timed = specs.Select((s, i) => (Spec: s, Seat: i))
+                .Where(x => AgentCatalog.Create(x.Spec, sweep?.Seat == x.Seat ? sweep.ValueAt(0) : null).UsesClock)
+                .Select(x => x.Spec.ToString()).Distinct().ToList();
+            if (timed.Count == 0)
+                return;
+            if (parallel > 1)
+                Log.Warning("{Agents} search for a time, not a number of iterations, and {Parallel} games run at a time: " +
+                            "they slow each other down, so each search gets fewer iterations than alone. For results that " +
+                            "repeat, give an iteration budget (e.g. n=1000) or use --parallel 1.", string.Join(", ", timed), parallel);
+            else
+                Log.Information("{Agents} search for a time: the results depend on this machine.", string.Join(", ", timed));
         }
 
         private static string Summary(IEnumerable<SeatResult> seats) =>
@@ -233,6 +258,9 @@ namespace _7WondersGame.src.cli
                     p.First["wonder"] == p.Second.Wonder && p.First["side"] == p.Second.Side);
                 if (same)
                     Log.Information("Same result as recorded in the CSV.");
+                else if (game.Agents.Any(a => a.UsesClock))
+                    Log.Information("The result differs from the CSV row, as expected: an agent searches for a time, " +
+                                    "so its choices depend on how fast the machine was then.");
                 else
                     Log.Warning("The result differs from the CSV row: the code has changed since that run " +
                                 "(its commit is in the run's .run.json), or its dataset file is missing.");
@@ -342,6 +370,7 @@ namespace _7WondersGame.src.cli
                 throw new UsageException($"{path} deals are for {players} players, but the line-up has {seats}.");
             if (deals.Count < dealsNeeded)
                 throw new UsageException($"{path} has {deals.Count} deals; {dealsNeeded} are needed.");
+            Log.Information("Dataset {File}: {Deals} deals for {Players} players, all checked", path, deals.Count, players);
             return deals;
         }
     }

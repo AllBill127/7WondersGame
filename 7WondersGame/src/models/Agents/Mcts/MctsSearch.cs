@@ -218,6 +218,21 @@ namespace _7WondersGame.src.models.Agents.Mcts
             return best ?? throw new InvalidOperationException("The search tried no move of its own player.");
         }
 
+        /// <summary>
+        /// The searching player's most visited root moves, for the trace: visits, average reward and win share,
+        /// e.g. "Build Loom 412 visits, reward 0.61, wins 55% | ...".
+        /// </summary>
+        public string TopMoves(int count) => string.Join(" | ", _tree.Order
+            .Where(k => k.Seat == _me)
+            .Select(k => (k.Move, Stats: _tree.Stats[k]))
+            .OrderByDescending(m => m.Stats.Visits)
+            .Take(count)
+            .Select(m => string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"{m.Move.Action} {m.Move.Card?.Name ?? "-"} {m.Stats.Visits} visits, " +
+                $"reward {Average(m.Stats.Total[_me], m.Stats.Visits):0.##}, wins {Average(m.Stats.Wins, m.Stats.Visits):0%}")));
+
+        private static double Average(double total, int visits) => visits == 0 ? 0 : total / visits;
+
         // =========== rollout ===========
 
         /// <summary>Plays on to the end (of the game, or of the era if the config says so) and gives the rewards.</summary>

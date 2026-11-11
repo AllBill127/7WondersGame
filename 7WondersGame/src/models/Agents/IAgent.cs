@@ -22,6 +22,18 @@ namespace _7WondersGame.src.models.Agents
         /// agentStats column. An agent is made for one game. "{}" for none.
         /// </summary>
         string StatsJson() => "{}";
+
+        /// <summary>
+        /// Why it made its last choice, in a line (e.g. a search's top moves), for the game trace; null for nothing.
+        /// Read by <see cref="Game"/> after <see cref="Choose"/> only when tracing.
+        /// </summary>
+        string? LastChoiceNote => null;
+
+        /// <summary>
+        /// True if its choices depend on the clock (a time budget): then they depend on the machine and on what else
+        /// runs on it, so the run warns about --parallel.
+        /// </summary>
+        bool UsesClock => false;
     }
 
     /// <summary>
