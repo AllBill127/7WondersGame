@@ -29,7 +29,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void AMoveIsHeldUntilEveryoneHasChosen()
         {
-            Game game = ThreePlayers(new GizahA(), new GizahA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA),
                 new[] { CardId.Baths }, new[] { CardId.Walls }, new[] { CardId.ClayPit });
             int coins = game.Players[0].Resources[Resource.Coins];
 
@@ -46,7 +46,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void TheLastMoveInResolvesTheTurn()
         {
-            Game game = ThreePlayers(new GizahA(), new GizahA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA),
                 new[] { CardId.Baths, CardId.Altar }, new[] { CardId.Walls, CardId.Altar }, new[] { CardId.ClayPit, CardId.Altar });
             int coins = game.Players[0].Resources[Resource.Coins];
 
@@ -65,7 +65,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void ASeatWithNothingToDecide_IsRefused()
         {
-            Game game = ThreePlayers(new GizahA(), new GizahA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA),
                 new[] { CardId.Baths }, new[] { CardId.Walls }, new[] { CardId.ClayPit });
             game.Submit(0, Discard(CardId.Baths));
 
@@ -76,7 +76,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void ARefusedTurn_LeavesTheLastMoveOpen()
         {
-            Game game = ThreePlayers(new GizahA(), new GizahA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA),
                 new[] { CardId.Baths }, new[] { CardId.Walls }, new[] { CardId.ClayPit });
             game.Players[2].Resources[Resource.Coins] = 0;
             game.Submit(0, Discard(CardId.Baths));
@@ -93,7 +93,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void TheLastTurnOfAnEra_EndsTheEra()
         {
-            Game game = ThreePlayers(new GizahA(), new GizahA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA),
                 new[] { CardId.Baths, CardId.Altar }, new[] { CardId.Walls, CardId.Altar }, new[] { CardId.ClayPit, CardId.Altar });
             game.Turn = 5;
             game.CreateDecks();
@@ -113,9 +113,9 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void BabylonB_PlaysTheSeventhCard_BeforeTheEraEnds()
         {
-            Game game = ThreePlayers(new BabylonB(), new GizahA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.BabylonB), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA),
                 new[] { CardId.Baths, CardId.LumberYard }, new[] { CardId.Walls, CardId.Altar }, new[] { CardId.ClayPit, CardId.Altar });
-            game.Players[0].PlaySeventh = true;
+            game.Players[0].Board.Stage = 2;   // its 2nd stage plays the 7th card
             game.Turn = 5;
             game.CreateDecks();
 
@@ -139,7 +139,7 @@ namespace _7WondersGameTests.GameTests
         /// <summary>Halikarnassos A builds its 2nd stage on turn 0; the others build free cards, so nothing is discarded.</summary>
         private static Game HalikarnassosBuildsStage2()
         {
-            Game game = ThreePlayers(new GizahA(), new HalikarnassosA(), new GizahA(),
+            Game game = ThreePlayers(new Wonder(WonderId.GizahA), new Wonder(WonderId.HalikarnassosA), new Wonder(WonderId.GizahA),
                 new[] { CardId.LumberYard, CardId.Altar }, new[] { CardId.Baths, CardId.Altar }, new[] { CardId.StonePit, CardId.Altar });
             game.Players[1].Board.Stage = 1;
             game.Players[1].Resources[Resource.Ore] = 3;

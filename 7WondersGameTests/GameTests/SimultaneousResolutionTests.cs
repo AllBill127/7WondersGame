@@ -21,7 +21,7 @@ namespace _7WondersGameTests.GameTests
         private static Game TradingTurn(int seat0Coins, int seat1Coins)
         {
             Game game = new Game();
-            game.Players = MockHelper.MockPlayers(new List<Wonder> { new GizahA(), new GizahA(), new GizahA() });
+            game.Players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
             foreach (PlayerState p in game.Players)
                 p.Resources[Resource.Coins] = 0;
             game.Players[0].Resources[Resource.Coins] = seat0Coins;
@@ -90,7 +90,7 @@ namespace _7WondersGameTests.GameTests
             foreach (int[] order in new[] { new[] { 0, 1 }, new[] { 1, 0 } })
             {
                 Game game = new Game();
-                game.Players = MockHelper.MockPlayers(new List<Wonder> { new GizahA(), new GizahA(), new GizahA() });
+                game.Players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
                 foreach (PlayerState p in game.Players)
                     p.Resources[Resource.Coins] = 0;
                 game.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Vineyard]);

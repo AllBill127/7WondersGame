@@ -1,5 +1,5 @@
-﻿using _7WondersGame.src.models.Players;
-using _7WondersGame.src.models.Wonders;
+﻿using _7WondersGame.src.models.Effects;
+using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.models
 {
@@ -54,7 +54,7 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// Olympia B stage 3: at the end of the game, copy one guild built by a neighbour, as if built. <br/>
         /// - each candidate is scored with the real CalculateScore(); the best one is kept (ties go to the first candidate, west then east) <br/>
-        /// - the copy stays in PlayedCards, so Shipowners counts it; copying Scientists sets ExtraScience <br/>
+        /// - the copy stays in PlayedCards, so Shipowners counts it and a copied Scientists Guild gives its wildcard <br/>
         /// - a guild the player already has is skipped (no two identical structures) <br/>
         /// - should be called before calculating scores <br/>
         /// Sources: https://rules.dized.com/7-wonders/rule/wonder-boards/the-statue-of-zeus-in-olympia,
@@ -65,7 +65,7 @@ namespace _7WondersGame.src.models
         /// </returns>
         public static bool CopyGuild(this PlayerState p)
         {
-            if (p.Board.Id != WonderId.OlympiaB || p.Board.Stage < 3)
+            if (!p.Has(Ability.CopyGuild))
                 return false;
 
             List<Card> candidates = p.PlayerWest.PlayedCards.Concat(p.PlayerEast.PlayedCards)
@@ -76,33 +76,25 @@ namespace _7WondersGame.src.models
             if (candidates.Count == 0)
                 return false;
 
+            // guilds only score at the end (none has an effect when built), so trying one is adding and removing it
             int victoryPointsBckp = p.VictoryPoints;
-            bool extraScienceBckp = p.ExtraScience;
 
             Card? bestGuild = null;
             int bestScore = int.MinValue;
             foreach (Card guild in candidates)
             {
                 p.PlayedCards.Add(guild);
-                if (guild.Id == CardId.Scientists)
-                    p.ExtraScience = true;
-
                 int score = p.CalculateScore();
                 if (score > bestScore)
                 {
                     bestScore = score;
                     bestGuild = guild;
                 }
-
                 p.PlayedCards.RemoveAt(p.PlayedCards.Count - 1);
-                p.ExtraScience = extraScienceBckp;
             }
             p.VictoryPoints = victoryPointsBckp;
 
             p.PlayedCards.Add(bestGuild!);
-            if (bestGuild!.Id == CardId.Scientists)
-                p.ExtraScience = true;
-
             return true;
         }
 
@@ -110,97 +102,12 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// Calculate Civilian (Blue) card VP score for the player
         /// </summary>
-        /// <returns></returns>
-        public static int CalculateCivilianScore(this PlayerState p)
-        {
-            // Each Civilian (blue) structure gives a fixed number of VPs.
-            int civil_score = 0;
-
-            foreach (Card card in p.PlayedCards)
-            {
-                if (card.Type != CardType.Civilian)
-                    continue;
-
-                switch (card.Id)
-                {
-                    case CardId.Altar:
-                    case CardId.Theater:
-                        civil_score += 2;
-                        break;
-
-                    case CardId.Pawnshop:
-                    case CardId.Baths:
-                    case CardId.Temple:
-                        civil_score += 3;
-                        break;
-
-                    case CardId.Courthouse:
-                    case CardId.Statue:
-                        civil_score += 4;
-                        break;
-
-                    case CardId.Aqueduct:
-                    case CardId.Gardens:
-                        civil_score += 5;
-                        break;
-
-                    case CardId.TownHall:
-                    case CardId.Senate:
-                        civil_score += 6;
-                        break;
-
-                    case CardId.Pantheon:
-                        civil_score += 7;
-                        break;
-
-                    case CardId.Palace:
-                        civil_score += 8;
-                        break;
-                }
-            }
-
-            return civil_score;
-        }
+        public static int CalculateCivilianScore(this PlayerState p) => p.CardPoints(CardType.Civilian);
 
         /// <summary>
         /// Calculate Commercial (Yellow) card VP score for the player
         /// </summary>
-        /// <returns></returns>
-        public static int CalculateCommercialScore(this PlayerState p)
-        {
-            int comm_score = 0;
-
-            foreach (Card card in p.PlayedCards)
-            {
-                if (card.Type != CardType.Commercial)
-                    continue;
-
-                switch (card.Id)
-                {
-                    case CardId.Haven:
-                        // +1 VP per Raw Material CARD in your own city.
-                        comm_score += p.AmountOfType(CardType.Materials);
-                        break;
-
-                    case CardId.Lighthouse:
-                        // +1 VP per Commercial Structure CARD in your own city.
-                        comm_score += p.AmountOfType(CardType.Commercial);
-                        break;
-
-                    case CardId.ChamberOfCommerce:
-                        // +2 VP per Manufactured Good CARD in your own city.
-                        comm_score += p.AmountOfType(CardType.Manufactured) * 2;
-                        break;
-
-                    case CardId.Arena:
-                        // +1 VP Coin per Wonder stage constructed in your own city.
-                        comm_score += p.Board.Stage;
-                        break;
-                }
-            }
-
-            return comm_score;
-        }
+        public static int CalculateCommercialScore(this PlayerState p) => p.CardPoints(CardType.Commercial);
 
         /// <summary>
         /// Calculate Money VP score for the player (3 coins = 1 VP)
@@ -212,76 +119,19 @@ namespace _7WondersGame.src.models
         }
 
         /// <summary>
-        /// Calculate Guild (Purple) card VP score for the player
+        /// Calculate Guild (Purple) card VP score for the player (the Scientists Guild's wildcard is in the science score)
         /// </summary>
-        /// <returns></returns>
-        public static int CalculateGuildScore(this PlayerState p)
+        public static int CalculateGuildScore(this PlayerState p) => p.CardPoints(CardType.Guild);
+
+        /// <summary>The end-game VP of the player's cards of one type.</summary>
+        private static int CardPoints(this PlayerState p, CardType type)
         {
-            // The guilds (purple) provide several means of gaining victory points, most of
-            // which are based on the types of structure a player and/or his neighbors have built.
-            int guild_score = 0;
-
+            int vp = 0;
             foreach (Card card in p.PlayedCards)
-            {
-                if (card.Type != CardType.Guild)
-                    continue;
-
-                switch (card.Id)
-                {
-                    case CardId.Workers:
-                        guild_score += p.PlayerEast.AmountOfType(CardType.Materials)
-                                     + p.PlayerWest.AmountOfType(CardType.Materials);
-                        break;
-
-                    case CardId.Craftsmens:
-                        guild_score += 2 * (p.PlayerEast.AmountOfType(CardType.Manufactured)
-                                     + p.PlayerWest.AmountOfType(CardType.Manufactured));
-                        break;
-
-                    case CardId.Traders:
-                        guild_score += p.PlayerEast.AmountOfType(CardType.Commercial)
-                                     + p.PlayerWest.AmountOfType(CardType.Commercial);
-                        break;
-
-                    case CardId.Philosophers:
-                        guild_score += p.PlayerEast.AmountOfType(CardType.Scientific)
-                                     + p.PlayerWest.AmountOfType(CardType.Scientific);
-                        break;
-
-                    case CardId.Spies:
-                        guild_score += p.PlayerEast.AmountOfType(CardType.Military)
-                                     + p.PlayerWest.AmountOfType(CardType.Military);
-                        break;
-
-                    case CardId.Magistrates:
-                        guild_score += p.PlayerEast.AmountOfType(CardType.Civilian)
-                                     + p.PlayerWest.AmountOfType(CardType.Civilian);
-                        break;
-
-                    case CardId.Shipowners:
-                        guild_score += p.AmountOfType(CardType.Materials)
-                                     + p.AmountOfType(CardType.Manufactured)
-                                     + p.AmountOfType(CardType.Guild);
-                        break;
-
-                    case CardId.Strategists:
-                        guild_score += p.PlayerEast.DefeatTokens
-                                     + p.PlayerWest.DefeatTokens;
-                        break;
-
-                    case CardId.Scientists:
-                        // computed in CalculateScientificScore()
-                        break;
-
-                    case CardId.Builders:
-                        guild_score += p.PlayerEast.Board.Stage
-                                     + p.PlayerWest.Board.Stage
-                                     + p.Board.Stage;
-                        break;
-                }
-            }
-
-            return guild_score;
+                if (card.Type == type)
+                    foreach (IEffect effect in card.Effects)
+                        vp += effect.EndGameVp(p);
+            return vp;
         }
 
         /// <summary>
@@ -303,20 +153,7 @@ namespace _7WondersGame.src.models
                 tablet = p.Resources[Resource.Tablet],
                 compass = p.Resources[Resource.Compass];
 
-            // calculate extra science
-            int sci_extra = 0;
-            if (p.ExtraScience)
-                sci_extra++;
-
-            WonderId id = p.Board.Id;
-            int stage = p.Board.Stage;
-            if (id == WonderId.BabylonA && stage >= 2 ||
-                id == WonderId.BabylonB && stage >= 3)
-            {
-                sci_extra++;
-            }
-
-            return BestScienceScore(gear, compass, tablet, sci_extra);
+            return BestScienceScore(gear, compass, tablet, p.ScienceWildcards());
         }
 
         /// <summary>
@@ -345,12 +182,7 @@ namespace _7WondersGame.src.models
         /// Calculate Wonder VP score for the player
         /// </summary>
         /// <returns></returns>
-        public static int CalculateWonderScore(this PlayerState p)
-        {
-            if (p.Board.Stage > 0)
-                return p.Board.WonderPoints;
-            return 0;
-        }
+        public static int CalculateWonderScore(this PlayerState p) => p.Board.WonderPoints(p);
 
         /// <summary>
         /// Update total Victory Points for the player

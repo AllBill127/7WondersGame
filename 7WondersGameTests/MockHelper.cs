@@ -13,20 +13,20 @@ namespace _7WondersGameTests
         {
             List<Wonder> wonders = new List<Wonder>
             {
-                new GizahA(),
-                new BabylonA(),
-                new OlympiaA(),
-                new RhodosA(),
-                new EphesosA(),
-                new AlexandriaA(),
-                new HalikarnassosA(),
-                new GizahB(),
-                new BabylonB(),
-                new OlympiaB(),
-                new RhodosB(),
-                new EphesosB(),
-                new AlexandriaB(),
-                new HalikarnassosB()
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.BabylonA),
+                new Wonder(WonderId.OlympiaA),
+                new Wonder(WonderId.RhodosA),
+                new Wonder(WonderId.EphesosA),
+                new Wonder(WonderId.AlexandriaA),
+                new Wonder(WonderId.HalikarnassosA),
+                new Wonder(WonderId.GizahB),
+                new Wonder(WonderId.BabylonB),
+                new Wonder(WonderId.OlympiaB),
+                new Wonder(WonderId.RhodosB),
+                new Wonder(WonderId.EphesosB),
+                new Wonder(WonderId.AlexandriaB),
+                new Wonder(WonderId.HalikarnassosB)
             };
 
             return wonders;

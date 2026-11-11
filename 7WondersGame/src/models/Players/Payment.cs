@@ -1,4 +1,6 @@
-﻿namespace _7WondersGame.src.models.Players
+﻿using _7WondersGame.src.models.Effects;
+
+namespace _7WondersGame.src.models.Players
 {
     /// <summary>
     /// How a player pays for a card or wonder stage: the coins given to each neighbour for the resources bought
@@ -30,25 +32,6 @@
         private const int Goods = 7;
         private const int Raw = 0b0001111;
         private const int Manufactured = 0b1110000;
-
-        private static int Bit(Resource r) => 1 << (int)r;
-
-        /// <summary>
-        /// The resources an either/or card offers as a bit mask, or 0 for any other card. Neighbours can only buy
-        /// from the brown ones (<paramref name="forNeighbour"/>), not from Caravansery or Forum.
-        /// </summary>
-        public static int EitherOrMask(CardId card, bool forNeighbour) => card switch
-        {
-            CardId.TreeFarm => Bit(Resource.Wood) | Bit(Resource.Clay),
-            CardId.ForestCave => Bit(Resource.Wood) | Bit(Resource.Ore),
-            CardId.TimberYard => Bit(Resource.Wood) | Bit(Resource.Stone),
-            CardId.Excavation => Bit(Resource.Clay) | Bit(Resource.Stone),
-            CardId.ClayPit => Bit(Resource.Clay) | Bit(Resource.Ore),
-            CardId.Mine => Bit(Resource.Ore) | Bit(Resource.Stone),
-            CardId.Caravansery => forNeighbour ? 0 : Raw,
-            CardId.Forum => forNeighbour ? 0 : Manufactured,
-            _ => 0,
-        };
 
         /// <summary>
         /// The cheapest plan for <paramref name="buyer"/> to pay <paramref name="cost"/>, or null if they can't
@@ -96,13 +79,13 @@
 
                 foreach (Card card in buyer.PlayedCards)
                 {
-                    int mask = EitherOrMask(card.Id, forNeighbour: false);
+                    int mask = card.ChoiceMask;
                     if (mask != 0)
                         ownSources.Add(mask);
                 }
-                if (buyer.HasExtraRaw())
+                if (buyer.Has(Ability.AnyRaw))
                     ownSources.Add(Raw);
-                if (buyer.HasExtraManuf())
+                if (buyer.Has(Ability.AnyManufactured))
                     ownSources.Add(Manufactured);
 
                 AddSeller(buyer.PlayerWest, westSupply);
@@ -112,8 +95,8 @@
                 for (int g = 0; g < Goods; g++)
                 {
                     bool raw = (Raw & (1 << g)) != 0;
-                    westPrice[g] = raw ? (buyer.RawCheapWest || buyer.WonderRawCheap ? 1 : 2) : (buyer.ManufCheap ? 1 : 2);
-                    eastPrice[g] = raw ? (buyer.RawCheapEast || buyer.WonderRawCheap ? 1 : 2) : (buyer.ManufCheap ? 1 : 2);
+                    westPrice[g] = raw ? (buyer.Has(Ability.RawCheapWest | Ability.WonderRawCheap) ? 1 : 2) : (buyer.Has(Ability.ManufCheap) ? 1 : 2);
+                    eastPrice[g] = raw ? (buyer.Has(Ability.RawCheapEast | Ability.WonderRawCheap) ? 1 : 2) : (buyer.Has(Ability.ManufCheap) ? 1 : 2);
                 }
             }
 
@@ -123,7 +106,7 @@
                     supply[g] = seller.Resources[(Resource)g];
                 foreach (Card card in seller.PlayedCards)
                 {
-                    int mask = EitherOrMask(card.Id, forNeighbour: true);
+                    int mask = card.SellableChoiceMask;
                     if (mask != 0)
                         sellerSources.Add(mask);
                 }

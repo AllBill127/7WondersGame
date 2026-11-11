@@ -1,4 +1,5 @@
-﻿using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.src.models.Effects;
+using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.models.Agents
 {
@@ -72,7 +73,7 @@ namespace _7WondersGame.src.models.Agents
                     int loomAmount = p.Resources[Resource.Loom] +
                         p.PlayerEast.Resources[Resource.Loom] +
                         p.PlayerWest.Resources[Resource.Loom];
-                    bool extraManuf = p.HasExtraManuf();
+                    bool extraManuf = p.Has(Ability.AnyManufactured);
                     if (loomAmount == 0 && extraManuf)
                     {
                         loomAmount++;
@@ -250,11 +251,11 @@ namespace _7WondersGame.src.models.Agents
                         p.PlayerWest.Resources[Resource.Papyrus];
 
                     // choose extra manuf for first non 0 wonder cost and try then
-                    if (p.Board.HighestCosts[Resource.Loom] != 0 && p.Board.HighestCosts[Resource.Loom] > loomAmount && p.HasExtraManuf())
+                    if (p.Board.HighestCosts[Resource.Loom] != 0 && p.Board.HighestCosts[Resource.Loom] > loomAmount && p.Has(Ability.AnyManufactured))
                         loomAmount++;
-                    else if (p.Board.HighestCosts[Resource.Glass] != 0 && p.Board.HighestCosts[Resource.Glass] > glassAmount && p.HasExtraManuf())
+                    else if (p.Board.HighestCosts[Resource.Glass] != 0 && p.Board.HighestCosts[Resource.Glass] > glassAmount && p.Has(Ability.AnyManufactured))
                         glassAmount++;
-                    else if (p.Board.HighestCosts[Resource.Papyrus] != 0 && p.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && p.HasExtraManuf())
+                    else if (p.Board.HighestCosts[Resource.Papyrus] != 0 && p.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && p.Has(Ability.AnyManufactured))
                         papyrusAmount++;
 
                     if (card.Name.Equals("Loom"))
@@ -427,9 +428,9 @@ namespace _7WondersGame.src.models.Agents
                     int westRawAmount = p.PlayerWest.AmountOfType(CardType.Materials);
                     if (p.PlayerWest.Board.Production <= Resource.Stone)
                         westRawAmount++;
-                    if ((p.RawCheapEast && eastRawAmount >= 2) ||
-                        (p.RawCheapWest && westRawAmount >= 2) || 
-                        (p.WonderRawCheap && 
+                    if ((p.Has(Ability.RawCheapEast) && eastRawAmount >= 2) ||
+                        (p.Has(Ability.RawCheapWest) && westRawAmount >= 2) || 
+                        (p.Has(Ability.WonderRawCheap) && 
                             (eastRawAmount >= 2 || westRawAmount >= 2)))
                         tradingWeight = 2;
 
@@ -657,11 +658,11 @@ namespace _7WondersGame.src.models.Agents
                         p.PlayerWest.Resources[Resource.Papyrus];
 
                     // choose extra manuf for first non 0 wonder cost and try then
-                    if (p.Board.HighestCosts[Resource.Loom] != 0 && p.Board.HighestCosts[Resource.Loom] > loomAmount && p.HasExtraManuf())
+                    if (p.Board.HighestCosts[Resource.Loom] != 0 && p.Board.HighestCosts[Resource.Loom] > loomAmount && p.Has(Ability.AnyManufactured))
                         loomAmount++;
-                    else if (p.Board.HighestCosts[Resource.Glass] != 0 && p.Board.HighestCosts[Resource.Glass] > glassAmount && p.HasExtraManuf())
+                    else if (p.Board.HighestCosts[Resource.Glass] != 0 && p.Board.HighestCosts[Resource.Glass] > glassAmount && p.Has(Ability.AnyManufactured))
                         glassAmount++;
-                    else if (p.Board.HighestCosts[Resource.Papyrus] != 0 && p.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && p.HasExtraManuf())
+                    else if (p.Board.HighestCosts[Resource.Papyrus] != 0 && p.Board.HighestCosts[Resource.Papyrus] > papyrusAmount && p.Has(Ability.AnyManufactured))
                         papyrusAmount++;
 
                     if (card.Name.Equals("Loom"))
@@ -751,10 +752,10 @@ namespace _7WondersGame.src.models.Agents
             if (count >= needed) return needed;
 
             foreach (Card card in p.PlayedCards)
-                if ((PaymentPlanner.EitherOrMask(card.Id, isNeighbor) & (1 << (int)resource)) != 0)
+                if (((isNeighbor ? card.SellableChoiceMask : card.ChoiceMask) & (1 << (int)resource)) != 0)
                     count++;
-            if (!isNeighbor && (int)resource <= (int)Resource.Stone && p.HasExtraRaw()) count++;
-            if (!isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus && p.HasExtraManuf()) count++;
+            if (!isNeighbor && (int)resource <= (int)Resource.Stone && p.Has(Ability.AnyRaw)) count++;
+            if (!isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus && p.Has(Ability.AnyManufactured)) count++;
 
             return Math.Min(needed, count);
         }

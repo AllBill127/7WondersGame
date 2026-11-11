@@ -8,7 +8,7 @@ namespace _7WondersGameTests.PlayerTests
     public class CalculateScientificScoreTests
     {
         /// <summary>
-        /// Wildcards come from the Scientists Guild (ExtraScience) and Babylon A stage 2.
+        /// Wildcards come from the Scientists Guild and Babylon A stage 2.
         /// Each one must go on whichever symbol gives the most VP (R6).
         /// </summary>
         [DataTestMethod]
@@ -29,12 +29,12 @@ namespace _7WondersGameTests.PlayerTests
         public void CalculateScientificScore_PlacesWildcardsBest(int gear, int compass, int tablet, int wildcards, int expected)
         {
             List<PlayerState> players = MockHelper.MockPlayers(
-                new List<Wonder> { new BabylonA(), new GizahA(), new GizahA() });
+                new List<Wonder> { new Wonder(WonderId.BabylonA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
             PlayerState player = players[0];
             player.Resources[Resource.Gear] = gear;
             player.Resources[Resource.Compass] = compass;
             player.Resources[Resource.Tablet] = tablet;
-            if (wildcards >= 1) player.ExtraScience = true;
+            if (wildcards >= 1) player.PlayedCards.Add(CardsDataset.GameCards[CardId.Scientists]);
             if (wildcards >= 2) player.Board.Stage = 2;
 
             Assert.AreEqual(expected, player.CalculateScientificScore());

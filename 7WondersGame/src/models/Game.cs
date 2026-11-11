@@ -1,4 +1,5 @@
 ﻿using _7WondersGame.src.models.Agents;
+using _7WondersGame.src.models.Effects;
 using _7WondersGame.src.models.Players;
 using _7WondersGame.src.models.Wonders;
 using Serilog;
@@ -213,66 +214,12 @@ namespace _7WondersGame.src.models
             }
         }
 
-        private Wonder CreateWonders(int wonderId)
-        {
-            Wonder wonder = null;
-            switch (wonderId)
-            {
-                case 0:
-                    wonder = new GizahA();
-                    break;
-                case 1:
-                    wonder = new BabylonA();
-                    break;
-                case 2:
-                    wonder = new OlympiaA();
-                    break;
-                case 3:
-                    wonder = new RhodosA();
-                    break;
-                case 4:
-                    wonder = new EphesosA();
-                    break;
-                case 5:
-                    wonder = new AlexandriaA();
-                    break;
-                case 6:
-                    wonder = new HalikarnassosA();
-                    break;
-                case 7:
-                    wonder = new GizahB();
-                    break;
-                case 8:
-                    wonder = new BabylonB();
-                    break;
-                case 9:
-                    wonder = new OlympiaB();
-                    break;
-                case 10:
-                    wonder = new RhodosB();
-                    break;
-                case 11:
-                    wonder = new EphesosB();
-                    break;
-                case 12:
-                    wonder = new AlexandriaB();
-                    break;
-                case 13:
-                    wonder = new HalikarnassosB();
-                    break;
-                default:
-                    break;
-            }
-
-            return wonder;
-        }
-
         /// <summary>
         /// Give a player a wonder board and its starting resource. Used by both setup paths.
         /// </summary>
         private void AssignWonder(PlayerState player, int wonderId)
         {
-            player.Board = CreateWonders(wonderId);
+            player.Board = new Wonder((WonderId)wonderId);
             player.Resources[player.Board.Production] += 1;
         }
 
@@ -415,17 +362,13 @@ namespace _7WondersGame.src.models
                 _waiting![p.Id] = phase switch
                 {
                     Phase.ChooseMoves => true,
-                    Phase.SeventhCard => p.PlaySeventh && p.HandCards.Count > 0,
-                    Phase.DiscardBuild => CanBuildFromDiscardPile(p),
+                    Phase.SeventhCard => p.Has(Ability.PlaySeventh) && p.HandCards.Count > 0,
+                    Phase.DiscardBuild => p.DiscardFree,
                     _ => false,
                 };
             }
             return _waiting!.Contains(true);
         }
-
-        private static bool CanBuildFromDiscardPile(PlayerState p) =>
-            p.DiscardFree && (p.Board.Id == WonderId.HalikarnassosA && p.Board.Stage == 2 ||
-                              p.Board.Id == WonderId.HalikarnassosB && p.Board.Stage >= 1);
 
         /// <summary>After the turn's moves (and Babylon's 7th card): the end of an era's last hands, then Halikarnassos.</summary>
         private void AfterSeventhCard()
@@ -443,11 +386,6 @@ namespace _7WondersGame.src.models
                     Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(Players.SelectMany(p => p.HandCards)));
             }
 
-            // Halikarnassos A gets its discard-pile build from stage 2 only
-            foreach (PlayerState player in Players)
-                if (player.DiscardFree && player.Board.Id == WonderId.HalikarnassosA && player.Board.Stage != 2)
-                    player.DiscardFree = false;
-
             if (StartPhase(Phase.DiscardBuild))
                 return;
             AfterDiscardBuild();
@@ -461,7 +399,7 @@ namespace _7WondersGame.src.models
                 foreach (PlayerState player in Players)
                 {
                     // Olympia A stage 2: one free card per era
-                    player.FreeCardOnce = player.Board.Id == WonderId.OlympiaA && player.Board.Stage >= 2;
+                    player.FreeCardOnce = player.Has(Ability.FreeCardEachEra);
                     player.Battle(Era);
                 }
                 if (Tracing)
@@ -742,15 +680,9 @@ namespace _7WondersGame.src.models
         {
             public static TraceSnapshot Of(PlayerState p)
             {
-                var flags = new List<string>();
-                if (p.PlaySeventh) flags.Add(nameof(p.PlaySeventh));
+                var flags = Enum.GetValues<Ability>().Where(a => a != Ability.None && p.Has(a)).Select(a => a.ToString()).ToList();
                 if (p.DiscardFree) flags.Add(nameof(p.DiscardFree));
                 if (p.FreeCardOnce) flags.Add(nameof(p.FreeCardOnce));
-                if (p.WonderRawCheap) flags.Add(nameof(p.WonderRawCheap));
-                if (p.RawCheapWest) flags.Add(nameof(p.RawCheapWest));
-                if (p.RawCheapEast) flags.Add(nameof(p.RawCheapEast));
-                if (p.ManufCheap) flags.Add(nameof(p.ManufCheap));
-                if (p.ExtraScience) flags.Add(nameof(p.ExtraScience));
                 return new TraceSnapshot(p.Resources[Resource.Coins], p.Board.Stage, flags);
             }
         }

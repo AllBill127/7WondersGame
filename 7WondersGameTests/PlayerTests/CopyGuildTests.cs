@@ -14,9 +14,9 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> wonders = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaB(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaB),
+                new Wonder(WonderId.BabylonA),
             };
             List<PlayerState> players = MockHelper.MockPlayers(wonders);
 
@@ -45,9 +45,9 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> wonder = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaB(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaB),
+                new Wonder(WonderId.BabylonA),
             };
             List<PlayerState> players = MockHelper.MockPlayers(wonder);
 
@@ -82,9 +82,9 @@ namespace _7WondersGameTests.PlayerTests
             // Arrange
             List<Wonder> wonder = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaB(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaB),
+                new Wonder(WonderId.BabylonA),
             };
             List<PlayerState> players = MockHelper.MockPlayers(wonder);
 
@@ -108,7 +108,7 @@ namespace _7WondersGameTests.PlayerTests
         private static List<PlayerState> OlympiaBWithStage3()
         {
             List<PlayerState> players = MockHelper.MockPlayers(
-                new List<Wonder> { new GizahA(), new OlympiaB(), new BabylonA() });
+                new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.OlympiaB), new Wonder(WonderId.BabylonA) });
             players[1].Board.Stage = 3;
             return players;
         }
@@ -149,7 +149,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void CopyGuild_Scientists_SetsExtraScience_WhenWorthMost()
+        public void CopyGuild_Scientists_GivesWildcard_WhenWorthMost()
         {
             var players = OlympiaBWithStage3();
             // Own science: 2 gears, 2 compasses, 1 tablet = 16 VP; with a wildcard tablet = 26 VP (+10).
@@ -165,12 +165,12 @@ namespace _7WondersGameTests.PlayerTests
             Assert.IsTrue(players[1].CopyGuild());
 
             Assert.IsTrue(players[1].PlayedCards.Contains(CardsDataset.GameCards[CardId.Scientists]));
-            Assert.IsTrue(players[1].ExtraScience);
+            Assert.AreEqual(1, players[1].ScienceWildcards());
             Assert.AreEqual(26, players[1].CalculateScientificScore());
         }
 
         [TestMethod]
-        public void CopyGuild_NotChosenScientists_LeavesExtraScienceOff()
+        public void CopyGuild_NotChosenScientists_GivesNoWildcard()
         {
             var players = OlympiaBWithStage3();
             // No science symbols, so Scientists is worth 1 VP; Workers is worth 2 VP.
@@ -182,7 +182,7 @@ namespace _7WondersGameTests.PlayerTests
             Assert.IsTrue(players[1].CopyGuild());
 
             Assert.IsTrue(players[1].PlayedCards.Contains(CardsDataset.GameCards[CardId.Workers]));
-            Assert.IsFalse(players[1].ExtraScience);
+            Assert.AreEqual(0, players[1].ScienceWildcards());
         }
 
         [TestMethod]

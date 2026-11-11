@@ -14,7 +14,7 @@ namespace _7WondersGameTests.PlayerTests
         private static PlayerState PlayerWithTwoYellowCards()
         {
             List<PlayerState> players = MockHelper.MockPlayers(
-                new List<Wonder> { new GizahA(), new BabylonA(), new OlympiaA() });
+                new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.BabylonA), new Wonder(WonderId.OlympiaA) });
             PlayerState player = players[0];
             player.PlayedCards.Add(CardsDataset.GameCards[CardId.Marketplace]);
             player.PlayedCards.Add(CardsDataset.GameCards[CardId.Tavern]);

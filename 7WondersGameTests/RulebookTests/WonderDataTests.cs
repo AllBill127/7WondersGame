@@ -6,7 +6,7 @@ namespace _7WondersGameTests.RulebookTests
 {
     /// <summary>
     /// Wonder board data checked against the 1st edition (2010) rulebook.
-    /// The rows are typed from the rulebook, not copied from the Wonder classes.
+    /// The rows are typed from the rulebook, not copied from the board table (WonderBoards).
     /// </summary>
     [TestClass]
     public class WonderDataTests
@@ -124,24 +124,27 @@ namespace _7WondersGameTests.RulebookTests
 
             // Build it and check the rewards.
             SetResources(player, costDict);
-            int vpBefore = player.Board.WonderPoints;
+            int vpBefore = player.Board.WonderPoints(player);
             int shieldsBefore = player.Resources[Resource.Shields];
             int scienceBefore = player.CalculateScientificScore();
-            player.PlaySeventh = false;
+            Ability abilitiesBefore = player.Board.Abilities;
             player.FreeCardOnce = false;
             player.DiscardFree = false;
-            player.WonderRawCheap = false;
 
             Assert.IsTrue(player.Board.AddStage(player), "build stage");
             Assert.AreEqual(stage, player.Board.Stage, "stage number");
-            Assert.AreEqual(vp, player.Board.WonderPoints - vpBefore, "VP");
+            Assert.AreEqual(vp, player.Board.WonderPoints(player) - vpBefore, "VP");
             Assert.AreEqual(coins, player.Resources[Resource.Coins], "coins");
             Assert.AreEqual(shields, player.Resources[Resource.Shields] - shieldsBefore, "shields");
 
-            Assert.AreEqual(effect == "PlaySeventh", player.PlaySeventh, "play seventh card");
-            Assert.AreEqual(effect == "FreeBuildOncePerAge", player.FreeCardOnce, "free build once per age");
+            Ability gained = player.Board.Abilities & ~abilitiesBefore;
+            Assert.AreEqual(effect == "PlaySeventh", gained.HasFlag(Ability.PlaySeventh), "play seventh card");
+            Assert.AreEqual(effect == "FreeBuildOncePerAge", player.FreeCardOnce && gained.HasFlag(Ability.FreeCardEachEra), "free build once per age");
             Assert.AreEqual(effect == "BuildFromDiscard", player.DiscardFree, "build from discard");
-            Assert.AreEqual(effect == "RawTradingDiscount", player.WonderRawCheap, "raw trading discount");
+            Assert.AreEqual(effect == "RawTradingDiscount", gained.HasFlag(Ability.WonderRawCheap), "raw trading discount");
+            Assert.AreEqual(effect == "RawWildcard", gained.HasFlag(Ability.AnyRaw), "raw wildcard");
+            Assert.AreEqual(effect == "ManufacturedWildcard", gained.HasFlag(Ability.AnyManufactured), "manufactured wildcard");
+            Assert.AreEqual(effect == "CopyGuild", gained.HasFlag(Ability.CopyGuild), "copy a guild");
             Assert.AreEqual(effect == "ScienceWildcard" ? 1 : 0, player.CalculateScientificScore() - scienceBefore, "science wildcard");
 
             if (effect == "RawWildcard" || effect == "ManufacturedWildcard")
@@ -165,16 +168,12 @@ namespace _7WondersGameTests.RulebookTests
 
         // ===== helpers =====
 
-        private static Wonder CreateWonder(string name)
-        {
-            Type type = typeof(Wonder).Assembly.GetType("_7WondersGame.src.models.Wonders." + name)!;
-            return (Wonder)Activator.CreateInstance(type)!;
-        }
+        private static Wonder CreateWonder(string name) => new Wonder(Enum.Parse<WonderId>(name));
 
         private static PlayerState SetUpPlayer(string wonder)
         {
             List<PlayerState> players = MockHelper.MockPlayers(
-                new List<Wonder> { CreateWonder(wonder), new GizahA(), new GizahA() });
+                new List<Wonder> { CreateWonder(wonder), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
             foreach (PlayerState p in players)
                 p.Resources[Resource.Coins] = 0;
             return players[0];

@@ -25,7 +25,7 @@ namespace _7WondersGameTests.PlayerTests
             int expVictoryPoints = players[1].VictoryPoints;
             Dictionary<Resource, int> expResources = players[1].Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
             List<Card> expPlayedCards = players[1].PlayedCards.Select(e => e).ToList();
-            bool expExtraScience = players[1].ExtraScience;
+            int expWildcards = players[1].ScienceWildcards();
             int expectedScore = 8;
 
             // Test
@@ -39,7 +39,7 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expVictoryTokens, p1.VictoryTokens);
             Assert.AreEqual(expDefeatTokens, p1.DefeatTokens);
             Assert.AreEqual(expVictoryPoints, p1.VictoryPoints);
-            Assert.AreEqual(expExtraScience, p1.ExtraScience);
+            Assert.AreEqual(expWildcards, p1.ScienceWildcards());
             bool isResourceMatch = p1.Resources.OrderBy(kvp => kvp.Key)
                     .SequenceEqual(expResources.OrderBy(kvp => kvp.Key));
             Assert.IsTrue(isResourceMatch);
@@ -69,7 +69,7 @@ namespace _7WondersGameTests.PlayerTests
             int expVictoryPoints = players[1].VictoryPoints;
             Dictionary<Resource, int> expResources = players[1].Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
             List<Card> expPlayedCards = players[1].PlayedCards.Select(e => e).ToList();
-            bool expExtraScience = players[1].ExtraScience;
+            int expWildcards = players[1].ScienceWildcards();
             int expectedScore = 10;
 
             // Test
@@ -83,7 +83,7 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expVictoryTokens, p1.VictoryTokens);
             Assert.AreEqual(expDefeatTokens, p1.DefeatTokens);
             Assert.AreEqual(expVictoryPoints, p1.VictoryPoints);
-            Assert.AreEqual(expExtraScience, p1.ExtraScience);
+            Assert.AreEqual(expWildcards, p1.ScienceWildcards());
             bool isResourceMatch = p1.Resources.OrderBy(kvp => kvp.Key)
                     .SequenceEqual(expResources.OrderBy(kvp => kvp.Key));
             Assert.IsTrue(isResourceMatch);
@@ -110,7 +110,7 @@ namespace _7WondersGameTests.PlayerTests
             int expVictoryPoints = players[1].VictoryPoints;
             Dictionary<Resource, int> expResources = players[1].Resources.ToDictionary(entry => entry.Key, entry => entry.Value);
             List<Card> expPlayedCards = players[1].PlayedCards.Select(e => e).ToList();
-            bool expExtraScience = players[1].ExtraScience;
+            int expWildcards = players[1].ScienceWildcards();
             int expectedScore = 10;
 
             // Test
@@ -124,7 +124,7 @@ namespace _7WondersGameTests.PlayerTests
             Assert.AreEqual(expVictoryTokens, p1.VictoryTokens);
             Assert.AreEqual(expDefeatTokens, p1.DefeatTokens);
             Assert.AreEqual(expVictoryPoints, p1.VictoryPoints);
-            Assert.AreEqual(expExtraScience, p1.ExtraScience);
+            Assert.AreEqual(expWildcards, p1.ScienceWildcards());
             bool isResourceMatch = p1.Resources.OrderBy(kvp => kvp.Key)
                     .SequenceEqual(expResources.OrderBy(kvp => kvp.Key));
             Assert.IsTrue(isResourceMatch);

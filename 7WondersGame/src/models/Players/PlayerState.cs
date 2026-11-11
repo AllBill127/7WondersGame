@@ -1,4 +1,5 @@
-﻿using _7WondersGame.src.models.Wonders;
+﻿using _7WondersGame.src.models.Effects;
+using _7WondersGame.src.models.Wonders;
 
 namespace _7WondersGame.src.models.Players
 {
@@ -26,23 +27,17 @@ namespace _7WondersGame.src.models.Players
         /// <summary>Set by <see cref="Rules.CalculateScore"/>.</summary>
         public int VictoryPoints = 0;
 
-        // Wonder and card effects that later rules read (see docs/08-special-effects.md)
-        /// <summary>Babylon B stage 2: also plays the 7th card of each era.</summary>
-        public bool PlaySeventh = false;
-        /// <summary>Olympia B stage 1: raw resources cost 1 coin from both neighbours.</summary>
-        public bool WonderRawCheap = false;
-        /// <summary>East Trading Post: raw resources cost 1 coin from the east neighbour.</summary>
-        public bool RawCheapEast = false;
-        /// <summary>West Trading Post: raw resources cost 1 coin from the west neighbour.</summary>
-        public bool RawCheapWest = false;
-        /// <summary>Marketplace: manufactured goods cost 1 coin from both neighbours.</summary>
-        public bool ManufCheap = false;
-        /// <summary>Olympia A stage 2: one card per era for free, re-armed at the start of each era.</summary>
+        /// <summary>
+        /// The lasting abilities the built cards gave (trading posts, Marketplace). The board's come from its stage;
+        /// check both with <see cref="Rules.Has"/>.
+        /// </summary>
+        public Ability Abilities = Ability.None;
+
+        // One-use effects (see docs/08-special-effects.md)
+        /// <summary>Olympia A stage 2: this era's free card is still unused. Re-armed at the start of each era.</summary>
         public bool FreeCardOnce = false;
-        /// <summary>Halikarnassos A stage 2, B stages 1-3: a free build from the discard pile at the end of the turn.</summary>
+        /// <summary>Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.</summary>
         public bool DiscardFree = false;
-        /// <summary>Scientists Guild: one science symbol of the player's choice.</summary>
-        public bool ExtraScience = false;
 
         public Dictionary<Resource, int> Resources = new()
         {

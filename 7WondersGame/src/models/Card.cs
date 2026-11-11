@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using _7WondersGame.src.models.Effects;
 
 namespace _7WondersGame.src.models
 {
@@ -11,10 +12,22 @@ namespace _7WondersGame.src.models
         public CardId FreeWithId { get; }
         public IReadOnlyDictionary<Resource, int> Cost { get; }
 
+        /// <summary>What the card does when built and at the end of the game (E3).</summary>
+        public IReadOnlyList<IEffect> Effects { get; }
+
+        /// <summary>Its either/or production for its owner as a bit mask (bit i = resource i), or 0 (see <see cref="OneOf"/>).</summary>
+        public int ChoiceMask { get; }
+
+        /// <summary>The part of <see cref="ChoiceMask"/> a neighbour can buy.</summary>
+        public int SellableChoiceMask { get; }
+
+        /// <summary>Science symbols of the owner's choice it gives (Scientists Guild).</summary>
+        public int ScienceWildcards { get; }
+
         /// <summary>Copies in the deck for 3, 4, 5, 6 and 7 players.</summary>
         private readonly int[] _copies;
 
-        public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] copies)
+        public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] copies, params IEffect[] effects)
         {
             Id = id;
             Name = name;
@@ -22,6 +35,10 @@ namespace _7WondersGame.src.models
             Era = era;
             FreeWithId = freeWithId;
             _copies = copies.ToArray();
+            Effects = effects;
+            ChoiceMask = effects.OfType<OneOf>().Aggregate(0, (mask, e) => mask | e.Mask);
+            SellableChoiceMask = effects.OfType<OneOf>().Where(e => e.Sellable).Aggregate(0, (mask, e) => mask | e.Mask);
+            ScienceWildcards = effects.OfType<ScienceWildcard>().Count();
             Cost = new Dictionary<Resource, int>()
             {
                 { Resource.Wood,       cost[0] },

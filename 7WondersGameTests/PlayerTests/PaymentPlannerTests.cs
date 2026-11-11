@@ -18,7 +18,7 @@ namespace _7WondersGameTests.PlayerTests
         private static (PlayerState West, PlayerState Buyer, PlayerState East) SetUp(int coins, Wonder? buyerWonder = null)
         {
             List<PlayerState> players = MockHelper.MockPlayers(
-                new List<Wonder> { new GizahA(), buyerWonder ?? new GizahA(), new GizahA() });
+                new List<Wonder> { new Wonder(WonderId.GizahA), buyerWonder ?? new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
             foreach (PlayerState p in players)
                 p.Resources[Resource.Coins] = 0;
             players[1].Resources[Resource.Coins] = coins;
@@ -113,7 +113,7 @@ namespace _7WondersGameTests.PlayerTests
         {
             // East Trading Post: 1 coin per raw from the east. East has one wood, west has plenty.
             var (west, buyer, east) = SetUp(coins: 3);
-            buyer.RawCheapEast = true;
+            buyer.Abilities |= Ability.RawCheapEast;
             west.Resources[Resource.Wood] = 3;
             east.Resources[Resource.Wood] = 1;
             Assert.AreEqual(new PaymentPlan(2, 1), buyer.PlanPayment(Cost((Resource.Wood, 2))));
@@ -132,7 +132,7 @@ namespace _7WondersGameTests.PlayerTests
         public void CheaperNeighbourWins()
         {
             var (west, buyer, east) = SetUp(coins: 2);
-            buyer.RawCheapEast = true;
+            buyer.Abilities |= Ability.RawCheapEast;
             west.Resources[Resource.Stone] = 1;
             east.Resources[Resource.Stone] = 1;
             Assert.AreEqual(new PaymentPlan(0, 1), buyer.PlanPayment(Cost((Resource.Stone, 1))));
@@ -142,7 +142,7 @@ namespace _7WondersGameTests.PlayerTests
         public void OlympiaB_RawFromBothNeighboursCostsOne()
         {
             var (west, buyer, east) = SetUp(coins: 2);
-            buyer.WonderRawCheap = true;
+            buyer.Abilities |= Ability.WonderRawCheap;
             west.Resources[Resource.Ore] = 1;
             east.Resources[Resource.Ore] = 1;
             Assert.AreEqual(new PaymentPlan(1, 1), buyer.PlanPayment(Cost((Resource.Ore, 2))));
@@ -152,7 +152,7 @@ namespace _7WondersGameTests.PlayerTests
         public void Marketplace_ManufacturedCostsOne_RawStillTwo()
         {
             var (west, buyer, _) = SetUp(coins: 3);
-            buyer.ManufCheap = true;
+            buyer.Abilities |= Ability.ManufCheap;
             west.Resources[Resource.Glass] = 1;
             west.Resources[Resource.Wood] = 1;
             Assert.AreEqual(new PaymentPlan(3, 0), buyer.PlanPayment(Cost((Resource.Glass, 1), (Resource.Wood, 1))));
@@ -173,7 +173,7 @@ namespace _7WondersGameTests.PlayerTests
         [TestMethod]
         public void AlexandriaWildcards()
         {
-            var (_, buyer, _) = SetUp(coins: 0, new AlexandriaB());
+            var (_, buyer, _) = SetUp(coins: 0, new Wonder(WonderId.AlexandriaB));
             Assert.IsNull(buyer.PlanPayment(Cost((Resource.Stone, 1))));
             buyer.Board.Stage = 1;   // any raw
             Assert.AreEqual(PaymentPlan.Free, buyer.PlanPayment(Cost((Resource.Stone, 1))));
@@ -225,7 +225,7 @@ namespace _7WondersGameTests.PlayerTests
         {
             var rng = new Random(20261110);
             CardId[] brown = { CardId.TreeFarm, CardId.ForestCave, CardId.TimberYard, CardId.Excavation, CardId.ClayPit, CardId.Mine };
-            Func<Wonder>[] boards = { () => new GizahA(), () => new AlexandriaA(), () => new AlexandriaB() };
+            Func<Wonder>[] boards = { () => new Wonder(WonderId.GizahA), () => new Wonder(WonderId.AlexandriaA), () => new Wonder(WonderId.AlexandriaB) };
 
             for (int test = 0; test < 3000; test++)
             {
@@ -242,10 +242,10 @@ namespace _7WondersGameTests.PlayerTests
                     if (rng.Next(4) == 0) Build(p, CardId.Caravansery);
                     if (rng.Next(4) == 0) Build(p, CardId.Forum);
                 }
-                buyer.RawCheapWest = rng.Next(3) == 0;
-                buyer.RawCheapEast = rng.Next(3) == 0;
-                buyer.WonderRawCheap = rng.Next(5) == 0;
-                buyer.ManufCheap = rng.Next(3) == 0;
+                if (rng.Next(3) == 0) buyer.Abilities |= Ability.RawCheapWest;
+                if (rng.Next(3) == 0) buyer.Abilities |= Ability.RawCheapEast;
+                if (rng.Next(5) == 0) buyer.Abilities |= Ability.WonderRawCheap;
+                if (rng.Next(3) == 0) buyer.Abilities |= Ability.ManufCheap;
 
                 var cost = new Dictionary<Resource, int>();
                 int kinds = rng.Next(1, 4);
@@ -313,8 +313,8 @@ namespace _7WondersGameTests.PlayerTests
             {
                 bool isRaw = raw.Contains(r);
                 bool cheap = isRaw
-                    ? buyer.WonderRawCheap || (seller == 1 ? buyer.RawCheapWest : buyer.RawCheapEast)
-                    : buyer.ManufCheap;
+                    ? buyer.Has(Ability.WonderRawCheap) || (seller == 1 ? buyer.Has(Ability.RawCheapWest) : buyer.Has(Ability.RawCheapEast))
+                    : buyer.Has(Ability.ManufCheap);
                 return cheap ? 1 : 2;
             }
 

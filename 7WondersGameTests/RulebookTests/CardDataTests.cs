@@ -228,6 +228,32 @@ namespace _7WondersGameTests.RulebookTests
             Assert.AreEqual(amount, player.Resources[Enum.Parse<Resource>(resource)]);
         }
 
+        // Columns: card, the resources it offers one of each turn, whether a neighbour can buy them.
+        [DataTestMethod]
+        [DataRow("Tree Farm",   "Wood Clay",           true)]
+        [DataRow("Excavation",  "Stone Clay",          true)]
+        [DataRow("Clay Pit",    "Clay Ore",            true)]
+        [DataRow("Timber Yard", "Stone Wood",          true)]
+        [DataRow("Forest Cave", "Wood Ore",            true)]
+        [DataRow("Mine",        "Ore Stone",           true)]
+        [DataRow("Caravansery", "Wood Stone Ore Clay", false)]
+        [DataRow("Forum",       "Loom Glass Papyrus",  false)]
+        public void EitherOrCard_OffersRulebookChoice(string name, string choices, bool sellable)
+        {
+            Card card = CardsDataset.GameCards.Values.Single(c => c.Name == name);
+            int mask = choices.Split(' ').Aggregate(0, (m, r) => m | 1 << (int)Enum.Parse<Resource>(r));
+
+            Assert.AreEqual(mask, card.ChoiceMask, "choices");
+            Assert.AreEqual(sellable ? mask : 0, card.SellableChoiceMask, "neighbours can buy");
+        }
+
+        [TestMethod]
+        public void EveryCard_HasAnEffect()
+        {
+            foreach (Card card in CardsDataset.GameCards.Values)
+                Assert.AreNotEqual(0, card.Effects.Count, card.Name);
+        }
+
         // ===== helpers =====
 
         private static Card FindCard(string name, int era)
@@ -260,7 +286,7 @@ namespace _7WondersGameTests.RulebookTests
                 : FindCard(name, era);
 
             List<PlayerState> players = MockHelper.MockPlayers(
-                new List<Wonder> { new GizahA(), new BabylonA(), new OlympiaA() });
+                new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.BabylonA), new Wonder(WonderId.OlympiaA) });
             PlayerState player = players[0];
 
             Assert.IsTrue(player.BuildStructure(card, new List<Card> { card }, true));

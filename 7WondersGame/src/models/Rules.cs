@@ -1,5 +1,5 @@
-﻿using _7WondersGame.src.models.Players;
-using _7WondersGame.src.models.Wonders;
+﻿using _7WondersGame.src.models.Effects;
+using _7WondersGame.src.models.Players;
 
 namespace _7WondersGame.src.models
 {
@@ -64,7 +64,7 @@ namespace _7WondersGame.src.models
         {
             ActionType.Build => p.PlanBuild(action, card, source, free: false),
             // Olympia A stage 2: one free card per era
-            ActionType.BuildFreeOnce => p.Board.Id == WonderId.OlympiaA && p.Board.Stage >= 2 && p.FreeCardOnce
+            ActionType.BuildFreeOnce => p.Has(Ability.FreeCardEachEra) && p.FreeCardOnce
                 ? p.PlanBuild(action, card, source, free: true) : null,
             ActionType.BuildWonder => p.PlanWonder(card, source),
             ActionType.Discard => source.Contains(card) ? new PlannedMove(p, action, card, source, PaymentPlan.Free, 0) : null,
@@ -72,14 +72,10 @@ namespace _7WondersGame.src.models
         };
 
         /// <summary>Step 1 for Halikarnassos: a free build from the discard pile while <see cref="PlayerState.DiscardFree"/> is on.</summary>
-        public static PlannedMove? PlanDiscardPileBuild(this PlayerState p, Card card, List<Card> discardPile)
-        {
-            bool halikarnassos = p.Board.Id == WonderId.HalikarnassosA && p.Board.Stage == 2 ||
-                                 p.Board.Id == WonderId.HalikarnassosB && p.Board.Stage >= 1;
-            return halikarnassos && p.DiscardFree && p.PlanBuild(ActionType.Build, card, discardPile, free: true) is { } move
+        public static PlannedMove? PlanDiscardPileBuild(this PlayerState p, Card card, List<Card> discardPile) =>
+            p.DiscardFree && p.PlanBuild(ActionType.Build, card, discardPile, free: true) is { } move
                 ? move with { FromDiscardPile = true }
                 : null;
-        }
 
         private static PlannedMove? PlanBuild(this PlayerState p, ActionType action, Card card, List<Card> source, bool free)
         {
@@ -153,192 +149,11 @@ namespace _7WondersGame.src.models
             return true;
         }
 
-        /// <summary>A card's effect when it is built: production, coins, shields, science or a trading flag.</summary>
+        /// <summary>A card's effects when it is built: production, coins, shields, science or an ability (see <see cref="Card.Effects"/>).</summary>
         public static void ApplyCardEffect(this PlayerState p, Card card)
         {
-            CardId cardId = card.Id;
-            switch (card.Type)
-            {
-                case CardType.Materials:
-                    if (cardId == CardId.LumberYard)
-                    {
-                        p.Resources[Resource.Wood] += 1;
-                    }
-                    else if (cardId == CardId.StonePit)
-                    {
-                        p.Resources[Resource.Stone] += 1;
-                    }
-                    else if (cardId == CardId.ClayPool)
-                    {
-                        p.Resources[Resource.Clay] += 1;
-                    }
-                    else if (cardId == CardId.OreVein)
-                    {
-                        p.Resources[Resource.Ore] += 1;
-                    }
-                    else if (cardId == CardId.TreeFarm)
-                    {
-                        // wood or clay (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.Excavation)
-                    {
-                        // stone or clay (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.ClayPit)
-                    {
-                        // clay or ore (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.TimberYard)
-                    {
-                        // stone or wood (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.ForestCave)
-                    {
-                        // wood or ore (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.Mine)
-                    {
-                        // ore or stone (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.Sawmill)
-                    {
-                        p.Resources[Resource.Wood] += 2;
-                    }
-                    else if (cardId == CardId.Quarry)
-                    {
-                        p.Resources[Resource.Stone] += 2;
-                    }
-                    else if (cardId == CardId.Brickyard)
-                    {
-                        p.Resources[Resource.Clay] += 2;
-                    }
-                    else if (cardId == CardId.Foundry)
-                    {
-                        p.Resources[Resource.Ore] += 2;
-                    }
-                    break;
-
-                case CardType.Manufactured:
-                    if (cardId == CardId.Loom || cardId == CardId.Loom2)
-                    {
-                        p.Resources[Resource.Loom]++;
-                    }
-                    else if (cardId == CardId.Glassworks || cardId == CardId.Glassworks2)
-                    {
-                        p.Resources[Resource.Glass]++;
-                    }
-                    else if (cardId == CardId.Press || cardId == CardId.Press2)
-                    {
-                        p.Resources[Resource.Papyrus]++;
-                    }
-                    break;
-
-                case CardType.Commercial:
-                    if (cardId == CardId.Tavern)
-                    {
-                        p.Resources[Resource.Coins] += 5;
-                    }
-                    else if (cardId == CardId.EastTradingPost)
-                    {
-                        p.RawCheapEast = true;
-                    }
-                    else if (cardId == CardId.WestTradingPost)
-                    {
-                        p.RawCheapWest = true;
-                    }
-                    else if (cardId == CardId.Marketplace)
-                    {
-                        p.ManufCheap = true;
-                    }
-                    else if (cardId == CardId.Forum)
-                    {
-                        // loom or glass or papyrus (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.Caravansery)
-                    {
-                        // clay or stone or ore or wood (used when paying, see PaymentPlanner)
-                    }
-                    else if (cardId == CardId.Vineyard)
-                    {
-                        int brownCards = p.PlayerEast.AmountOfType(CardType.Materials)
-                                        + p.PlayerWest.AmountOfType(CardType.Materials)
-                                        + p.AmountOfType(CardType.Materials);
-                        p.Resources[Resource.Coins] += 1 * brownCards;
-                    }
-                    else if (cardId == CardId.Bazar)
-                    {
-                        int greyCards = p.PlayerEast.AmountOfType(CardType.Manufactured)
-                                        + p.PlayerWest.AmountOfType(CardType.Manufactured)
-                                        + p.AmountOfType(CardType.Manufactured);
-                        p.Resources[Resource.Coins] += 2 * greyCards;
-                    }
-                    else if (cardId == CardId.Haven)
-                    {
-                        int brownCards = p.AmountOfType(CardType.Materials);
-                        p.Resources[Resource.Coins] += 1 * brownCards;
-                    }
-                    else if (cardId == CardId.Lighthouse)
-                    {
-                        int yellowCards = p.AmountOfType(CardType.Commercial);
-                        p.Resources[Resource.Coins] += 1 * yellowCards;
-                    }
-                    else if (cardId == CardId.ChamberOfCommerce)
-                    {
-                        int greyCards = p.AmountOfType(CardType.Manufactured);
-                        p.Resources[Resource.Coins] += 2 * greyCards;
-                    }
-                    else if (cardId == CardId.Arena)
-                    {
-                        int stages = p.Board.Stage;
-                        p.Resources[Resource.Coins] += 3 * stages;
-                    }
-                    break;
-
-                case CardType.Military:
-                    if (cardId == CardId.Stockade || cardId == CardId.Barracks || cardId == CardId.GuardTower)
-                    {
-                        p.Resources[Resource.Shields] += 1;
-                    }
-                    else if (cardId == CardId.Walls || cardId == CardId.TrainingGround ||
-                               cardId == CardId.Stables || cardId == CardId.ArcheryRange)
-                    {
-                        p.Resources[Resource.Shields] += 2;
-                    }
-                    else if (cardId == CardId.Fortifications || cardId == CardId.Circus ||
-                               cardId == CardId.Arsenal || cardId == CardId.SiegeWorkshop)
-                    {
-                        p.Resources[Resource.Shields] += 3;
-                    }
-                    break;
-
-                case CardType.Scientific:
-                    if (cardId == CardId.Workshop || cardId == CardId.Laboratory ||
-                        cardId == CardId.Observatory || cardId == CardId.Study)
-                    {
-                        p.Resources[Resource.Gear]++;
-                    }
-                    else if (cardId == CardId.Apothecary || cardId == CardId.Dispensary ||
-                        cardId == CardId.Lodge || cardId == CardId.Academy)
-                    {
-                        p.Resources[Resource.Compass]++;
-                    }
-                    else if (cardId == CardId.Scriptorium || cardId == CardId.Library ||
-                        cardId == CardId.School || cardId == CardId.University)
-                    {
-                        p.Resources[Resource.Tablet]++;
-                    }
-                    break;
-
-                case CardType.Guild:
-                    if (cardId == CardId.Scientists)
-                    {
-                        p.ExtraScience = true;
-                    }
-                    break;
-
-                default:
-                    break;
-            }
+            foreach (IEffect effect in card.Effects)
+                effect.OnBuild(p);
         }
 
         /// <summary>The no-duplicates rule: true if the city already has a card with this name.</summary>
@@ -357,10 +172,8 @@ namespace _7WondersGame.src.models
 
             if (freeWithId != CardId.None)
             {
-                // Treating exception:
-                // Forum can be constructed for free if the player has either the East Trading Post
-                // or the West Trading Post (raw_cheap_east or raw_cheap_west).
-                if (freeWithId == CardId.AnyTradingPost && (p.RawCheapEast || p.RawCheapWest))
+                // Forum is free with either trading post
+                if (freeWithId == CardId.AnyTradingPost && p.PlayedCards.Any(c => c.Id is CardId.EastTradingPost or CardId.WestTradingPost))
                     return true;
 
                 // General case:
@@ -418,11 +231,17 @@ namespace _7WondersGame.src.models
             p.PlayerEast.Resources[Resource.Coins] += plan.ToEast;
         }
 
-        /// <summary>Alexandria A stage 2 / B stage 1: one raw resource of the player's choice each turn.</summary>
-        internal static bool HasExtraRaw(this PlayerState p) =>
-            p.Board.Id == WonderId.AlexandriaA && p.Board.Stage >= 2 || p.Board.Id == WonderId.AlexandriaB && p.Board.Stage >= 1;
+        // =========== Abilities ===========
+        /// <summary>Does a built card or wonder stage give the player this ability?</summary>
+        public static bool Has(this PlayerState p, Ability ability) => ((p.Abilities | p.Board.Abilities) & ability) != 0;
 
-        /// <summary>Alexandria B stage 2: one manufactured good of the player's choice each turn.</summary>
-        internal static bool HasExtraManuf(this PlayerState p) => p.Board.Id == WonderId.AlexandriaB && p.Board.Stage >= 2;
+        /// <summary>Science symbols of the player's choice: Scientists Guild, Babylon.</summary>
+        public static int ScienceWildcards(this PlayerState p)
+        {
+            int wildcards = p.Board.ScienceWildcards;
+            foreach (Card card in p.PlayedCards)
+                wildcards += card.ScienceWildcards;
+            return wildcards;
+        }
     }
 }

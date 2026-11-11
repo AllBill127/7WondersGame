@@ -14,13 +14,13 @@ namespace _7WondersGameTests.PlayerTests
         [DataRow(CardId.Marketplace)]
         public void ScoreAfterPlayingCard_TradingCard_GivesNoDiscount(CardId id)
         {
-            List<PlayerState> players = MockHelper.MockPlayers(new List<Wonder> { new HalikarnassosB(), new GizahA(), new GizahA() });
+            List<PlayerState> players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(WonderId.HalikarnassosB), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
             PlayerState p = players[0];
 
             // in era 2 or 3 a Halikarnassos player can meet an era 1 trading card in the discard pile
             p.ScoreAfterPlayingCard(3, CardsDataset.GameCards[id]);
 
-            Assert.IsFalse(p.RawCheapEast || p.RawCheapWest || p.ManufCheap);
+            Assert.IsFalse(p.Has(Ability.RawCheapEast | Ability.RawCheapWest | Ability.ManufCheap));
         }
     }
 }

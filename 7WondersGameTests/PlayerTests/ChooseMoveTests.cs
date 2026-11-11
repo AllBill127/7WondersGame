@@ -23,9 +23,9 @@ namespace _7WondersGameTests.PlayerTests
             Game testGame = new Game();
             List<Wonder> wonders = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaA(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaA),
+                new Wonder(WonderId.BabylonA),
             };
             List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
@@ -57,9 +57,9 @@ namespace _7WondersGameTests.PlayerTests
             Game testGame = new Game();
             List<Wonder> wonders = new List<Wonder>()
             {
-                new GizahA(),
-                new OlympiaA(),
-                new BabylonA(),
+                new Wonder(WonderId.GizahA),
+                new Wonder(WonderId.OlympiaA),
+                new Wonder(WonderId.BabylonA),
             };
             List<PlayerState> players = MockHelper.MockPlayers(wonders);
             testGame.Players = players;
