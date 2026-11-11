@@ -30,6 +30,7 @@ namespace _7WondersGame.src
                 {
                     "run" => await Commands.Run(cli, args),
                     "replay" => await Commands.Replay(cli),
+                    "analyze" => Commands.Analyze(cli),
                     "dataset" => await Commands.Dataset(cli),
                     "agents" => Commands.Agents(cli),
                     _ => throw new UsageException($"Unknown command '{args[0]}'."),

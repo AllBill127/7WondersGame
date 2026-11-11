@@ -3,13 +3,14 @@
     /// <summary>The text printed by 'help' and 'help &lt;command&gt;'.</summary>
     public static class HelpText
     {
-        public static readonly string[] Topics = { "run", "replay", "dataset", "agents" };
+        public static readonly string[] Topics = { "run", "replay", "analyze", "dataset", "agents" };
 
         public static string For(string? topic) => topic?.ToLowerInvariant() switch
         {
             null or "" or "help" => General,
             "run" => Run,
             "replay" => Replay,
+            "analyze" => Analyze,
             "dataset" => Dataset,
             "agents" => Commands.AgentsText(),
             _ => $"No help for '{topic}'.\n\n" + General,
@@ -26,6 +27,7 @@ Usage:
 Commands:
   run       Play games and append one row per player to a results CSV.
   replay    Play one game again and print what happens, step by step.
+  analyze   Win rates with confidence intervals, and paired differences, from a results CSV.
   dataset   Write a file of pre-shuffled deals for 'run --dataset'.
   agents    List the agents and their settings.
 
@@ -135,6 +137,43 @@ To keep the trace, redirect it: ... > trace.txt
 Examples:
   {Exe} replay --from results.csv --run 20261109-191254-0000000000003039 --game 12
   {Exe} replay --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --game-seed 0x9e3779b97f4a7c15 --log verbose
+";
+
+        public static readonly string Analyze = $@"analyze: summarize a results CSV: who wins how often, and which differences are more than chance.
+
+  {Exe} analyze --from <results.csv> [--run <runId>[,<runId>...] | --run all] [--by <grouping>] [--vs <n>] [--out <file.csv>]
+
+  --from <file>       A results CSV (a relative name is looked for in the current folder, then in
+                      the results folder).
+  --run <ids>         The runs to include (the runId column). Needed when the file has more than
+                      one run; 'all' takes every run (only if they are the same kind of experiment).
+  --by <grouping>     player (default): each agent configuration is a group, named by the agent and
+                      the settings that differ (e.g. MctsAgent C=0.3); agent: one group per agent
+                      name; seat; wonder (board and side).
+  --vs <n>            Compare every group with group n only (e.g. the baseline). Default: all pairs,
+                      if there are at most 8 groups (otherwise only with --vs).
+  --out <file.csv>    Also write the group table there, and the pairs to <file>.pairs.csv (a relative
+                      name goes next to the results CSV).
+  --log <level>       {Logging.Levels}.
+
+Per group: games (rows), win rate (a k-way tie for first counts 1/k) with its 95% Wilson
+interval, the fair share (1 / players: what an agent no better than the others gets), mean VP
++- its standard error, and mean rank.
+
+Paired differences: for two groups, the deals both played (same seed column = same deal) are
+matched. Per deal each group's VP and win share are averaged over its games, and the
+differences A - B are averaged over the deals, with a 95% interval (mean +- 1.96 standard
+errors). Pairing removes the luck of the deal, so it finds smaller differences than comparing
+the two win rates. A * marks a difference whose interval leaves out 0. With many pairs some
+will be marked by chance (about 1 in 20 when there is no difference).
+
+Works for: line-ups in one game (head to head, best with --rotate yes), and sweeps (each value
+of a range plays the same deals, so values are compared deal by deal).
+
+Examples:
+  {Exe} analyze --from c-sweep.csv
+  {Exe} analyze --from results.csv --run 20261109-191254-0000000000003039 --by agent
+  {Exe} analyze --from c-sweep.csv --vs 1 --out c-sweep-summary.csv
 ";
 
         public static readonly string Dataset = $@"dataset: write pre-shuffled deals (decks and wonders) to a file, for 'run --dataset'.
