@@ -28,6 +28,15 @@ namespace _7WondersGame.src.models
         private readonly Dictionary<int, Random> _agentRngs = new();
         private ulong _copyCount = 0;
 
+        // what each seat knows about the hidden cards (step 6, M1); null in a copy (see DeepCopy)
+        private KnowledgeTracker? _knowledge;
+
+        /// <summary>
+        /// What the seat knows about the cards it can't see (the cards it saw passing by, its own discards...), for a
+        /// search that must not use the rest. Null in a <see cref="DeepCopy"/>, which doesn't keep track.
+        /// </summary>
+        public SeatKnowledge? KnowledgeOf(int seat) => _knowledge?.Of(seat);
+
         /// <summary>
         /// Step-by-step trace of this game: Debug for the playout, Verbose for detail.
         /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so search copies and rollouts stay silent.
@@ -71,7 +80,8 @@ namespace _7WondersGame.src.models
 
         /// <summary>
         /// Copies the game state. The copy gets its own seed (derived from this game's seed and a copy counter),
-        /// so searching in copies never uses up this game's random streams.
+        /// so searching in copies never uses up this game's random streams. The copy doesn't keep track of what each
+        /// seat knows (<see cref="KnowledgeOf"/> is null): a search copy only needs the state.
         /// </summary>
         public Game DeepCopy()
         {
@@ -144,6 +154,7 @@ namespace _7WondersGame.src.models
             NumPlayers = Agents.Count;
             Players = Enumerable.Range(0, NumPlayers).Select(seat => new PlayerState(seat)).ToList();
             SetPlayerNeighbors();
+            _knowledge = new KnowledgeTracker(NumPlayers);
         }
 
         public void SetPlayerNeighbors()
@@ -212,6 +223,7 @@ namespace _7WondersGame.src.models
 
                 player.HandCards = cards.Select(e => e).ToList();
             }
+            _knowledge?.Dealt(Players);
         }
 
         /// <summary>
@@ -327,6 +339,7 @@ namespace _7WondersGame.src.models
                     {
                         if (!player.BuildDiscardFree(card, DiscardedCards))
                             throw MoveFailed(player, "build from the discard pile", card);
+                        _knowledge?.BuiltFromPile(card);
                         Trace.Debug("Seat {Seat} builds {Card} from the discard pile", seat, card.Name);
                     }
                     else
@@ -366,6 +379,9 @@ namespace _7WondersGame.src.models
                     Phase.DiscardBuild => p.DiscardFree,
                     _ => false,
                 };
+                // Halikarnassos looks through the discard pile to choose
+                if (phase == Phase.DiscardBuild && p.DiscardFree)
+                    _knowledge?.LooksAtPile(p.Id, DiscardedCards);
             }
             return _waiting!.Contains(true);
         }
@@ -380,10 +396,15 @@ namespace _7WondersGame.src.models
             // the last card of each hand is discarded at the end of an era (turns 7, 14 and 21)
             if (Turn % 7 == 0)
             {
-                foreach (PlayerState player in Players)
-                    DiscardedCards.AddRange(player.HandCards);
+                _knowledge?.EraEndDiscards(Players);
                 if (Tracing)
                     Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(Players.SelectMany(p => p.HandCards)));
+                // the cards leave the hands, so no card is in two places during a Halikarnassos build
+                foreach (PlayerState player in Players)
+                {
+                    DiscardedCards.AddRange(player.HandCards);
+                    player.HandCards = new List<Card>();
+                }
             }
 
             if (StartPhase(Phase.DiscardBuild))
@@ -440,6 +461,7 @@ namespace _7WondersGame.src.models
                 player_deck = p1.HandCards;
 
             bool clockwise = (Era == 1 || Era == 3);
+            _knowledge?.HandsPassing(Players, west: clockwise);
             do
             {
                 // Get the neighbor of player p who will receive the cards
@@ -552,6 +574,7 @@ namespace _7WondersGame.src.models
                 move.Player.Place(move);
                 if (move.Action == ActionType.Discard)
                     DiscardedCards.Add(move.Card);
+                _knowledge?.Moved(move);
             }
 
             foreach (PlannedMove? move in planned)

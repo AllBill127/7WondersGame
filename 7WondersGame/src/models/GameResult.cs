@@ -13,9 +13,10 @@ namespace _7WondersGame.src.models
     /// <summary>
     /// What one seat got in a finished game. One CSV row per seat (B2).
     /// Wonder is the board name without the side (e.g. "Gizah"); Side is "A" or "B".
+    /// StatsJson is what the agent measured (<see cref="IAgent.StatsJson"/>).
     /// </summary>
     public record SeatResult(int Seat, string Agent, string ConfigJson, string Wonder, string Side,
-                             int VictoryPoints, int Coins, int Rank, double WinShare);
+                             int VictoryPoints, int Coins, int Rank, double WinShare, string StatsJson = "{}");
 
     /// <summary>
     /// Final ranking used everywhere results are judged (R9, rulebook tie-break):
@@ -55,7 +56,8 @@ namespace _7WondersGame.src.models
                 string board = p.Board.Id.ToString();
                 return new SeatResult(p.Id, agents[i].Name, agents[i].ConfigJson(),
                     board[..^1], board[^1..],
-                    p.VictoryPoints, p.Resources[Resource.Coins], standings[i].Rank, standings[i].WinShare);
+                    p.VictoryPoints, p.Resources[Resource.Coins], standings[i].Rank, standings[i].WinShare,
+                    agents[i].StatsJson());
             }).ToList();
         }
 

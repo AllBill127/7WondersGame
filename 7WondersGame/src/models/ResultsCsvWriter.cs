@@ -12,7 +12,7 @@ namespace _7WondersGame.src.models
         public static readonly string[] Columns =
         {
             "runId", "gameIndex", "dealIndex", "seed", "seat", "agent", "configJson",
-            "wonder", "side", "vp", "coins", "rank", "winShare",
+            "wonder", "side", "vp", "coins", "rank", "winShare", "agentStats",
         };
         public static string Header => string.Join(",", Columns);
 
@@ -79,6 +79,7 @@ namespace _7WondersGame.src.models
                 s.Coins.ToString(inv),
                 s.Rank.ToString(inv),
                 s.WinShare.ToString("0.######", inv),
+                s.StatsJson,
             };
             return string.Join(",", fields.Select(Escape));
         }

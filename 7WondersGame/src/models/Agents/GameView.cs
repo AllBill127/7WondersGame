@@ -6,8 +6,9 @@ namespace _7WondersGame.src.models.Agents
     /// What an agent sees when it must decide (E5): a copy of the table taken when it is asked, so changing it
     /// changes nothing in the game. Every agent asked in the same step gets a view of the same state, so none sees
     /// another's choice (M2).
-    /// The view still shows everything, including the other hands; what a searching agent may know is decided in
-    /// fix-plan step 6 (M1).
+    /// The view still shows everything, including the other hands (<see cref="Players"/>, <see cref="CopyGame"/>). An
+    /// agent that plays fair uses only the public state, its own hand and <see cref="Known"/> (M1); the MCTS agent
+    /// does this through <see cref="Determinization"/>.
     /// </summary>
     public sealed class GameView
     {
@@ -28,6 +29,7 @@ namespace _7WondersGame.src.models.Agents
                 ? Me.GetPlayableCards(DiscardPile, playAllFree: true)
                 : Me.GetPlayableCards(Me.HandCards);
             CanBuildWonder = Me.CanBuildWonder();
+            Known = game.KnowledgeOf(seat);
         }
 
         /// <summary>The seat deciding.</summary>
@@ -58,5 +60,17 @@ namespace _7WondersGame.src.models.Agents
 
         /// <summary>Every move the rules allow the seat now (see <see cref="Game.LegalMoves"/>).</summary>
         public List<Command> LegalMoves() => _game.LegalMoves(Seat);
+
+        /// <summary>
+        /// What the seat knows about the cards it can't see (taken when the view was made); null if the game doesn't
+        /// keep track (a search copy).
+        /// </summary>
+        public SeatKnowledge? Known { get; }
+
+        /// <summary>
+        /// A copy of the whole game to search in. It holds everything, hidden cards included: a fair search
+        /// re-deals what the seat can't know (<see cref="Determinization.Sample"/>) before using it.
+        /// </summary>
+        public Game CopyGame() => _game.DeepCopy();
     }
 }

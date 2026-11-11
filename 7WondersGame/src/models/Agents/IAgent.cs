@@ -16,6 +16,12 @@ namespace _7WondersGame.src.models.Agents
         /// move with a hand card; in <see cref="Phase.DiscardBuild"/> a Build of a discard-pile card, or Skip.
         /// </summary>
         Command Choose(GameView view);
+
+        /// <summary>
+        /// What the agent measured over its game (e.g. search time and iterations), as JSON for the results'
+        /// agentStats column. An agent is made for one game. "{}" for none.
+        /// </summary>
+        string StatsJson() => "{}";
     }
 
     /// <summary>
