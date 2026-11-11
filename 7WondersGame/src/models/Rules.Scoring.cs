@@ -129,8 +129,8 @@ namespace _7WondersGame.src.models
             int vp = 0;
             foreach (Card card in p.PlayedCards)
                 if (card.Type == type)
-                    foreach (IEffect effect in card.Effects)
-                        vp += effect.EndGameVp(p);
+                    for (int i = 0; i < card.Effects.Count; i++)
+                        vp += card.Effects[i].EndGameVp(p);
             return vp;
         }
 
