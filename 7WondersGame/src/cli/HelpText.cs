@@ -71,6 +71,7 @@ Optional:
                       seed, settings and git commit.
   --dataset <file>    Take the deals from a dataset file ('{Exe} help dataset') instead of the
                       seed: game i uses deal i. Agents' random choices still come from the seed.
+                      The file's first line says its player count, which must match --players.
   --log <level>       {Logging.Levels}. debug traces every game; for one game use 'replay'.
 
 Examples:
@@ -121,6 +122,10 @@ Examples:
   --games <n>         Number of deals.
   --seed <seed>       Deal i is the deal 'run --seed <seed>' plays as game i.
   --out <file>        Default gameDataset_<seats>p_<games>g.txt in the program folder.
+
+The file starts with 'Players: <seats>'. When a run reads it, the count must match the line-up
+and every deal is checked (deck sizes, card copies for that player count, guilds, wonders).
+A file made before this header existed needs it added as its first line.
 
 Example:
   {Exe} dataset --seats 3 --games 100 --seed 5

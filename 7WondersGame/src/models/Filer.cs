@@ -1,114 +1,173 @@
-﻿using Serilog;
+using _7WondersGame.src.models.Wonders;
+﻿using System.Globalization;
 
 namespace _7WondersGame.src.models
 {
     /// <summary>
-    /// Reads and writes game dataset files (pre-shuffled decks and wonders).
+    /// Reads and writes game dataset files: pre-shuffled decks and wonders, one deal per game.
     /// Results are written by <see cref="ResultsCsvWriter"/>.
     /// </summary>
-    internal static class Filer
+    /// <remarks>
+    /// The first line says the player count (X8), and every deal is checked when it is read, so a file made for
+    /// another player count or edited by hand can't give a wrong game:
+    /// <code>
+    /// Players: 3
+    /// Game 0:
+    /// Deck1:
+    /// 4, 58, 36, ...
+    /// Deck2:
+    /// ...
+    /// Deck3:
+    /// ...
+    /// Wonders:
+    /// 13, 7, 8
+    /// </code>
+    /// A deal is <c>[deck1, deck2, deck3, wonders]</c> as card and wonder ids, as <see cref="Game.InitGameNotRandom"/> takes it.
+    /// </remarks>
+    public static class Filer
     {
-        private static string _filepath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        public const string HeaderPrefix = "Players:";
 
-        /// <summary>Folder that dataset files are read from and written to (the exe folder).</summary>
-        public static void SetDataPath(string? filepath)
+        /// <summary>Writes the deals, numbered 0, 1, ... in the order given.</summary>
+        public static async Task WriteGameDatasetToFile(string path, int players, IReadOnlyList<List<int>[]> deals)
         {
-            if (filepath is not null)
-                _filepath = filepath;
-            else
-                Log.Warning("Filer data path was null; using the default: {filePath}", _filepath);
+            for (int i = 0; i < deals.Count; i++)
+                CheckDeal(deals[i], players, $"deal {i}");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            await using var writer = new StreamWriter(path);
+            await writer.WriteLineAsync($"{HeaderPrefix} {players}");
+            for (int i = 0; i < deals.Count; i++)
+            {
+                await writer.WriteLineAsync($"Game {i}:");
+                for (int era = 0; era < 3; era++)
+                {
+                    await writer.WriteLineAsync($"Deck{era + 1}:");
+                    await writer.WriteLineAsync(string.Join(", ", deals[i][era]));
+                }
+                await writer.WriteLineAsync("Wonders:");
+                await writer.WriteLineAsync(string.Join(", ", deals[i][3]));
+            }
         }
 
-        public static async Task WriteGameDatasetToFile(string fileName, Dictionary<int, List<int>[]> gameData)
+        /// <summary>Reads every deal, checked for the player count in the header.</summary>
+        /// <exception cref="InvalidDataException">The file has no header, is malformed, or has a deal that isn't valid.</exception>
+        public static async Task<(int Players, List<List<int>[]> Deals)> ReadGameDatasetFromFile(string path)
         {
-            String filePath = Path.Combine(_filepath, fileName);
-            using (StreamWriter writer = new StreamWriter(filePath))
+            string[] lines = await File.ReadAllLinesAsync(path);
+            return Parse(lines, path);
+        }
+
+        public static (int Players, List<List<int>[]> Deals) Parse(IReadOnlyList<string> lines, string name)
+        {
+            int i = 0;
+            string? Next() => i < lines.Count ? lines[i++].Trim() : null;
+            string? NonEmpty()
             {
-                foreach (var game in gameData)
+                string? line;
+                while ((line = Next()) == "") { }
+                return line;
+            }
+
+            int players = ParseHeader(NonEmpty(), name);
+            var deals = new List<List<int>[]>();
+            string? line;
+            while ((line = NonEmpty()) != null)
+            {
+                string expected = $"Game {deals.Count}:";
+                if (line != expected)
+                    throw new InvalidDataException($"{name}, line {i}: expected '{expected}', found '{line}'.");
+
+                var deal = new List<int>[4];
+                string[] sections = { "Deck1:", "Deck2:", "Deck3:", "Wonders:" };
+                for (int s = 0; s < 4; s++)
                 {
-                    await writer.WriteLineAsync($"Game {game.Key}:");
-                    for (int i = 0; i < 3; i++)
-                    {
-                        await writer.WriteLineAsync($"Deck{i+1}:");
-                        // Write each deck's data
-                        await writer.WriteLineAsync(string.Join(", ", game.Value[i]));
-                    }
-                    await writer.WriteLineAsync("Wonders:");
-                    await writer.WriteLineAsync(string.Join(", ", game.Value[3]));
+                    if (NonEmpty() != sections[s])
+                        throw new InvalidDataException($"{name}, line {i}: expected '{sections[s]}' in game {deals.Count}.");
+                    deal[s] = ParseIds(Next() ?? "", name, i);
+                }
+                CheckDeal(deal, players, $"{name}, game {deals.Count}");
+                deals.Add(deal);
+            }
+            if (deals.Count == 0)
+                throw new InvalidDataException($"{name} has no deals.");
+            return (players, deals);
+        }
+
+        private static int ParseHeader(string? line, string name)
+        {
+            if (line == null || !line.StartsWith(HeaderPrefix, StringComparison.OrdinalIgnoreCase) ||
+                !int.TryParse(line[HeaderPrefix.Length..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int players))
+                throw new InvalidDataException(
+                    $"{name} doesn't start with a '{HeaderPrefix} <n>' line. Files made before the header was added " +
+                    $"(step 7) need it as their first line, e.g. '{HeaderPrefix} 3' for 3-player deals.");
+            if (players is < 3 or > 7)
+                throw new InvalidDataException($"{name}: {players} players; a game has 3 to 7.");
+            return players;
+        }
+
+        private static List<int> ParseIds(string line, string name, int lineNumber)
+        {
+            var ids = new List<int>();
+            foreach (string part in line.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id))
+                    throw new InvalidDataException($"{name}, line {lineNumber}: '{part}' is not a number.");
+                ids.Add(id);
+            }
+            return ids;
+        }
+
+        /// <summary>
+        /// Checks that a deal is one <see cref="Game.CreateDecks"/> could have made for this player count: each era's
+        /// deck holds exactly that era's cards with the right number of copies, era III has players + 2 different
+        /// guilds, and every seat has a wonder, each a different one.
+        /// </summary>
+        /// <exception cref="InvalidDataException">It isn't.</exception>
+        public static void CheckDeal(List<int>[] deal, int players, string where)
+        {
+            if (deal.Length != 4)
+                throw new InvalidDataException($"{where}: a deal has three decks and the wonders.");
+
+            for (int era = 1; era <= 3; era++)
+            {
+                List<int> deck = deal[era - 1];
+                if (deck.Count != 7 * players)
+                    throw new InvalidDataException($"{where}: deck {era} has {deck.Count} cards; {players} players need {7 * players}.");
+
+                var counts = new Dictionary<CardId, int>();
+                foreach (int id in deck)
+                {
+                    if (!CardsDataset.GameCards.TryGetValue((CardId)id, out Card? card))
+                        throw new InvalidDataException($"{where}: deck {era} has {id}, which is not a card id.");
+                    if (card.Era != era)
+                        throw new InvalidDataException($"{where}: deck {era} has {card.Id}, an era {card.Era} card.");
+                    counts[card.Id] = counts.GetValueOrDefault(card.Id) + 1;
+                }
+
+                foreach (Card card in CardsDataset.Cards.Values.Where(c => c.Era == era))
+                {
+                    int found = counts.GetValueOrDefault(card.Id), wanted = card.CopiesFor(players);
+                    if (found != wanted)
+                        throw new InvalidDataException(
+                            $"{where}: deck {era} has {found} {card.Id}; with {players} players it has {wanted}.");
+                }
+                if (era == 3)
+                {
+                    var guilds = counts.Where(kv => CardsDataset.GuildCards.ContainsKey(kv.Key)).ToList();
+                    if (guilds.Any(kv => kv.Value > 1) || guilds.Count != players + 2)
+                        throw new InvalidDataException(
+                            $"{where}: deck 3 has {guilds.Sum(kv => kv.Value)} guilds; {players} players need {players + 2} different ones.");
                 }
             }
-        }
 
-        public static async Task<Dictionary<int, List<int>[]>> ReadGameDatasetFromFile(string fileName)
-        {
-            Dictionary<int, List<int>[]> gameData = new Dictionary<int, List<int>[]>();
-            int currentGame = 0;
-            List<int> wonders = null;
-            List<int> deck1 = null;
-            List<int> deck2 = null;
-            List<int> deck3 = null;
-
-            String filePath = Path.Combine(_filepath, fileName);
-            using (StreamReader reader = new StreamReader(filePath))
-            {
-                string line;
-                while ((line = await reader.ReadLineAsync()) != null)
-                {
-                    if (line.StartsWith("Game"))
-                    {
-                        currentGame = int.Parse(line.Split(' ')[1].TrimEnd(':'));
-                    }
-                    else if (line.StartsWith("Deck1"))
-                    {
-                        deck1 = new List<int>();
-                        line = await reader.ReadLineAsync();
-                        AddIdsToList(deck1, line);
-                    }
-                    else if (line.StartsWith("Deck2"))
-                    {
-                        deck2 = new List<int>();
-                        line = await reader.ReadLineAsync();
-                        AddIdsToList(deck2, line);
-                    }
-                    else if (line.StartsWith("Deck3"))
-                    {
-                        deck3 = new List<int>();
-                        line = await reader.ReadLineAsync();
-                        AddIdsToList(deck3, line);
-                    }
-                    else if (line.StartsWith("Wonders"))
-                    {
-                        wonders = new List<int>();
-                        line = await reader.ReadLineAsync();
-                        AddIdsToList(wonders, line);
-                    }
-
-                    if ((deck1 != null && deck1.Count > 0) &&
-                        (deck2 != null && deck2.Count > 0) &&
-                        (deck3 != null && deck3.Count > 0) &&
-                        (wonders != null && wonders.Count > 0))
-                    {
-                        gameData.Add(currentGame, new List<int>[] { deck1, deck2, deck3, wonders });
-                        deck1 = null;
-                        deck2 = null;
-                        deck3 = null;
-                        wonders = null;
-                    }
-                }
-            }
-
-            return gameData;
-        }
-
-        private static void AddIdsToList (List<int> idList, string line)
-        {
-            string[] ids = line.Split(',');
-            foreach (var id in ids)
-            {
-                int parsedId;
-                if (int.TryParse(id.Trim(), out parsedId))
-                    idList.Add(parsedId);
-            }
+            List<int> wonders = deal[3];
+            if (wonders.Count != players)
+                throw new InvalidDataException($"{where}: {wonders.Count} wonders for {players} players.");
+            if (wonders.Any(w => !Enum.IsDefined(typeof(WonderId), w)))
+                throw new InvalidDataException($"{where}: wonder ids are 0 to 13.");
+            if (wonders.Select(w => w % 7).Distinct().Count() != players)
+                throw new InvalidDataException($"{where}: two seats have the same wonder.");
         }
     }
 }

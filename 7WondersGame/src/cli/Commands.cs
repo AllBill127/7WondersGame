@@ -31,9 +31,8 @@ namespace _7WondersGame.src.cli
             var (level, levelSource) = Logging.Resolve(cli.Get("log"));
             Logging.Configure(level);
 
-            Filer.SetDataPath(ProgramDir);
             string? datasetName = cli.Get("dataset");
-            Dictionary<int, List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, games);
+            List<List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, games);
 
             string csvPath = Path.GetFullPath(OutputPath(cli.Get("out") ?? "results.csv"));
             DateTime started = DateTime.UtcNow;
@@ -192,8 +191,7 @@ namespace _7WondersGame.src.cli
                 throw new UsageException("--dataset and --deal go together.", "replay");
             AgentCatalog.Validate(specs, null);
 
-            Filer.SetDataPath(ProgramDir);
-            Dictionary<int, List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, deal!.Value + 1);
+            List<List<int>[]>? deals = datasetName == null ? null : await LoadDataset(datasetName, specs.Count, deal!.Value + 1);
 
             var game = new Game(gameSeed)
             {
@@ -238,10 +236,9 @@ namespace _7WondersGame.src.cli
             ulong seed = ParseRunSeed(cli.Require("seed"));
             Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
 
-            string outName = cli.Get("out") ?? $"gameDataset_{seats}p_{games}g.txt";
-            Filer.SetDataPath(ProgramDir);
+            string outPath = Path.GetFullPath(Path.Combine(ProgramDir, cli.Get("out") ?? $"gameDataset_{seats}p_{games}g.txt"));
 
-            var gameDatasets = new Dictionary<int, List<int>[]>();
+            var gameDatasets = new List<List<int>[]>();
             for (int i = 0; i < games; ++i)
             {
                 // the same deal 'run --seed <seed>' plays as game i
@@ -255,12 +252,11 @@ namespace _7WondersGame.src.cli
                 for (int era = 0; era < 3; era++)
                     gameData[era].AddRange(game.Decks[era].Select(card => (int)card.Id));
                 gameData[3].AddRange(game.Players.Select(p => (int)p.Board.Id));
-                gameDatasets.Add(i, gameData);
+                gameDatasets.Add(gameData);
             }
 
-            await Filer.WriteGameDatasetToFile(outName, gameDatasets);
-            Log.Information("Wrote {Games} deals for {Seats} players (seed {Seed}) to {File}",
-                games, seats, seed, Path.GetFullPath(Path.Combine(ProgramDir, outName)));
+            await Filer.WriteGameDatasetToFile(outPath, seats, gameDatasets);
+            Log.Information("Wrote {Games} deals for {Seats} players (seed {Seed}) to {File}", games, seats, seed, outPath);
             return Ok;
         }
 
@@ -320,17 +316,26 @@ namespace _7WondersGame.src.cli
         private static string ResolveInput(string name, string fallbackDir) =>
             Path.IsPathRooted(name) || File.Exists(name) ? Path.GetFullPath(name) : Path.Combine(fallbackDir, name);
 
-        private static async Task<Dictionary<int, List<int>[]>> LoadDataset(string name, int seats, int dealsNeeded)
+        /// <summary>The deals of a dataset file, checked against the line-up (X8).</summary>
+        private static async Task<List<List<int>[]>> LoadDataset(string name, int seats, int dealsNeeded)
         {
             string path = ResolveInput(name, ProgramDir);
             if (!File.Exists(path))
                 throw new UsageException($"Dataset file not found: {path}");
-            var deals = await Filer.ReadGameDatasetFromFile(path);
+            int players;
+            List<List<int>[]> deals;
+            try
+            {
+                (players, deals) = await Filer.ReadGameDatasetFromFile(path);
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new UsageException(ex.Message);
+            }
+            if (players != seats)
+                throw new UsageException($"{path} deals are for {players} players, but the line-up has {seats}.");
             if (deals.Count < dealsNeeded)
                 throw new UsageException($"{path} has {deals.Count} deals; {dealsNeeded} are needed.");
-            int fileSeats = deals.Values.First()[3].Count;
-            if (fileSeats != seats)
-                throw new UsageException($"{path} deals are for {fileSeats} players, but --players lists {seats}.");
             return deals;
         }
     }
