@@ -69,11 +69,12 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void FormatRow_QuotesJsonAndUsesInvariantNumbers()
         {
-            var seat = new SeatResult(2, "SomeAgent", "{\"c\":1.5,\"n\":2}", "Gizah", "B", 51, 7, 1, 0.5);
+            var seat = new SeatResult(2, "SomeAgent", "{\"c\":1.5,\"n\":2}", "Gizah", "B", 51, 7, 1, 0.5, "{\"searches\":3,\"iterations\":30}");
 
             string row = ResultsCsvWriter.FormatRow("run1", 4, 1, 18446744073709551615UL, seat);
 
-            Assert.AreEqual("run1,4,1,18446744073709551615,2,SomeAgent,\"{\"\"c\"\":1.5,\"\"n\"\":2}\",Gizah,B,51,7,1,0.5", row);
+            Assert.AreEqual("run1,4,1,18446744073709551615,2,SomeAgent,\"{\"\"c\"\":1.5,\"\"n\"\":2}\",Gizah,B,51,7,1,0.5," +
+                            "\"{\"\"searches\"\":3,\"\"iterations\"\":30}\"", row);
         }
 
         [TestMethod]
