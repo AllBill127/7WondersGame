@@ -24,6 +24,7 @@ namespace _7WondersGame.src.models.Agents.Mcts
             public double SearchMs;
             public double LongestMs;
             public long AllocatedBytes;
+            public double LockWaitMs;
             public string? LastNote;
         }
 
@@ -46,7 +47,8 @@ namespace _7WondersGame.src.models.Agents.Mcts
             _stats.Iterations += search.Iterations;
             _stats.SearchMs += ms;
             _stats.LongestMs = Math.Max(_stats.LongestMs, ms);
-            _stats.AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            _stats.AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore + search.OtherThreadBytes;
+            _stats.LockWaitMs += search.LockWaitMs;
             // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
             _stats.LastNote = string.Create(System.Globalization.CultureInfo.InvariantCulture,
                 $"{search.Iterations} iterations in {ms:0} ms; {search.TopMoves(3)}");
@@ -61,13 +63,27 @@ namespace _7WondersGame.src.models.Agents.Mcts
         /// Searches made, iterations in all, search time in milliseconds (in all and the longest), and the memory the
         /// searches allocated in MB (the garbage collector's work grows with it).
         /// </summary>
-        public string StatsJson() => JsonSerializer.Serialize(new
-        {
-            searches = _stats.Searches,
-            iterations = _stats.Iterations,
-            searchMs = Math.Round(_stats.SearchMs),
-            longestSearchMs = Math.Round(_stats.LongestMs),
-            allocatedMb = Math.Round(_stats.AllocatedBytes / 1048576.0),
-        });
+        /// <remarks>A parallel search (<see cref="MctsConfig.Parallel"/>) also gives its workers and the time its threads waited
+        /// for the shared tree's lock, summed.</remarks>
+        public string StatsJson() => Config.Parallel == MctsParallel.None || Config.Workers <= 1
+            ? JsonSerializer.Serialize(new
+            {
+                searches = _stats.Searches,
+                iterations = _stats.Iterations,
+                searchMs = Math.Round(_stats.SearchMs),
+                longestSearchMs = Math.Round(_stats.LongestMs),
+                allocatedMb = Math.Round(_stats.AllocatedBytes / 1048576.0),
+            })
+            : JsonSerializer.Serialize(new
+            {
+                searches = _stats.Searches,
+                iterations = _stats.Iterations,
+                searchMs = Math.Round(_stats.SearchMs),
+                longestSearchMs = Math.Round(_stats.LongestMs),
+                allocatedMb = Math.Round(_stats.AllocatedBytes / 1048576.0),
+                parallel = Config.Parallel.ToString(),
+                workers = Config.Workers,
+                lockWaitMs = Math.Round(_stats.LockWaitMs),
+            });
     }
 }
