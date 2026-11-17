@@ -16,7 +16,7 @@ namespace _7WondersGameTests.GameTests
         /// <summary>Three players; each holds the given cards.</summary>
         private static Game ThreePlayers(Wonder w0, Wonder w1, Wonder w2, params CardId[][] hands)
         {
-            Game game = new Game();
+            Game game = new Game(seed: 0);
             game.Players = MockHelper.MockPlayers(new List<Wonder> { w0, w1, w2 });
             for (int seat = 0; seat < hands.Length; seat++)
                 game.Players[seat].HandCards.AddRange(hands[seat].Select(C));

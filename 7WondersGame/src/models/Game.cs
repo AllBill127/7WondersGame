@@ -62,8 +62,6 @@ namespace _7WondersGame.src.models
         /// <summary>
         /// A game with seed 0. Use <see cref="Game(ulong)"/> when the game should differ from others.
         /// </summary>
-        public Game() : this(0) { }
-
         public Game(ulong seed)
         {
             Seed = seed;
@@ -340,7 +338,7 @@ namespace _7WondersGame.src.models
                     break;
 
                 case Phase.SeventhCard:
-                    HandlePlayerCommand(player, move, player.HandCards);
+                    ResolveMoves(new[] { (player, move, player.HandCards) });
                     _waiting[seat] = false;
                     if (!_waiting.Contains(true))
                         AfterSeventhCard();
@@ -558,10 +556,6 @@ namespace _7WondersGame.src.models
                 $"(era {Era}, game seed {Seed}).");
 
         private string AgentName(int seat) => seat < Agents.Count ? Agents[seat].Name : "no agent";
-
-        /// <summary>One player's move on its own (Babylon's 7th card).</summary>
-        public void HandlePlayerCommand(PlayerState player, Command playerCommand, List<Card> cardsList) =>
-            ResolveMoves(new[] { (player, playerCommand, cardsList) });
 
         /// <summary>
         /// Carries out moves made at the same time (R5). Every move is checked and priced against the state before any

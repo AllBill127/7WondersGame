@@ -11,7 +11,7 @@ namespace _7WondersGameTests.GameTests
         public void RotateHandCards_CorrectlyRotatesCardListsClockwise()
         {
             // Arrange
-            Game testGame = new Game();
+            Game testGame = new Game(seed: 0);
             testGame.Era = 1;
 
             List<Wonder> wonders = MockHelper.MockWonders().GetRange(0, 3);

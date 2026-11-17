@@ -20,7 +20,7 @@ namespace _7WondersGameTests.PlayerTests
         public void ChooseMoveCommand_WhenOlympiaA2_AndPlayableCardsViolateNoDuplicateRule_SetCommandToDiscard()
         {
             // Arrange
-            Game testGame = new Game();
+            Game testGame = new Game(seed: 0);
             List<Wonder> wonders = new List<Wonder>()
             {
                 new Wonder(WonderId.GizahA),
@@ -51,10 +51,10 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void ChooseMoveCommand_WhenOlympiaA2_NoResourceToBuildCard_SetCommandToBuildHandFree()
+        public void ChooseMoveCommand_WhenOlympiaA2_NoResourceToBuildCard_SetCommandToBuildFreeOnce()
         {
             // Arrange
-            Game testGame = new Game();
+            Game testGame = new Game(seed: 0);
             List<Wonder> wonders = new List<Wonder>()
             {
                 new Wonder(WonderId.GizahA),
