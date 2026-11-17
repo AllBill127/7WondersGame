@@ -1,4 +1,7 @@
 ﻿using System.Reflection;
+using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Games.Enums;
+using _7WondersGame.Engine.Moves.Dtos;
 
 namespace _7WondersGame.src.models.Agents
 {

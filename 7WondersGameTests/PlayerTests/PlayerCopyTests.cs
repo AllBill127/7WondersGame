@@ -1,8 +1,10 @@
 ﻿using System.Reflection;
-using _7WondersGame.src.models;
+using _7WondersGame.Engine.Cards.Enums;
+using _7WondersGame.Engine.Effects.Enums;
+using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.src.models.Agents;
-using _7WondersGame.src.models.Players;
-using _7WondersGame.src.models.Effects;
 
 namespace _7WondersGameTests.PlayerTests
 {

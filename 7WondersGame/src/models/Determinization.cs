@@ -1,4 +1,9 @@
-﻿using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.Engine.Cards.Data;
+using _7WondersGame.Engine.Cards.Entities;
+using _7WondersGame.Engine.Cards.Enums;
+using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Games.Knowledge;
+using _7WondersGame.Engine.Players.Entities;
 
 namespace _7WondersGame.src.models
 {

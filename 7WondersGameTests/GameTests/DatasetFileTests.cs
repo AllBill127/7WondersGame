@@ -1,3 +1,6 @@
+﻿using _7WondersGame.Engine.Cards.Data;
+using _7WondersGame.Engine.Cards.Enums;
+using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.src.models;
 using _7WondersGame.src.models.Agents;
 

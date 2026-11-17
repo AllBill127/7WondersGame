@@ -1,5 +1,10 @@
-﻿using _7WondersGame.src.models;
-using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.Engine.Cards.Entities;
+using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Moves.Dtos;
+using _7WondersGame.Engine.Moves.Enums;
+using _7WondersGame.Engine.Payment.Dtos;
+using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Rules.Services;
 
 namespace _7WondersGameTests
 {

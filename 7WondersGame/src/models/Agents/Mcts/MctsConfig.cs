@@ -1,4 +1,6 @@
-﻿namespace _7WondersGame.src.models.Agents.Mcts
+﻿using _7WondersGame.Engine.Games.Entities;
+
+namespace _7WondersGame.src.models.Agents.Mcts
 {
     /// <summary>What the search may know (M1).</summary>
     public enum MctsInformation

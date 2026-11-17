@@ -1,6 +1,7 @@
-﻿using _7WondersGame.src.models.Wonders;
-using _7WondersGame.src.models.Players;
-
+﻿using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Wonders.Entities;
+using _7WondersGame.Engine.Wonders.Enums;
+
 namespace _7WondersGameTests
 {
     internal class MockHelper

@@ -1,6 +1,9 @@
 ﻿using System.Runtime.CompilerServices;
-using _7WondersGame.src.models;
-using _7WondersGame.src.models.Players;
+using _7WondersGame.Engine.Cards.Enums;
+using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Randomness.Services;
+using _7WondersGame.src.models.Agents;
 
 namespace _7WondersGameTests.GameTests
 {

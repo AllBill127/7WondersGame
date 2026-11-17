@@ -1,5 +1,10 @@
-﻿using _7WondersGame.src.models.Effects;
-using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.Engine.Cards.Entities;
+using _7WondersGame.Engine.Cards.Enums;
+using _7WondersGame.Engine.Effects.Effects;
+using _7WondersGame.Engine.Effects.Enums;
+using _7WondersGame.Engine.Payment.Services;
+using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Rules.Services;
 
 namespace _7WondersGame.src.models.Agents
 {

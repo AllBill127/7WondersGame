@@ -1,5 +1,7 @@
-﻿using _7WondersGame.src.models;
-using _7WondersGame.src.models.Players;
+﻿using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Randomness.Services;
+using _7WondersGame.src.models;
+using _7WondersGame.src.models.Agents;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;

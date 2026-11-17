@@ -1,4 +1,5 @@
-using _7WondersGame.src.cli;
+﻿using _7WondersGame.src.cli;
+using _7WondersGame.src.models.Agents;
 
 namespace _7WondersGameTests
 {

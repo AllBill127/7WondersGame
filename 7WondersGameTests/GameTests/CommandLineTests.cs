@@ -1,5 +1,6 @@
 ﻿using _7WondersGame.src.cli;
 using _7WondersGame.src.models;
+using _7WondersGame.src.models.Agents;
 using Serilog.Events;
 
 namespace _7WondersGameTests.GameTests
