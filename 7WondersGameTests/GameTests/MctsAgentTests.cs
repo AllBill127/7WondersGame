@@ -6,12 +6,12 @@ using _7WondersGame.Agents.Mcts;
 using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.Mcts.Configuration.Enums;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Agents;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
 using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Randomness.Services;
-using _7WondersGame.src.cli;
 
 namespace _7WondersGameTests.GameTests
 {

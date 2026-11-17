@@ -34,8 +34,8 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
-# Game simulation outputs (Filer writes Excel results to <exe dir>/results/)
-[Rr]esults/
+# Game simulation outputs: the program writes them to <exe dir>/results/ (also covered by bin/ above)
+/7WondersGame/bin/*/*/results/
 *.xlsx
 *.xlsx - Shortcut.lnk
 

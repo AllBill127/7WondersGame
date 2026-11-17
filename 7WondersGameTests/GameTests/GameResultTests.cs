@@ -1,4 +1,4 @@
-﻿using _7WondersGame.src.models;
+﻿using _7WondersGame.Cli.Results;
 
 namespace _7WondersGameTests.GameTests
 {

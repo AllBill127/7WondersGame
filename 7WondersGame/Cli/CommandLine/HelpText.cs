@@ -1,24 +1,26 @@
-﻿namespace _7WondersGame.src.cli
+﻿using _7WondersGame.Cli.Logs;
+
+namespace _7WondersGame.Cli.CommandLine;
+
+/// <summary>The text printed by 'help' and 'help &lt;command&gt;'.</summary>
+public static class HelpText
 {
-    /// <summary>The text printed by 'help' and 'help &lt;command&gt;'.</summary>
-    public static class HelpText
+    public static readonly string[] Topics = { "run", "replay", "analyze", "dataset", "agents" };
+
+    public static string For(string? topic) => topic?.ToLowerInvariant() switch
     {
-        public static readonly string[] Topics = { "run", "replay", "analyze", "dataset", "agents" };
+        null or "" or "help" => General,
+        "run" => Run,
+        "replay" => Replay,
+        "analyze" => Analyze,
+        "dataset" => Dataset,
+        "agents" => Commands.AgentsText(),
+        _ => $"No help for '{topic}'.\n\n" + General,
+    };
 
-        public static string For(string? topic) => topic?.ToLowerInvariant() switch
-        {
-            null or "" or "help" => General,
-            "run" => Run,
-            "replay" => Replay,
-            "analyze" => Analyze,
-            "dataset" => Dataset,
-            "agents" => Commands.AgentsText(),
-            _ => $"No help for '{topic}'.\n\n" + General,
-        };
+    private const string Exe = "7WondersGame";
 
-        private const string Exe = "7WondersGame";
-
-        public static readonly string General = $@"7 Wonders game simulator.
+    public static readonly string General = $@"7 Wonders game simulator.
 
 Usage:
   {Exe} <command> [options]
@@ -47,7 +49,7 @@ Example:
   {Exe} run --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --games 100 --seed 42 --parallel 4
 ";
 
-        public static readonly string Run = $@"run: play games and append the results to a CSV, one row per player.
+    public static readonly string Run = $@"run: play games and append the results to a CSV, one row per player.
 
   {Exe} run --players <agents> --games <n> --seed <seed> [options]
   {Exe} run --experiment <file.json> [--parallel <n>] [--out <file>] [--log <level>]
@@ -111,7 +113,7 @@ Examples:
     {Exe} run --players MctsAgent:Parallel=Root:Workers=4:Budget=Time:TimeMs=500,HeuristicAI,HeuristicAI --games 50 --seed 1
 ";
 
-        public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.
+    public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.
 
 From a results CSV (the agents, settings and seed come from the rows):
   {Exe} replay --from <results.csv> --run <runId> --game <gameIndex>
@@ -141,7 +143,7 @@ Examples:
   {Exe} replay --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --game-seed 0x9e3779b97f4a7c15 --log verbose
 ";
 
-        public static readonly string Analyze = $@"analyze: summarize a results CSV: who wins how often, and which differences are more than chance.
+    public static readonly string Analyze = $@"analyze: summarize a results CSV: who wins how often, and which differences are more than chance.
 
   {Exe} analyze --from <results.csv> [--run <runId>[,<runId>...] | --run all] [--by <grouping>] [--vs <n>] [--out <file.csv>]
 
@@ -178,7 +180,7 @@ Examples:
   {Exe} analyze --from c-sweep.csv --vs 1 --out c-sweep-summary.csv
 ";
 
-        public static readonly string Dataset = $@"dataset: write pre-shuffled deals (decks and wonders) to a file, for 'run --dataset'.
+    public static readonly string Dataset = $@"dataset: write pre-shuffled deals (decks and wonders) to a file, for 'run --dataset'.
 
   {Exe} dataset --seats <n> --games <n> --seed <seed> [--out <file>]
 
@@ -194,5 +196,4 @@ A file made before this header existed needs it added as its first line.
 Example:
   {Exe} dataset --seats 3 --games 100 --seed 5
 ";
-    }
 }

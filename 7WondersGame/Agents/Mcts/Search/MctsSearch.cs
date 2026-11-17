@@ -5,6 +5,7 @@ using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.Mcts.Configuration.Enums;
 using _7WondersGame.Agents.Mcts.Tree;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
@@ -14,7 +15,6 @@ using _7WondersGame.Engine.Moves.Enums;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.Engine.Rules.Services;
-using _7WondersGame.src.models;
 
 namespace _7WondersGame.Agents.Mcts.Search;
 

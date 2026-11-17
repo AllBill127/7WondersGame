@@ -1,7 +1,10 @@
 ﻿using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.src.cli;
-using _7WondersGame.src.models;
+using _7WondersGame.Cli.Agents;
+using _7WondersGame.Cli.Arguments;
+using _7WondersGame.Cli.CommandLine;
+using _7WondersGame.Cli.Logs;
+using _7WondersGame.Cli.Results;
 using Serilog.Events;
 
 namespace _7WondersGameTests.GameTests

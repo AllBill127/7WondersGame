@@ -1,8 +1,8 @@
 ﻿using _7WondersGame.Agents.Common.Settings;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.src.models;
 
 namespace _7WondersGameTests.GameTests
 {

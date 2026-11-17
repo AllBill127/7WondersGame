@@ -1,9 +1,9 @@
 ﻿using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Datasets;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.src.models;
 
 namespace _7WondersGameTests.GameTests
 {

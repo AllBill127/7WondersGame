@@ -2,6 +2,7 @@
 using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Common.Settings;
 using _7WondersGame.Agents.Heuristic;
+using _7WondersGame.Cli.Agents;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
@@ -13,7 +14,6 @@ using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.Engine.Wonders.Entities;
 using _7WondersGame.Engine.Wonders.Enums;
-using _7WondersGame.src.cli;
 
 namespace _7WondersGameTests.GameTests
 {

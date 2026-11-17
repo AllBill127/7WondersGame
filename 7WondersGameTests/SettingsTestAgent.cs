@@ -1,5 +1,5 @@
 ﻿using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.src.cli;
+using _7WondersGame.Cli.Agents;
 
 namespace _7WondersGameTests
 {
@@ -13,6 +13,6 @@ namespace _7WondersGameTests
         public int Iterations = 100;
 
         public static void Register() =>
-            AgentCatalog.Register(new AgentCatalog.Entry(nameof(SettingsTestAgent), () => new SettingsTestAgent(), "test agent with settings"));
+            AgentCatalog.Register(new AgentCatalogEntry(nameof(SettingsTestAgent), () => new SettingsTestAgent(), "test agent with settings"));
     }
 }
