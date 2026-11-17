@@ -194,17 +194,18 @@ namespace _7WondersGameTests.GameTests
         /// Plays randomly and records whether, when asked, any move of this step was already in the game, or its view
         /// was the live game rather than a copy.
         /// </summary>
-        private sealed class Spy : RandomChoiceAI
+        private sealed class Spy : IAgent
         {
+            private readonly RandomChoiceAI _random = new();
             public Game? Game;
             public bool SawAnotherChoice;
             public bool SawLiveState;
 
-            protected override ActionType ChooseAction(GameView view)
+            public Command Choose(GameView view)
             {
                 SawAnotherChoice |= Game!.MovesWaiting;
                 SawLiveState |= view.Players.Any(p => Game.Players.Contains(p)) || ReferenceEquals(view.DiscardPile, Game.DiscardedCards);
-                return base.ChooseAction(view);
+                return _random.Choose(view);
             }
         }
 
@@ -226,8 +227,6 @@ namespace _7WondersGameTests.GameTests
         {
             () => new HeuristicAI(),
             () => new RandomChoiceAI(),
-            () => new PriorityRandomChoiceAI(ActionPriority.Wonder),
-            () => new PriorityRandomChoiceAI(ActionPriority.Structure),
         };
 
         private static Game NewGame(int players, int k, Func<IAgent>[] agents)

@@ -75,8 +75,6 @@ namespace _7WondersGame.src.cli
             new("MctsAgent", () => new MctsAgent(), "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAI rollouts); 3-4 players"),
             new("HeuristicAI", () => new HeuristicAI(), "values every move (card worth, price, wonder, denial); settings are its weights"),
             new("RandomChoiceAI", () => new RandomChoiceAI(), "random legal move"),
-            new("PriorityStructureRandomChoiceAI", () => new PriorityRandomChoiceAI(ActionPriority.Structure), "random card, prefers building a card"),
-            new("PriorityWonderRandomChoiceAI", () => new PriorityRandomChoiceAI(ActionPriority.Wonder), "random card, prefers building a wonder stage"),
         };
 
         private static readonly List<Entry> Registered = new();

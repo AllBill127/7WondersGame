@@ -117,7 +117,7 @@ namespace _7WondersGameTests.GameTests
         public async Task ARotatedRun_FromAFile_SeatsEveryAgentEverywhereOnTheSameDeals()
         {
             string file = Write("exp.json",
-                "{ \"players\": [\"HeuristicAI\", \"RandomChoiceAI\", \"PriorityWonderRandomChoiceAI\"], \"games\": 2, \"seed\": 9, \"rotate\": true, \"log\": \"warning\" }");
+                "{ \"players\": [\"HeuristicAI\", \"RandomChoiceAI\", \"MctsAgent:Iterations=10\"], \"games\": 2, \"seed\": 9, \"rotate\": true, \"log\": \"warning\" }");
             string csv = Path.Combine(_dir, "out", "results.csv");
 
             int exit = await Commands.Run(CliArgs.Parse(new[] { "run", "--experiment", file, "--out", csv }), Array.Empty<string>());

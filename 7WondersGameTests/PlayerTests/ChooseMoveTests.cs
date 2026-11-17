@@ -44,7 +44,7 @@ namespace _7WondersGameTests.PlayerTests
             ActionType expP1Action = ActionType.Discard;
 
             // Test
-            Command move = new PriorityRandomChoiceAI(ActionPriority.Wonder).Choose(new GameView(testGame, 1));
+            Command move = new RandomChoiceAI().Choose(new GameView(testGame, 1));
 
             // Evaluate
             Assert.AreEqual(expP1Action, move.Action);
@@ -78,7 +78,7 @@ namespace _7WondersGameTests.PlayerTests
             ActionType expP1Action = ActionType.BuildFreeOnce;
 
             // Test
-            Command move = new PriorityRandomChoiceAI(ActionPriority.Wonder).Choose(new GameView(testGame, 1));
+            Command move = new HeuristicAI().Choose(new GameView(testGame, 1));
 
             // Evaluate
             Assert.AreEqual(expP1Action, move.Action);
