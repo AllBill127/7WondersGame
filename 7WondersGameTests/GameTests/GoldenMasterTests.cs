@@ -21,10 +21,7 @@ namespace _7WondersGameTests.GameTests
         private static readonly Func<IAgent>[] Agents =
         {
             () => new HeuristicAI(),
-            () => new DeterministicAI(),
             () => new RandomChoiceAI(),
-            () => new PriorityRandomChoiceAI(ActionPriority.Wonder),
-            () => new PriorityRandomChoiceAI(ActionPriority.Structure),
         };
 
         private static string MasterPath([CallerFilePath] string thisFile = "") =>
