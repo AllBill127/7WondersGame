@@ -83,7 +83,7 @@ namespace _7WondersGame.src.models.Agents
                 }
             }
             // the stage's price, planned once (it is null when it can't be built, as CanBuildWonder says)
-            if (me.Board.NextStageCost is { } stageCost && me.PlanPayment(stageCost) is { } stagePlan)
+            if (me.Board.NextStageCost is { } stageCost && PaymentPlanner.Plan(me, stageCost) is { } stagePlan)
                 best.Consider(ActionType.BuildWonder, hand[giveUp],
                     values.WonderGain() + w.WonderStage - w.CoinValue * stagePlan.Total + denied[giveUp]);
             best.Consider(ActionType.Discard, hand[giveUp], values.DiscardGain() - w.DiscardPenalty + denied[giveUp]);

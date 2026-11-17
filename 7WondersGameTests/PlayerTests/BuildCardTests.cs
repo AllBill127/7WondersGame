@@ -5,11 +5,11 @@ using _7WondersGame.src.models;
 namespace _7WondersGameTests.PlayerTests
 {
     [TestClass]
-    public class BuildStructureTests
+    public class BuildCardTests
     {
 
         [TestMethod]
-        public void BuildStructure_WhenCardIsPlayable_ReturnsTrue()
+        public void BuildCard_WhenCardIsPlayable_ReturnsTrue()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -30,7 +30,7 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 5;
 
             // Test
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Caravansery],
                 players[1].HandCards,
                 false);
@@ -49,7 +49,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_WhenCardIsPlayable_CostsOnlyCoins_ReturnsTrue()
+        public void BuildCard_WhenCardIsPlayable_CostsOnlyCoins_ReturnsTrue()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -70,7 +70,7 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 3;
 
             // Test
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Sawmill],
                 players[1].HandCards,
                 false);
@@ -89,7 +89,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_WhenCardIsNotPlayable_CostsOnlyCoins_ReturnsTrue()
+        public void BuildCard_WhenCardIsNotPlayable_CostsOnlyCoins_ReturnsTrue()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -110,7 +110,7 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 3;
 
             // Test
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Sawmill],
                 players[1].HandCards,
                 false);
@@ -129,7 +129,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_WhenCardIsNotPlayable_CantSellComercialResource_ReturnsFalse()
+        public void BuildCard_WhenCardIsNotPlayable_CantSellComercialResource_ReturnsFalse()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -151,7 +151,7 @@ namespace _7WondersGameTests.PlayerTests
             int expWestPlayerCoins = 3;
 
             // Test
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Temple],
                 players[1].HandCards,
                 false);
@@ -165,7 +165,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_Loom2_Adds_LoomResource()
+        public void BuildCard_Loom2_Adds_LoomResource()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -179,7 +179,7 @@ namespace _7WondersGameTests.PlayerTests
             int expP1ResourceLoom = 1;
 
             // Test
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Loom2],
                 players[1].HandCards,
                 false);

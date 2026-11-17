@@ -11,7 +11,7 @@ namespace _7WondersGameTests.PlayerTests
         private static int ScoreAfterBuilding(PlayerState player, int era, CardId id)
         {
             Card card = CardsDataset.GameCards[id];
-            Assert.IsTrue(player.BuildStructure(card, new List<Card> { card }, true));
+            Assert.IsTrue(MoveTestHelper.BuildCard(player, card, new List<Card> { card }, true));
             player.Battle(era);
             player.CopyGuild();
             return player.CalculateScore();

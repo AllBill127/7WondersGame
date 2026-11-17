@@ -349,8 +349,10 @@ namespace _7WondersGame.src.models
                 case Phase.DiscardBuild:
                     if (move.Card is { } card)
                     {
-                        if (!player.BuildDiscardFree(card, DiscardedCards))
-                            throw MoveFailed(player, "build from the discard pile", card);
+                        PlannedMove planned = player.PlanDiscardPileBuild(card, DiscardedCards)
+                            ?? throw MoveFailed(player, "build from the discard pile", card);
+                        player.Place(planned);
+                        player.Settle(planned);
                         _knowledge?.BuiltFromPile(card);
                         Trace.Debug("Seat {Seat} builds {Card} from the discard pile", seat, card.Name);
                     }

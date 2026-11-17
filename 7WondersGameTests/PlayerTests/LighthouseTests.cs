@@ -22,12 +22,12 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_Lighthouse_CountsItselfForCoins()
+        public void BuildCard_Lighthouse_CountsItselfForCoins()
         {
             var player = PlayerWithTwoYellowCards();
             Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
-            Assert.IsTrue(player.BuildStructure(lighthouse, new List<Card> { lighthouse }, true));
+            Assert.IsTrue(MoveTestHelper.BuildCard(player, lighthouse, new List<Card> { lighthouse }, true));
 
             // 3 starting coins + 3 yellow cards (Marketplace, Tavern, Lighthouse)
             Assert.AreEqual(6, player.Resources[Resource.Coins]);
@@ -35,12 +35,12 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_Lighthouse_CountsItselfInTheScore()
+        public void BuildCard_Lighthouse_CountsItselfInTheScore()
         {
             var player = PlayerWithTwoYellowCards();
             Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
-            Assert.IsTrue(player.BuildStructure(lighthouse, new List<Card> { lighthouse }, true));
+            Assert.IsTrue(MoveTestHelper.BuildCard(player, lighthouse, new List<Card> { lighthouse }, true));
             player.Battle(3);
 
             // 3 VP from the Lighthouse + 6 coins / 3 = 2 VP (no shields anywhere, so no military points)

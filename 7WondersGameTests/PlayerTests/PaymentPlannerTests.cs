@@ -39,7 +39,7 @@ namespace _7WondersGameTests.PlayerTests
         {
             var (_, buyer, _) = SetUp(coins: 0);
             buyer.Resources[Resource.Wood] = 2;
-            Assert.AreEqual(PaymentPlan.Free, buyer.PlanPayment(Cost((Resource.Wood, 2))));
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))));
         }
 
         [TestMethod]
@@ -49,7 +49,7 @@ namespace _7WondersGameTests.PlayerTests
             Build(west, CardId.TreeFarm);
             Build(east, CardId.ClayPit);
             // west's Tree Farm is the only wood, so the clay has to come from east's Clay Pit
-            Assert.AreEqual(new PaymentPlan(2, 2), buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Clay, 1))));
+            Assert.AreEqual(new PaymentPlan(2, 2), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
         }
 
         [TestMethod]
@@ -58,7 +58,7 @@ namespace _7WondersGameTests.PlayerTests
             var (west, buyer, east) = SetUp(coins: 10);
             Build(west, CardId.TreeFarm);
             Build(east, CardId.ClayPit, CardId.Forum);
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Glass, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Glass, 1))));
         }
 
         [TestMethod]
@@ -66,8 +66,8 @@ namespace _7WondersGameTests.PlayerTests
         {
             var (_, buyer, _) = SetUp(coins: 0);
             Build(buyer, CardId.Caravansery, CardId.Forum);
-            Assert.AreEqual(PaymentPlan.Free, buyer.PlanPayment(Cost((Resource.Ore, 1), (Resource.Papyrus, 1))));
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Ore, 2))));
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Ore, 1), (Resource.Papyrus, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Ore, 2))));
         }
 
         [TestMethod]
@@ -77,7 +77,7 @@ namespace _7WondersGameTests.PlayerTests
             // Taking wood from Tree Farm first would leave clay missing.
             var (_, buyer, _) = SetUp(coins: 0);
             Build(buyer, CardId.TreeFarm, CardId.ForestCave);
-            Assert.AreEqual(PaymentPlan.Free, buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Clay, 1))));
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
         }
 
         [TestMethod]
@@ -85,7 +85,7 @@ namespace _7WondersGameTests.PlayerTests
         {
             var (west, buyer, _) = SetUp(coins: 4);
             Build(west, CardId.TreeFarm, CardId.ForestCave);
-            Assert.AreEqual(new PaymentPlan(4, 0), buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Clay, 1))));
+            Assert.AreEqual(new PaymentPlan(4, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
         }
 
         [TestMethod]
@@ -93,7 +93,7 @@ namespace _7WondersGameTests.PlayerTests
         {
             var (west, buyer, _) = SetUp(coins: 10);
             Build(west, CardId.TreeFarm);
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Clay, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
         }
 
         [TestMethod]
@@ -102,10 +102,10 @@ namespace _7WondersGameTests.PlayerTests
             var (west, buyer, east) = SetUp(coins: 4);
             west.Resources[Resource.Wood] = 1;
             east.Resources[Resource.Wood] = 1;
-            Assert.AreEqual(new PaymentPlan(2, 2), buyer.PlanPayment(Cost((Resource.Wood, 2))));
+            Assert.AreEqual(new PaymentPlan(2, 2), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))));
 
             buyer.Resources[Resource.Coins] = 3;
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Wood, 2))), "4 coins needed");
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))), "4 coins needed");
         }
 
         [TestMethod]
@@ -116,7 +116,7 @@ namespace _7WondersGameTests.PlayerTests
             buyer.Abilities |= Ability.RawCheapEast;
             west.Resources[Resource.Wood] = 3;
             east.Resources[Resource.Wood] = 1;
-            Assert.AreEqual(new PaymentPlan(2, 1), buyer.PlanPayment(Cost((Resource.Wood, 2))));
+            Assert.AreEqual(new PaymentPlan(2, 1), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))));
         }
 
         [TestMethod]
@@ -125,7 +125,7 @@ namespace _7WondersGameTests.PlayerTests
             var (west, buyer, east) = SetUp(coins: 2);
             west.Resources[Resource.Stone] = 1;
             east.Resources[Resource.Stone] = 1;
-            Assert.AreEqual(new PaymentPlan(2, 0), buyer.PlanPayment(Cost((Resource.Stone, 1))));
+            Assert.AreEqual(new PaymentPlan(2, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
         }
 
         [TestMethod]
@@ -135,7 +135,7 @@ namespace _7WondersGameTests.PlayerTests
             buyer.Abilities |= Ability.RawCheapEast;
             west.Resources[Resource.Stone] = 1;
             east.Resources[Resource.Stone] = 1;
-            Assert.AreEqual(new PaymentPlan(0, 1), buyer.PlanPayment(Cost((Resource.Stone, 1))));
+            Assert.AreEqual(new PaymentPlan(0, 1), PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
         }
 
         [TestMethod]
@@ -145,7 +145,7 @@ namespace _7WondersGameTests.PlayerTests
             buyer.Abilities |= Ability.WonderRawCheap;
             west.Resources[Resource.Ore] = 1;
             east.Resources[Resource.Ore] = 1;
-            Assert.AreEqual(new PaymentPlan(1, 1), buyer.PlanPayment(Cost((Resource.Ore, 2))));
+            Assert.AreEqual(new PaymentPlan(1, 1), PaymentPlanner.Plan(buyer, Cost((Resource.Ore, 2))));
         }
 
         [TestMethod]
@@ -155,7 +155,7 @@ namespace _7WondersGameTests.PlayerTests
             buyer.Abilities |= Ability.ManufCheap;
             west.Resources[Resource.Glass] = 1;
             west.Resources[Resource.Wood] = 1;
-            Assert.AreEqual(new PaymentPlan(3, 0), buyer.PlanPayment(Cost((Resource.Glass, 1), (Resource.Wood, 1))));
+            Assert.AreEqual(new PaymentPlan(3, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Glass, 1), (Resource.Wood, 1))));
         }
 
         [TestMethod]
@@ -163,24 +163,24 @@ namespace _7WondersGameTests.PlayerTests
         {
             var (west, buyer, _) = SetUp(coins: 2);
             west.Resources[Resource.Wood] = 1;
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Coins, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Coins, 1))));
             buyer.Resources[Resource.Coins] = 3;
-            Assert.AreEqual(new PaymentPlan(2, 0), buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Coins, 1))));
+            Assert.AreEqual(new PaymentPlan(2, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Coins, 1))));
             buyer.Resources[Resource.Coins] = 0;
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Coins, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Coins, 1))));
         }
 
         [TestMethod]
         public void AlexandriaWildcards()
         {
             var (_, buyer, _) = SetUp(coins: 0, new Wonder(WonderId.AlexandriaB));
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Stone, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
             buyer.Board.Stage = 1;   // any raw
-            Assert.AreEqual(PaymentPlan.Free, buyer.PlanPayment(Cost((Resource.Stone, 1))));
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Stone, 1), (Resource.Clay, 1))));
-            Assert.IsNull(buyer.PlanPayment(Cost((Resource.Glass, 1))));
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1), (Resource.Clay, 1))));
+            Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Glass, 1))));
             buyer.Board.Stage = 2;   // and any manufactured good
-            Assert.AreEqual(PaymentPlan.Free, buyer.PlanPayment(Cost((Resource.Stone, 1), (Resource.Glass, 1))));
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1), (Resource.Glass, 1))));
         }
 
         [TestMethod]
@@ -193,7 +193,7 @@ namespace _7WondersGameTests.PlayerTests
             east.Resources[Resource.Stone] = 1;
             var before = new[] { west, buyer, east }.Select(p => (p.Resources.ToDictionary(kv => kv.Key, kv => kv.Value), p.PlayedCards.ToList())).ToList();
 
-            Assert.IsNotNull(buyer.PlanPayment(Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1))));
+            Assert.IsNotNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1))));
 
             var after = new[] { west, buyer, east };
             for (int i = 0; i < 3; i++)
@@ -204,7 +204,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void BuildStructure_PaysWhatThePlanSays()
+        public void BuildCard_PaysWhatThePlanSays()
         {
             var (west, buyer, east) = SetUp(coins: 4);
             Build(west, CardId.TreeFarm);
@@ -212,7 +212,7 @@ namespace _7WondersGameTests.PlayerTests
             Card caravansery = CardsDataset.GameCards[CardId.Caravansery];   // 2 wood
             buyer.HandCards.Add(caravansery);
 
-            Assert.IsTrue(buyer.BuildStructure(caravansery, buyer.HandCards, false));
+            Assert.IsTrue(MoveTestHelper.BuildCard(buyer, caravansery, buyer.HandCards, false));
             Assert.AreEqual(0, buyer.Resources[Resource.Coins]);
             Assert.AreEqual(2, west.Resources[Resource.Coins]);
             Assert.AreEqual(2, east.Resources[Resource.Coins]);
@@ -255,7 +255,7 @@ namespace _7WondersGameTests.PlayerTests
                     cost[Resource.Coins] = 1;
 
                 PaymentPlan? expected = BruteForce(buyer, cost);
-                PaymentPlan? actual = buyer.PlanPayment(cost);
+                PaymentPlan? actual = PaymentPlanner.Plan(buyer, cost);
                 Assert.AreEqual(expected, actual,
                     $"case {test}: cost {string.Join(",", cost.Select(kv => $"{kv.Value} {kv.Key}"))}, coins {buyer.Resources[Resource.Coins]}");
             }

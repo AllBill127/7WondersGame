@@ -9,7 +9,7 @@ namespace _7WondersGameTests.PlayerTests
     {
 
         [TestMethod]
-        public void GetPlayable_And_BuildStructure_WhenCardIsPlayable_Test()
+        public void GetPlayable_And_BuildCard_WhenCardIsPlayable_Test()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -34,7 +34,7 @@ namespace _7WondersGameTests.PlayerTests
             bool canPlayCard = playable1.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
             Assert.IsTrue(canPlayCard);
 
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Caravansery],
                 players[1].HandCards,
                 false);
@@ -53,7 +53,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void GetPlayable_And_BuildStructure_WhenCardIsNotPlayable_Test()
+        public void GetPlayable_And_BuildCard_WhenCardIsNotPlayable_Test()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -79,7 +79,7 @@ namespace _7WondersGameTests.PlayerTests
             bool canPlayCard = playable1.Contains<Card>(CardsDataset.GameCards[CardId.Temple]);
             Assert.IsFalse(canPlayCard);
 
-            bool buildSuccess = players[1].BuildStructure(
+            bool buildSuccess = MoveTestHelper.BuildCard(players[1],
                 CardsDataset.GameCards[CardId.Temple],
                 players[1].HandCards,
                 false);
@@ -93,7 +93,7 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void Multiplayer_GetPlayable_And_BuildStructure_Test()
+        public void Multiplayer_GetPlayable_And_BuildCard_Test()
         {
             // Arrange
             List<Wonder> allWonders = MockHelper.MockWonders();
@@ -132,15 +132,15 @@ namespace _7WondersGameTests.PlayerTests
             canPlayCard = playable2.Contains<Card>(player2Card);
             Assert.IsTrue(canPlayCard);
 
-            bool build0Success = players[0].BuildStructure(
+            bool build0Success = MoveTestHelper.BuildCard(players[0],
                 player0Card,
                 players[0].HandCards,
                 false);
-            bool build1Success = players[1].BuildStructure(
+            bool build1Success = MoveTestHelper.BuildCard(players[1],
                 player1Card,
                 players[1].HandCards,
                 false);
-            bool build2Success = players[2].BuildStructure(
+            bool build2Success = MoveTestHelper.BuildCard(players[2],
                 player2Card,
                 players[2].HandCards,
                 false);

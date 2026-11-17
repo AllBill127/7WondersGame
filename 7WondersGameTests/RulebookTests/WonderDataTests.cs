@@ -153,7 +153,7 @@ namespace _7WondersGameTests.RulebookTests
                 foreach (Resource r in covered)
                 {
                     SetResources(player, new Dictionary<Resource, int>());
-                    Assert.AreEqual(PaymentPlan.Free, player.PlanPayment(new Dictionary<Resource, int> { { r, 1 } }), $"wildcard gives {r}");
+                    Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(player, new Dictionary<Resource, int> { { r, 1 } }), $"wildcard gives {r}");
                 }
             }
 

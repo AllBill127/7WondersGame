@@ -18,7 +18,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // give resources for situation
             players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
-            players[0].Resources[Resource.Clay] += 1;    // manually add clay from clayPool card (it is done in BuildStructure() which is not called here)
+            players[0].Resources[Resource.Clay] += 1;    // manually add clay from clayPool card (building the card would add it; not done here)
             players[1].Resources[Resource.Coins] = 3;
             players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
@@ -33,7 +33,7 @@ namespace _7WondersGameTests.PlayerTests
 
             // Test
             players[1].CanBuildWonder();
-            bool canBuildWonder = players[1].BuildWonder(player1Card, players[1].HandCards);
+            bool canBuildWonder = MoveTestHelper.BuildWonderStage(players[1], player1Card, players[1].HandCards);
 
             // Evaluate
             Assert.IsTrue(canBuildWonder);

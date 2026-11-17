@@ -289,7 +289,7 @@ namespace _7WondersGameTests.RulebookTests
                 new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.BabylonA), new Wonder(WonderId.OlympiaA) });
             PlayerState player = players[0];
 
-            Assert.IsTrue(player.BuildStructure(card, new List<Card> { card }, true));
+            Assert.IsTrue(MoveTestHelper.BuildCard(player, card, new List<Card> { card }, true));
             return player;
         }
     }

@@ -77,7 +77,7 @@ namespace _7WondersGame.src.models.Agents
         }
 
         /// <summary>The coins the next wonder stage costs now (0 if there is none or it can't be paid for).</summary>
-        public int WonderPrice() => _p.Board.NextStageCost is { } cost ? _p.PlanPayment(cost)?.Total ?? 0 : 0;
+        public int WonderPrice() => _p.Board.NextStageCost is { } cost ? PaymentPlanner.Plan(_p, cost)?.Total ?? 0 : 0;
 
         /// <summary>What a discard's 3 coins would add to the score.</summary>
         public double DiscardGain()
