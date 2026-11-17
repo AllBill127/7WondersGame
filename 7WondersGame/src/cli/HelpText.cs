@@ -107,6 +107,8 @@ Examples:
     {Exe} run --players MctsAgent:C=0.3..2,HeuristicAI,HeuristicAI --steps 6 --games 50 --seed 7 --parallel 8 --out c-sweep.csv
   The same sweep in every seat (900 games), from a file:
     {Exe} run --experiment experiments/example.json --parallel 8
+  One search on 4 threads (Parallel = Root, Leaf or Tree), 500 ms a move, one game at a time:
+    {Exe} run --players MctsAgent:Parallel=Root:Workers=4:Budget=Time:TimeMs=500,HeuristicAI,HeuristicAI --games 50 --seed 1
 ";
 
         public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.

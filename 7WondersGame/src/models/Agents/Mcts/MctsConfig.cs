@@ -91,6 +91,28 @@
         RandomCard,
     }
 
+    /// <summary>
+    /// How one search uses several threads (<see cref="MctsConfig.Workers"/> of them). The variants are the classic
+    /// ones (Chaslot, Winands and van den Herik 2008, "Parallel Monte-Carlo Tree Search").
+    /// </summary>
+    public enum MctsParallel
+    {
+        /// <summary>One tree, one thread: the plain search (Workers is ignored).</summary>
+        None,
+        /// <summary>
+        /// Root parallelisation: Workers separate trees, each with its own copy of the game, random stream and guesses
+        /// at the hidden cards; at the end their root statistics are added up. Same results whatever the threads do.
+        /// </summary>
+        Root,
+        /// <summary>Leaf parallelisation: one tree; from each new node Workers rollouts at once. Same results whatever the threads do.</summary>
+        Leaf,
+        /// <summary>
+        /// Tree parallelisation: one tree shared by Workers threads, with one lock around walking down and updating it
+        /// (rollouts run outside the lock). See <see cref="MctsConfig.VirtualLoss"/>. Results depend on thread timing.
+        /// </summary>
+        Tree,
+    }
+
     /// <summary>When the search stops (M9).</summary>
     public enum MctsBudget
     {
@@ -132,5 +154,25 @@
 
         /// <summary>Milliseconds per decision, for <see cref="MctsBudget.Time"/>.</summary>
         public int TimeMs { get; set; } = 1000;
+
+        public MctsParallel Parallel { get; set; } = MctsParallel.None;
+
+        /// <summary>
+        /// For <see cref="Parallel"/>: the trees (Root), rollouts per new node (Leaf) or threads sharing the tree (Tree).
+        /// <see cref="Iterations"/> is the total over all of them (every rollout counts as an iteration).
+        /// </summary>
+        public int Workers { get; set; } = 1;
+
+        /// <summary>
+        /// Threads used for the workers; 0 = one per worker. 1 runs Root's trees or Leaf's rollouts one after another,
+        /// which gives the same moves as with threads (to compare strength without threads).
+        /// </summary>
+        public int Threads { get; set; } = 0;
+
+        /// <summary>
+        /// For <see cref="MctsParallel.Tree"/>: while a thread is in a rollout, every move on its path counts this many
+        /// extra visits with reward 0, so the other threads try other paths. 0 = none.
+        /// </summary>
+        public int VirtualLoss { get; set; } = 0;
     }
 }

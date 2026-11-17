@@ -41,6 +41,12 @@ namespace _7WondersGameTests.GameTests
         [DataRow(":RolloutEnd=EraEnd")]
         [DataRow(":Pruning=RandomCard")]
         [DataRow(":Budget=Time:TimeMs=3")]
+        [DataRow(":Parallel=Root:Workers=3")]
+        [DataRow(":Parallel=Root:Workers=2:Budget=Time:TimeMs=3")]
+        [DataRow(":Parallel=Leaf:Workers=3")]
+        [DataRow(":Parallel=Tree:Workers=3")]
+        [DataRow(":Parallel=Tree:Workers=3:VirtualLoss=1:Tree=Duct")]
+        [DataRow(":Parallel=Tree:Workers=2:Budget=Time:TimeMs=3")]
         public void EverySetting_PlaysWholeGames(string settings)
         {
             foreach (int players in new[] { 3, 4 })
@@ -133,6 +139,54 @@ namespace _7WondersGameTests.GameTests
             Assert.AreEqual(25L * searches, stats.GetProperty("iterations").GetInt64());
             Assert.AreEqual("{}", game.Results[1].StatsJson);
             Assert.IsTrue(stats.GetProperty("allocatedMb").GetDouble() > 0, "it measures the memory its searches allocate");
+        }
+
+        // Root and Leaf give every worker its copy and stream before any thread starts, so threads change nothing
+        [DataTestMethod]
+        [DataRow("Root")]
+        [DataRow("Leaf")]
+        public void RootAndLeaf_PlayTheSameWithOrWithoutThreads(string variant)
+        {
+            string Play(string threads)
+            {
+                Game game = NewGame(31, Mcts($":n=40:Parallel={variant}:Workers=4{threads}"), new HeuristicAI(), new HeuristicAI());
+                game.Loop();
+                return Outcome(game);
+            }
+            string withThreads = Play("");
+            Assert.AreEqual(withThreads, Play(""));
+            Assert.AreEqual(withThreads, Play(":Threads=1"));
+        }
+
+        [DataTestMethod]
+        [DataRow("Root", 4)]
+        [DataRow("Leaf", 4)]
+        [DataRow("Tree", 4)]
+        [DataRow("Root", 1)]
+        public void AParallelSearch_MakesItsIterations(string variant, int workers)
+        {
+            Game game = NewGame(9, Mcts($":n=40:Parallel={variant}:Workers={workers}"), new HeuristicAI(), new HeuristicAI());
+            game.Loop(record: true);
+
+            var stats = System.Text.Json.JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+            int searches = stats.GetProperty("searches").GetInt32();
+            Assert.AreEqual(40L * searches, stats.GetProperty("iterations").GetInt64(), game.Results[0].StatsJson);
+            // one worker is the plain search, with the plain stats
+            Assert.AreEqual(workers > 1, stats.TryGetProperty("workers", out _), game.Results[0].StatsJson);
+        }
+
+        [TestMethod]
+        public void OneWorker_IsThePlainSearch()
+        {
+            string Play(string settings)
+            {
+                Game game = NewGame(44, Mcts(":n=30" + settings), new HeuristicAI(), new HeuristicAI());
+                game.Loop();
+                return Outcome(game);
+            }
+            string plain = Play("");
+            Assert.AreEqual(plain, Play(":Parallel=Root:Workers=1"));
+            Assert.AreEqual(plain, Play(":Parallel=Tree:Workers=1"));
         }
 
         [TestMethod]
