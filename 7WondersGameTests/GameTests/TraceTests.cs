@@ -39,7 +39,7 @@ namespace _7WondersGameTests.GameTests
             {
                 Agents = new List<IAgent>
                 {
-                    new DeterministicAI(), new RandomChoiceAI(), new PriorityRandomChoiceAI(ActionPriority.Wonder),
+                    new HeuristicAI(), new RandomChoiceAI(), new PriorityRandomChoiceAI(ActionPriority.Wonder),
                 },
             };
             if (trace != null)

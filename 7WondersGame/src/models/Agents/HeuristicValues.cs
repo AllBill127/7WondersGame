@@ -215,9 +215,27 @@ namespace _7WondersGame.src.models.Agents
         private int Available(Resource r)
         {
             int need = Need(r);
-            return _p.CountProducible(r, need, false) +
-                   _p.PlayerWest.CountProducible(r, need, true) +
-                   _p.PlayerEast.CountProducible(r, need, true);
+            return CountProducible(_p, r, need, false) +
+                   CountProducible(_p.PlayerWest, r, need, true) +
+                   CountProducible(_p.PlayerEast, r, need, true);
+        }
+
+        /// <summary>
+        /// How much of <paramref name="needed"/> this player could produce of a resource: its fixed production plus
+        /// every either/or source that can give it (for a neighbour, only the brown cards they could sell).
+        /// </summary>
+        private static int CountProducible(PlayerState p, Resource resource, int needed, bool isNeighbor)
+        {
+            int count = p.Resources[resource];
+            if (count >= needed) return needed;
+
+            foreach (Card card in p.PlayedCards)
+                if (((isNeighbor ? card.SellableChoiceMask : card.ChoiceMask) & (1 << (int)resource)) != 0)
+                    count++;
+            if (!isNeighbor && (int)resource <= (int)Resource.Stone && p.Has(Ability.AnyRaw)) count++;
+            if (!isNeighbor && resource >= Resource.Loom && resource <= Resource.Papyrus && p.Has(Ability.AnyManufactured)) count++;
+
+            return Math.Min(needed, count);
         }
 
         private bool CheapRawTrade()
@@ -237,7 +255,7 @@ namespace _7WondersGame.src.models.Agents
 
         private double MarketplaceBonus()
         {
-            // each neighbour's own board (the old heuristic checked this player's board for both, R10)
+            // each neighbour's own board
             int theirs = GoodsCards(_p.PlayerWest) + GoodsCards(_p.PlayerEast);
             return GoodsCards(_p) <= _w.FewOwnGoods && theirs >= 1 ? _w.TradeDiscount + _w.TradeDiscountPerCard * theirs : 0;
         }

@@ -96,7 +96,7 @@ namespace _7WondersGameTests.GameTests
         {
             Game game = new Game(seed);
             game.Agents.Add(new RandomChoiceAI());
-            game.Agents.Add(new DeterministicAI());
+            game.Agents.Add(new HeuristicAI());
             game.Agents.Add(new RandomChoiceAI());
             return game;
         }

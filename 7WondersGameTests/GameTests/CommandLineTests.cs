@@ -52,7 +52,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void AgentSpec_Settings()
         {
-            List<AgentSpec> specs = AgentSpec.ParseList("DeterministicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
+            List<AgentSpec> specs = AgentSpec.ParseList("HeuristicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
 
             Assert.AreEqual(3, specs.Count);
             var agent = AgentCatalog.Create(specs[2]);
@@ -73,7 +73,7 @@ namespace _7WondersGameTests.GameTests
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("Nobody")));
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:x=1")));
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=abc")));
-            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("DeterministicAI:c=1")));
+            Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("RandomChoiceAI:c=1")));
             Assert.ThrowsException<UsageException>(() => AgentSpec.Parse("SettingsTestAgent:c"));
         }
 
@@ -99,7 +99,7 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void Range_GivesASweep()
         {
-            var specs = AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,SettingsTestAgent:c=0..2:iterations=7");
+            var specs = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,SettingsTestAgent:c=0..2:iterations=7");
             Sweep? sweep = AgentCatalog.Validate(specs, 5);
 
             Assert.IsNotNull(sweep);
@@ -122,10 +122,10 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void Range_Mistakes_AreUsageErrors()
         {
-            var oneRange = AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,SettingsTestAgent:c=0..2");
+            var oneRange = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,SettingsTestAgent:c=0..2");
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(oneRange, null), "range without --steps");
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(
-                AgentSpec.ParseList("DeterministicAI,RandomChoiceAI,RandomChoiceAI"), 3), "--steps without a range");
+                AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,RandomChoiceAI"), 3), "--steps without a range");
             Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(
                 AgentSpec.ParseList("SettingsTestAgent:c=0..1,RandomChoiceAI,SettingsTestAgent:c=0..2"), 3), "two ranges");
         }

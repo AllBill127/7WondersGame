@@ -45,7 +45,7 @@ namespace _7WondersGameTests.GameTests
                 Assert.IsTrue(r.Side == "A" || r.Side == "B");
             }
             Assert.AreEqual("RandomChoiceAI", results[0].Agent);
-            Assert.AreEqual("DeterministicAI", results[1].Agent);
+            Assert.AreEqual("HeuristicAI", results[1].Agent);
             Assert.AreEqual(1.0, results.Sum(r => r.WinShare), 1e-9, "win shares add up to 1");
             Assert.IsTrue(results.Any(r => r.Rank == 1));
         }
@@ -129,7 +129,7 @@ namespace _7WondersGameTests.GameTests
         {
             Game game = new Game(seed);
             game.Agents.Add(new RandomChoiceAI());
-            game.Agents.Add(new DeterministicAI());
+            game.Agents.Add(new HeuristicAI());
             game.Agents.Add(new RandomChoiceAI());
             return game;
         }

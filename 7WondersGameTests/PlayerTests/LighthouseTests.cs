@@ -35,15 +35,16 @@ namespace _7WondersGameTests.PlayerTests
         }
 
         [TestMethod]
-        public void ScoreAfterPlayingCard_Lighthouse_CountsItselfForCoins()
+        public void BuildStructure_Lighthouse_CountsItselfInTheScore()
         {
             var player = PlayerWithTwoYellowCards();
+            Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
-            int score = player.ScoreAfterPlayingCard(3, CardsDataset.GameCards[CardId.Lighthouse]);
+            Assert.IsTrue(player.BuildStructure(lighthouse, new List<Card> { lighthouse }, true));
+            player.Battle(3);
 
             // 3 VP from the Lighthouse + 6 coins / 3 = 2 VP (no shields anywhere, so no military points)
-            Assert.AreEqual(5, score);
-            Assert.AreEqual(3, player.Resources[Resource.Coins], "state restored");
+            Assert.AreEqual(5, player.CalculateScore());
         }
     }
 }

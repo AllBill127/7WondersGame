@@ -3,7 +3,7 @@
 namespace _7WondersGame.src.models.Agents
 {
     /// <summary>
-    /// The heuristic agent (fix plan step 5, G), which replaces DeterministicAI as the opponent and the rollout policy.
+    /// The heuristic agent: the usual opponent, and the rollout policy of <see cref="Mcts.MctsAgent"/>.
     /// It values each move it may make and takes the best one (all the numbers are in <see cref="Weights"/>):
     /// <list type="bullet">
     /// <item>build a card: what the card is worth (<see cref="HeuristicValues.Gain"/>), minus its price;</item>

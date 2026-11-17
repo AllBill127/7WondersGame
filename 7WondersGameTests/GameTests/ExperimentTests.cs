@@ -32,14 +32,14 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void Rotation_PlaysEveryDealInEverySeating()
         {
-            RunPlan plan = Plan("--players", "RandomChoiceAI,HeuristicAI,DeterministicAI", "--games", "2", "--seed", "1", "--rotate", "yes");
+            RunPlan plan = Plan("--players", "RandomChoiceAI,HeuristicAI,MctsAgent", "--games", "2", "--seed", "1", "--rotate", "yes");
 
             Assert.AreEqual(6, plan.Total);
             CollectionAssert.AreEqual(new[] { 0, 0, 0, 1, 1, 1 }, Enumerable.Range(0, 6).Select(i => plan.At(i).Deal).ToArray());
             CollectionAssert.AreEqual(new[] { 0, 1, 2, 0, 1, 2 }, Enumerable.Range(0, 6).Select(i => plan.At(i).Rotation).ToArray());
-            Assert.AreEqual("RandomChoiceAI,HeuristicAI,DeterministicAI", string.Join(",", plan.SeatsFor(0)));
-            Assert.AreEqual("DeterministicAI,RandomChoiceAI,HeuristicAI", string.Join(",", plan.SeatsFor(1)), "the first listed agent moves to seat 1");
-            Assert.AreEqual("HeuristicAI,DeterministicAI,RandomChoiceAI", string.Join(",", plan.SeatsFor(2)));
+            Assert.AreEqual("RandomChoiceAI,HeuristicAI,MctsAgent", string.Join(",", plan.SeatsFor(0)));
+            Assert.AreEqual("MctsAgent,RandomChoiceAI,HeuristicAI", string.Join(",", plan.SeatsFor(1)), "the first listed agent moves to seat 1");
+            Assert.AreEqual("HeuristicAI,MctsAgent,RandomChoiceAI", string.Join(",", plan.SeatsFor(2)));
         }
 
         [TestMethod]

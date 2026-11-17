@@ -224,7 +224,7 @@ namespace _7WondersGameTests.GameTests
 
         private static readonly Func<IAgent>[] Agents =
         {
-            () => new DeterministicAI(),
+            () => new HeuristicAI(),
             () => new RandomChoiceAI(),
             () => new PriorityRandomChoiceAI(ActionPriority.Wonder),
             () => new PriorityRandomChoiceAI(ActionPriority.Structure),
@@ -288,8 +288,8 @@ namespace _7WondersGameTests.GameTests
         [TestMethod]
         public void SteppingThroughCopies_MatchesLoop()
         {
-            // DeterministicAI makes no random draws, so its choices don't depend on the copy's seed
-            Func<IAgent>[] deterministic = { () => new DeterministicAI() };
+            // HeuristicAI makes no random draws, so its choices don't depend on the copy's seed
+            Func<IAgent>[] deterministic = { () => new HeuristicAI() };
             var phasesSeen = new HashSet<Phase>();
             for (int players = 3; players <= 7; players++)
                 for (int k = 0; k < 8; k++)
