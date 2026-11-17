@@ -1,7 +1,11 @@
 ﻿using System.Globalization;
 using System.Text.Json;
-using _7WondersGame.src.models.Agents;
-using _7WondersGame.src.models.Agents.Mcts;
+using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Common.Settings;
+using _7WondersGame.Agents.Heuristic;
+using _7WondersGame.Agents.Mcts;
+using _7WondersGame.Agents.Mcts.Configuration;
+using _7WondersGame.Agents.RandomChoice;
 
 namespace _7WondersGame.src.cli
 {

@@ -1,4 +1,7 @@
-﻿using _7WondersGame.Engine.Cards.Data;
+﻿using _7WondersGame.Agents.Common.Entities;
+using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Common.Settings;
+using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Effects.Enums;
@@ -13,7 +16,6 @@ using _7WondersGame.Engine.Rules.Services;
 using _7WondersGame.Engine.Wonders.Entities;
 using _7WondersGame.Engine.Wonders.Enums;
 using _7WondersGame.src.models;
-using _7WondersGame.src.models.Agents;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;

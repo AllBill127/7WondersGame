@@ -1,5 +1,5 @@
-﻿using _7WondersGame.src.cli;
-using _7WondersGame.src.models.Agents;
+﻿using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.src.cli;
 
 namespace _7WondersGameTests
 {

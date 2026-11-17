@@ -1,11 +1,17 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
+﻿using _7WondersGame.Agents.Common.Entities;
+using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Common.Settings;
+using _7WondersGame.Agents.Heuristic;
+using _7WondersGame.Agents.Mcts;
+using _7WondersGame.Agents.Mcts.Configuration;
+using _7WondersGame.Agents.Mcts.Configuration.Enums;
+using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
 using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.src.cli;
-using _7WondersGame.src.models.Agents;
-using _7WondersGame.src.models.Agents.Mcts;
 
 namespace _7WondersGameTests.GameTests
 {
