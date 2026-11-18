@@ -3,8 +3,8 @@
 namespace _7WondersGame.Engine.Games.Knowledge;
 
 /// <summary>
-/// What one seat knows about the cards it can't see now (fix plan step 6, M1). Everything else hidden (the
-/// cards it never saw, the shuffle of the later decks, the guilds in play) it doesn't know.
+/// What one seat knows about the cards it can't see now. Everything else hidden (the cards it never
+/// saw, the shuffle of the later decks, the guilds in play) it doesn't know.
 /// </summary>
 public sealed class SeatKnowledge
 {

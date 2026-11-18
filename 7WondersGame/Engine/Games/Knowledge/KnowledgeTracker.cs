@@ -18,28 +18,46 @@ internal sealed class KnowledgeTracker
     private readonly List<Card>[] _inPile;
     private readonly List<Card>[] _buried;
 
+    /// <summary>A tracker for a game of this many players, before the deal: nobody knows anything yet.</summary>
     public KnowledgeTracker(int players)
     {
         _n = players;
         _inHand = NewHands();
-        _inPile = Enumerable.Range(0, players).Select(_ => new List<Card>()).ToArray();
-        _buried = Enumerable.Range(0, players).Select(_ => new List<Card>()).ToArray();
+        _inPile = NewCardListPerSeat();
+        _buried = NewCardListPerSeat();
     }
 
     private List<Card>[,] NewHands()
     {
         var hands = new List<Card>[_n, _n];
         for (int o = 0; o < _n; o++)
+        {
             for (int h = 0; h < _n; h++)
+            {
                 hands[o, h] = new List<Card>();
+            }
+        }
         return hands;
     }
 
+    private List<Card>[] NewCardListPerSeat()
+    {
+        var lists = new List<Card>[_n];
+        for (int seat = 0; seat < _n; seat++)
+        {
+            lists[seat] = new List<Card>();
+        }
+        return lists;
+    }
+
+    /// <summary>A copy of what the seat knows now.</summary>
     public SeatKnowledge Of(int seat)
     {
         var hands = new List<IReadOnlyList<Card>>(_n);
         for (int h = 0; h < _n; h++)
+        {
             hands.Add(_inHand[seat, h].ToList());
+        }
         return new SeatKnowledge(hands, _inPile[seat].ToList(), _buried[seat].ToList());
     }
 
@@ -48,7 +66,9 @@ internal sealed class KnowledgeTracker
     {
         _inHand = NewHands();
         foreach (PlayerState p in players)
+        {
             _inHand[p.Id, p.Id].AddRange(p.HandCards);
+        }
     }
 
     /// <summary>A move made with a card (after it was placed).</summary>
@@ -68,8 +88,12 @@ internal sealed class KnowledgeTracker
             case ActionType.BuildFreeOnce:
                 // everyone sees the card built
                 for (int o = 0; o < _n; o++)
+                {
                     if (o != seat)
+                    {
                         _inHand[o, seat].Remove(card);
+                    }
+                }
                 break;
             case ActionType.BuildWonder:
                 _buried[seat].Add(card);
@@ -84,7 +108,9 @@ internal sealed class KnowledgeTracker
     public void BuiltFromPile(Card card)
     {
         for (int o = 0; o < _n; o++)
+        {
             _inPile[o].Remove(card);
+        }
     }
 
     /// <summary>Halikarnassos: the seat looks through the discard pile.</summary>
@@ -98,7 +124,9 @@ internal sealed class KnowledgeTracker
     public void EraEndDiscards(IReadOnlyList<PlayerState> players)
     {
         foreach (PlayerState p in players)
+        {
             _inPile[p.Id].AddRange(p.HandCards);
+        }
         // the hands are empty until the next era's deal
         _inHand = NewHands();
     }
@@ -109,24 +137,38 @@ internal sealed class KnowledgeTracker
     /// </summary>
     public void HandsPassing(IReadOnlyList<PlayerState> players, bool west)
     {
-        int Receiver(int h) => west ? players[h].PlayerWest.Id : players[h].PlayerEast.Id;
-
         var next = NewHands();
         for (int o = 0; o < _n; o++)
         {
             for (int h = 0; h < _n; h++)
             {
+                IEnumerable<Card> known = _inHand[o, h];
                 // a seat knows the hand it is passing on exactly
-                IEnumerable<Card> known = h == o ? players[o].HandCards : _inHand[o, h];
-                next[o, Receiver(h)].AddRange(known);
+                if (h == o)
+                {
+                    known = players[o].HandCards;
+                }
+                int receiverSeat = ReceiverOf(players, h, west);
+                next[o, receiverSeat].AddRange(known);
             }
         }
         for (int h = 0; h < _n; h++)
         {
-            int r = Receiver(h);
+            int r = ReceiverOf(players, h, west);
             next[r, r].Clear();
             next[r, r].AddRange(players[h].HandCards);
         }
         _inHand = next;
+    }
+
+    /// <summary>The seat that receives the hand held in <paramref name="holderSeat"/>.</summary>
+    private static int ReceiverOf(IReadOnlyList<PlayerState> players, int holderSeat, bool west)
+    {
+        PlayerState holder = players[holderSeat];
+        if (west)
+        {
+            return holder.PlayerWest.Id;
+        }
+        return holder.PlayerEast.Id;
     }
 }

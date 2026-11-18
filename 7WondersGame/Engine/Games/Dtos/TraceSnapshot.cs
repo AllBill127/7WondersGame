@@ -25,11 +25,25 @@ internal sealed class TraceSnapshot
     /// <summary>The abilities and one-use charges the player has, by name.</summary>
     public List<string> Flags { get; }
 
+    /// <summary>The player's coins, wonder stage and flags now.</summary>
     public static TraceSnapshot Of(PlayerState p)
     {
-        var flags = Enum.GetValues<Ability>().Where(a => a != Ability.None && p.Has(a)).Select(a => a.ToString()).ToList();
-        if (p.DiscardFree) flags.Add(nameof(p.DiscardFree));
-        if (p.FreeCardOnce) flags.Add(nameof(p.FreeCardOnce));
+        var flags = new List<string>();
+        foreach (Ability ability in Enum.GetValues<Ability>())
+        {
+            if (ability != Ability.None && p.Has(ability))
+            {
+                flags.Add(ability.ToString());
+            }
+        }
+        if (p.DiscardFree)
+        {
+            flags.Add(nameof(p.DiscardFree));
+        }
+        if (p.FreeCardOnce)
+        {
+            flags.Add(nameof(p.FreeCardOnce));
+        }
         return new TraceSnapshot(p.Resources[Resource.Coins], p.Board.Stage, flags);
     }
 }

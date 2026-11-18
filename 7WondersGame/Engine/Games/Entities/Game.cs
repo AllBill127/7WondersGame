@@ -14,6 +14,7 @@ using _7WondersGame.Engine.Moves.Enums;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.Engine.Rules.Services;
+using static _7WondersGame.Engine.Rules.Services.Rules;
 using _7WondersGame.Engine.Wonders.Entities;
 using _7WondersGame.Engine.Wonders.Enums;
 using Serilog;
@@ -22,6 +23,11 @@ using Serilog.Events;
 
 namespace _7WondersGame.Engine.Games.Entities;
 
+/// <summary>
+/// One game: the players' state, the decks and the discard pile, and the turn rules as a state machine
+/// (<see cref="PendingPlayers"/>, <see cref="Submit"/>). <see cref="Loop"/> plays it to the end with the
+/// <see cref="Agents"/>; a search agent plays its own <see cref="DeepCopy"/>.
+/// </summary>
 public class Game
 {
     /// <summary>The players' cities and hands, by seat (Players[i].Id == i).</summary>
@@ -30,51 +36,86 @@ public class Game
     /// <summary>Who decides each seat's moves, by seat. <see cref="InitGame"/> makes one player per agent.</summary>
     public List<IAgent> Agents { get; set; } = new();
     int NumPlayers { get; set; } = 3;
+
+    /// <summary>The era being played: 1, 2 or 3 (4 once the game is over).</summary>
     public int Era { get; set; } = 1;
-    /// <summary>0-20, <see cref="TurnsPerEra"/> per era (the last is the 7th card slot); 7 and 14 start eras 2 and 3.</summary>
+
+    /// <summary>
+    /// 0-20, <see cref="TurnsPerEra"/> per era (the last is the 7th card slot); 7 and 14 start eras 2 and 3.
+    /// </summary>
     public int Turn { get; set; } = 0;
 
     /// <summary>Cards in each hand at the start of an era.</summary>
     public const int HandSize = 7;
     /// <summary>Six turns with a choice, then the 7th card slot (Babylon B, otherwise skipped).</summary>
     public const int TurnsPerEra = HandSize;
+    /// <summary>The game has three eras, each with its own deck.</summary>
+    public const int LastEra = 3;
 
     /// <summary>Turns 6, 13 and 20: the last card of the hand, for Babylon B.</summary>
-    public static bool IsSeventhCardSlot(int turn) => turn % TurnsPerEra == TurnsPerEra - 1;
+    public static bool IsSeventhCardSlot(int turn)
+    {
+        int turnInEra = turn % TurnsPerEra;
+        return turnInEra == TurnsPerEra - 1;
+    }
 
     /// <summary>Turns 7, 14 and 21: an era is over.</summary>
-    public static bool IsEraEnd(int turn) => turn % TurnsPerEra == 0;
-    public List<Card>[] Decks { get; set; } 
+    public static bool IsEraEnd(int turn)
+    {
+        return turn % TurnsPerEra == 0;
+    }
+
+    /// <summary>The cards still to be dealt, one deck per era (index 0 is era I).</summary>
+    public List<Card>[] Decks { get; set; }
+
+    /// <summary>The discard pile: discarded cards and the last card of each hand at an era's end.</summary>
     public List<Card> DiscardedCards { get; set; }
 
-    // randomness (B1): everything random in a game comes from its seed
+    // randomness: everything random in a game comes from its seed
+    /// <summary>The seed every random draw of this game comes from.</summary>
     public ulong Seed { get; private set; }
     private readonly Random _rng;
     private readonly Dictionary<int, Random> _agentRngs = new();
     private ulong _copyCount = 0;
 
-    // what each seat knows about the hidden cards (step 6, M1); null in a copy (see DeepCopy)
+    // what each seat knows about the hidden cards; null in a copy (see DeepCopy)
     private KnowledgeTracker? _knowledge;
 
     /// <summary>
     /// What the seat knows about the cards it can't see (the cards it saw passing by, its own discards...), for a
     /// search that must not use the rest. Null in a <see cref="DeepCopy"/>, which doesn't keep track.
     /// </summary>
-    public SeatKnowledge? KnowledgeOf(int seat) => _knowledge?.Of(seat);
+    public SeatKnowledge? KnowledgeOf(int seat)
+    {
+        if (_knowledge == null)
+        {
+            return null;
+        }
+        return _knowledge.Of(seat);
+    }
 
     /// <summary>
     /// Step-by-step trace of this game: Debug for the playout, Verbose for detail.
-    /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so search copies and rollouts stay silent.
-    /// A trace line must not change the game: no pay-and-roll-back checks, no random draws.
+    /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so search copies and rollouts stay
+    /// silent. A trace line must not change the game: no pay-and-roll-back checks, no random draws.
     /// </summary>
     public ILogger Trace { get; set; } = Logger.None;
 
-    private bool Tracing => Trace.IsEnabled(LogEventLevel.Debug);
+    private bool Tracing
+    {
+        get
+        {
+            return Trace.IsEnabled(LogEventLevel.Debug);
+        }
+    }
 
-    private static string Names(IEnumerable<Card> cards) => string.Join(", ", cards.Select(c => c.Name));
+    private static string Names(IEnumerable<Card> cards)
+    {
+        return string.Join(", ", cards.Select(card => card.Name));
+    }
 
     /// <summary>
-    /// A game with seed 0. Use <see cref="Game(ulong)"/> when the game should differ from others.
+    /// A game whose random draws (deal, wonders, agents' choices) all come from <paramref name="seed"/>.
     /// </summary>
     public Game(ulong seed)
     {
@@ -82,9 +123,11 @@ public class Game
         _rng = Seeding.CreateRandom(Seeding.Nth(seed, Seeding.GameStream));
 
         Players = new();
-        Decks = new List<Card>[3];
+        Decks = new List<Card>[LastEra];
         for (int i = 0; i < Decks.Length; ++i)
+        {
             Decks[i] = new List<Card>();
+        }
         DiscardedCards = new();
     }
 
@@ -108,26 +151,30 @@ public class Game
     /// </summary>
     public Game DeepCopy()
     {
-        Game copy = new Game(Seeding.Nth(Seed, Seeding.CopyStreamBase + ++_copyCount));
+        _copyCount++;
+        ulong copySeed = Seeding.Nth(Seed, Seeding.CopyStreamBase + _copyCount);
+        Game copy = new Game(copySeed);
 
         copy.Players = PlayerState.CloneTable(Players);
         // the same agents; a search may swap in others (for its rollouts, say) without touching this game
-        copy.Agents = Agents.ToList();
+        copy.Agents = new List<IAgent>(Agents);
         copy.NumPlayers = this.NumPlayers;
 
         copy.Era = this.Era;
         copy.Turn = this.Turn;
 
-        // copy decks
-        copy.Decks[0] = this.Decks[0].Select(e => e).ToList();
-        copy.Decks[1] = this.Decks[1].Select(e => e).ToList();
-        copy.Decks[2] = this.Decks[2].Select(e => e).ToList();
-
-        copy.DiscardedCards = this.DiscardedCards.Select(e => e).ToList();
+        for (int deckIndex = 0; deckIndex < Decks.Length; deckIndex++)
+        {
+            copy.Decks[deckIndex] = new List<Card>(this.Decks[deckIndex]);
+        }
+        copy.DiscardedCards = new List<Card>(this.DiscardedCards);
 
         copy.Phase = this.Phase;
-        copy._waiting = this._waiting?.ToArray();
-        copy._chosen = this._chosen.ToArray();
+        if (this._waiting != null)
+        {
+            copy._waiting = (bool[])this._waiting.Clone();
+        }
+        copy._chosen = (Command?[])this._chosen.Clone();
 
         return copy;
     }
@@ -155,7 +202,7 @@ public class Game
     {
         CreatePlayers();
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < Decks.Length; i++)
         {
             foreach (var cardId in gameDataset[i])
             {
@@ -164,87 +211,120 @@ public class Game
         }
         GiveCards();
 
+        // after the three decks comes the wonder of each seat
+        List<int> wonderIds = gameDataset[LastEra];
         for (int i = 0; i < Players.Count; i++)
         {
-            AssignWonder(Players[i], gameDataset[3][i]);
+            AssignWonder(Players[i], wonderIds[i]);
         }
     }
 
     private void CreatePlayers()
     {
         if (Agents.Count == 0)
+        {
             throw new InvalidOperationException("Add the agents (Game.Agents) before setting up the game.");
+        }
         NumPlayers = Agents.Count;
-        Players = Enumerable.Range(0, NumPlayers).Select(seat => new PlayerState(seat)).ToList();
+        Players = new List<PlayerState>(NumPlayers);
+        for (int seat = 0; seat < NumPlayers; seat++)
+        {
+            Players.Add(new PlayerState(seat));
+        }
         SetPlayerNeighbors();
         _knowledge = new KnowledgeTracker(NumPlayers);
     }
 
+    /// <summary>
+    /// Seats the players in a circle: the west neighbour has the seat before, the east one the seat after.
+    /// </summary>
     public void SetPlayerNeighbors()
     {
-        // set player neighbors
         for (int i = 0; i < NumPlayers; i++)
         {
-            if (i == 0)
-            {
-                Players[i].PlayerWest = Players[NumPlayers - 1];
-                Players[i].PlayerEast = Players[i + 1];
-            }
-            else if (i == NumPlayers - 1)
-            {
-                Players[i].PlayerWest = Players[i - 1];
-                Players[i].PlayerEast = Players[0];
-            }
-            else
-            {
-                Players[i].PlayerWest = Players[i - 1];
-                Players[i].PlayerEast = Players[i + 1];
-            }
+            int westSeat = SeatToTheWest(i);
+            int eastSeat = SeatToTheEast(i);
+            Players[i].PlayerWest = Players[westSeat];
+            Players[i].PlayerEast = Players[eastSeat];
         }
     }
 
+    /// <summary>The seat before, or the last seat for seat 0.</summary>
+    private int SeatToTheWest(int seat)
+    {
+        if (seat == 0)
+        {
+            return NumPlayers - 1;
+        }
+        return seat - 1;
+    }
+
+    /// <summary>The seat after, or seat 0 for the last seat.</summary>
+    private int SeatToTheEast(int seat)
+    {
+        int lastSeat = NumPlayers - 1;
+        if (seat == lastSeat)
+        {
+            return 0;
+        }
+        return seat + 1;
+    }
+
+    /// <summary>
+    /// Fills and shuffles the three decks: each card in the number of copies for this player count, plus
+    /// players + 2 guilds drawn at random into the era III deck.
+    /// </summary>
     public void CreateDecks()
     {
-        Random rng = _rng;
-
-        // Add cards to decks
         foreach (var card in CardsDataset.Cards)
         {
+            List<Card> deck = DeckOfEra(card.Value.Era);
             for (int i = 0; i < card.Value.CopiesFor(NumPlayers); i++)
             {
-                Decks[card.Value.Era - 1].Add(card.Value);
+                deck.Add(card.Value);
             }
         }
 
-        // Add guild cards to Era 3 deck
-        var guildCardsDict = CardsDataset.GuildCards;
-        var guildCards = guildCardsDict.Values.OrderBy(a => rng.Next()).ToList();
-
-        for (int i = 0; i < NumPlayers + 2; i++)
+        List<Card> guildCards = Shuffled(CardsDataset.GuildCards.Values);
+        int guildsInPlay = NumPlayers + 2;
+        for (int i = 0; i < guildsInPlay; i++)
         {
-            Decks[2].Add(guildCards[i]);
+            DeckOfEra(LastEra).Add(guildCards[i]);
         }
 
-        // Shuffle decks
-        Decks[0] = Decks[0].OrderBy(a => rng.Next()).ToList();
-        Decks[1] = Decks[1].OrderBy(a => rng.Next()).ToList();
-        Decks[2] = Decks[2].OrderBy(a => rng.Next()).ToList();
+        for (int deckIndex = 0; deckIndex < Decks.Length; deckIndex++)
+        {
+            Decks[deckIndex] = Shuffled(Decks[deckIndex]);
+        }
     }
 
+    /// <summary>A new list of the cards in random order (one draw from the game's stream per card).</summary>
+    private List<Card> Shuffled(IEnumerable<Card> cards)
+    {
+        return cards.OrderBy(card => _rng.Next()).ToList();
+    }
+
+    private List<Card> DeckOfEra(int era)
+    {
+        int deckIndex = era - 1;
+        return Decks[deckIndex];
+    }
+
+    /// <summary>Deals each player a hand of <see cref="HandSize"/> cards from the top of this era's deck.</summary>
     private void GiveCards()
     {
-        List<Card> cards = new List<Card>();
+        List<Card> deck = DeckOfEra(Era);
         int cardIdx = 0;
 
         foreach (PlayerState player in Players)
         {
-            cards.Clear();
-            for (int i = 0; i < 7; i++)
+            List<Card> hand = new List<Card>(HandSize);
+            for (int i = 0; i < HandSize; i++)
             {
-                cards.Add(Decks[Era - 1][cardIdx++]);
+                hand.Add(deck[cardIdx]);
+                cardIdx++;
             }
-
-            player.HandCards = cards.Select(e => e).ToList();
+            player.HandCards = hand;
         }
         _knowledge?.Dealt(Players);
     }
@@ -258,12 +338,15 @@ public class Game
         player.Resources[player.Board.Production] += 1;
     }
 
+    /// <summary>Gives each player a random board, a different one each, on a random side.</summary>
     private void GiveWonders()
     {
         Random rng = _rng;
         bool[] available = new bool[Wonder.Boards];
         for (int i = 0; i < Wonder.Boards; i++)
+        {
             available[i] = true;
+        }
 
         foreach (PlayerState player in Players)
         {
@@ -271,10 +354,11 @@ public class Game
             {
                 // a board and a side
                 int n = rng.Next(2 * Wonder.Boards);
-                if (available[Wonder.BoardOf(n)])
+                int board = Wonder.BoardOf(n);
+                if (available[board])
                 {
                     AssignWonder(player, n);
-                    available[Wonder.BoardOf(n)] = false;
+                    available[board] = false;
                     break;
                 }
             }
@@ -283,7 +367,7 @@ public class Game
 
 
 
-    // ============ Turn state machine (E1) ============
+    // ============ Turn state machine ============
     // The turn rules live here once. Loop and search agents all go through PendingPlayers and Submit.
 
     /// <summary>What the game is waiting for.</summary>
@@ -300,18 +384,56 @@ public class Game
         StartIfNeeded();
         var pending = new List<int>();
         for (int seat = 0; seat < _waiting!.Length; seat++)
+        {
             if (_waiting[seat])
+            {
                 pending.Add(seat);
+            }
+        }
         return pending;
     }
 
+    /// <summary>Must the seat decide now?</summary>
+    private bool IsPending(int seat)
+    {
+        StartIfNeeded();
+        bool isSeat = seat >= 0 && seat < _waiting!.Length;
+        return isSeat && _waiting![seat];
+    }
+
+    /// <summary>Has anyone still to decide in this phase?</summary>
+    private bool AnyoneWaiting()
+    {
+        foreach (bool waiting in _waiting!)
+        {
+            if (waiting)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>True when some players' moves for this turn are in and the others' aren't yet.</summary>
-    public bool MovesWaiting => _chosen.Any(c => c != null);
+    public bool MovesWaiting
+    {
+        get
+        {
+            foreach (Command? chosenMove in _chosen)
+            {
+                if (chosenMove != null)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
 
     /// <summary>
     /// A pending player's decision. The game moves on when everyone pending has decided:
     /// <list type="bullet">
-    /// <item><see cref="Phase.ChooseMoves"/>: the move is held until all moves are in, then they happen together.</item>
+    /// <item><see cref="Phase.ChooseMoves"/>: the move is held until all moves are in, then they all happen.</item>
     /// <item><see cref="Phase.SeventhCard"/>: a normal move with the last card of the hand.</item>
     /// <item><see cref="Phase.DiscardBuild"/>: a Build of a discard-pile card, or Skip to build nothing.</item>
     /// </list>
@@ -319,77 +441,137 @@ public class Game
     /// </summary>
     public void Submit(int seat, Command move)
     {
-        StartIfNeeded();
-        if (seat < 0 || seat >= _waiting!.Length || !_waiting[seat])
+        if (!IsPending(seat))
+        {
             throw new InvalidOperationException(
                 $"Seat {seat} has nothing to decide now ({Phase}, turn {Turn}, era {Era}, game seed {Seed}).");
+        }
         PlayerState player = Players[seat];
 
         switch (Phase)
         {
             case Phase.ChooseMoves:
-                _chosen[seat] = move;
-                _waiting[seat] = false;
-                if (_waiting.Contains(true))
-                    return;
-                try
-                {
-                    // every player's move happens at the same time (R5)
-                    ResolveMoves(Players.Select(p => (p, _chosen[p.Id]!, p.HandCards)).ToList());
-                }
-                catch
-                {
-                    // ResolveMoves refuses before changing anything
-                    _chosen[seat] = null;
-                    _waiting[seat] = true;
-                    throw;
-                }
-                Array.Clear(_chosen);
-                Turn++;
-                if (IsSeventhCardSlot(Turn) && StartPhase(Phase.SeventhCard))
-                    return;
-                AfterSeventhCard();
+                SubmitChosenMove(seat, move);
                 break;
-
             case Phase.SeventhCard:
-                ResolveMoves(new[] { (player, move, player.HandCards) });
-                _waiting[seat] = false;
-                if (!_waiting.Contains(true))
-                    AfterSeventhCard();
+                SubmitSeventhCardMove(player, move);
                 break;
-
             case Phase.DiscardBuild:
-                if (move.Card is { } card)
-                {
-                    PlannedMove planned = player.PlanDiscardPileBuild(card, DiscardedCards)
-                        ?? throw MoveFailed(player, "build from the discard pile", card);
-                    player.Place(planned);
-                    player.Settle(planned);
-                    _knowledge?.BuiltFromPile(card);
-                    Trace.Debug("Seat {Seat} builds {Card} from the discard pile", seat, card.Name);
-                }
-                else
-                {
-                    Trace.Debug("Seat {Seat} builds nothing from the discard pile", seat);
-                    player.DiscardFree = false;
-                }
-                _waiting[seat] = false;
-                if (!_waiting.Contains(true))
-                    AfterDiscardBuild();
+                SubmitDiscardPileBuild(player, move);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Holds the move until every player's is in; then all of them happen at the same time and the turn ends.
+    /// </summary>
+    private void SubmitChosenMove(int seat, Command move)
+    {
+        _chosen[seat] = move;
+        _waiting![seat] = false;
+        if (AnyoneWaiting())
+        {
+            return;
+        }
+
+        try
+        {
+            ResolveMoves(ChosenMovesOfAllPlayers());
+        }
+        catch
+        {
+            // ResolveMoves refuses before changing anything
+            _chosen[seat] = null;
+            _waiting[seat] = true;
+            throw;
+        }
+        Array.Clear(_chosen);
+        Turn++;
+
+        if (IsSeventhCardSlot(Turn) && StartPhase(Phase.SeventhCard))
+        {
+            return;
+        }
+        AfterSeventhCard();
+    }
+
+    /// <summary>Every player's held move, with the hand it is made from.</summary>
+    private List<(PlayerState, Command, List<Card>)> ChosenMovesOfAllPlayers()
+    {
+        var moves = new List<(PlayerState, Command, List<Card>)>(Players.Count);
+        foreach (PlayerState p in Players)
+        {
+            moves.Add((p, _chosen[p.Id]!, p.HandCards));
+        }
+        return moves;
+    }
+
+    /// <summary>Babylon B: the last card of the hand, played on its own.</summary>
+    private void SubmitSeventhCardMove(PlayerState player, Command move)
+    {
+        ResolveMoves(new[] { (player, move, player.HandCards) });
+        _waiting![player.Id] = false;
+        if (!AnyoneWaiting())
+        {
+            AfterSeventhCard();
+        }
+    }
+
+    /// <summary>Halikarnassos: a free build from the discard pile, or Skip to build nothing.</summary>
+    private void SubmitDiscardPileBuild(PlayerState player, Command move)
+    {
+        Card? card = move.Card;
+        if (card != null)
+        {
+            BuildFromDiscardPile(player, card);
+        }
+        else
+        {
+            Trace.Debug("Seat {Seat} builds nothing from the discard pile", player.Id);
+            player.DiscardFree = false;
+        }
+
+        _waiting![player.Id] = false;
+        if (!AnyoneWaiting())
+        {
+            AfterDiscardBuild();
+        }
+    }
+
+    private void BuildFromDiscardPile(PlayerState player, Card card)
+    {
+        PlannedMove? planned = player.PlanDiscardPileBuild(card, DiscardedCards);
+        if (planned == null)
+        {
+            throw MoveFailed(player, "build from the discard pile", card);
+        }
+        player.Place(planned);
+        player.Settle(planned);
+        _knowledge?.BuiltFromPile(card);
+        Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Id, card.Name);
     }
 
     private void StartIfNeeded()
     {
         if (_waiting != null)
+        {
             return;
+        }
         _waiting = new bool[Players.Count];
         _chosen = new Command?[Players.Count];
-        if (Era >= 4)
+        if (AllErasPlayed())
+        {
             Phase = Phase.GameOver;
+        }
         else
+        {
             StartPhase(Phase);
+        }
+    }
+
+    private bool AllErasPlayed()
+    {
+        return Era > LastEra;
     }
 
     /// <summary>Enters a phase and marks who must decide in it. False if nobody has anything to decide.</summary>
@@ -398,113 +580,176 @@ public class Game
         Phase = phase;
         foreach (PlayerState p in Players)
         {
-            _waiting![p.Id] = phase switch
-            {
-                Phase.ChooseMoves => true,
-                Phase.SeventhCard => p.Has(Ability.PlaySeventh) && p.HandCards.Count > 0,
-                Phase.DiscardBuild => p.DiscardFree,
-                _ => false,
-            };
+            _waiting![p.Id] = MustDecideIn(phase, p);
             // Halikarnassos looks through the discard pile to choose
             if (phase == Phase.DiscardBuild && p.DiscardFree)
+            {
                 _knowledge?.LooksAtPile(p.Id, DiscardedCards);
+            }
         }
-        return _waiting!.Contains(true);
+        return AnyoneWaiting();
     }
 
-    /// <summary>After the turn's moves (and Babylon's 7th card): the end of an era's last hands, then Halikarnassos.</summary>
+    /// <summary>Has the player a decision to make in this phase?</summary>
+    private static bool MustDecideIn(Phase phase, PlayerState player)
+    {
+        switch (phase)
+        {
+            case Phase.ChooseMoves:
+                return true;
+            case Phase.SeventhCard:
+                return player.Has(Ability.PlaySeventh) && player.HandCards.Count > 0;
+            case Phase.DiscardBuild:
+                return player.DiscardFree;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// After the turn's moves (and Babylon's 7th card): the end of an era's last hands, then Halikarnassos.
+    /// </summary>
     private void AfterSeventhCard()
     {
         // the 7th card slot (6, 13, 20) is used up whether or not someone played it
         if (IsSeventhCardSlot(Turn))
+        {
             Turn++;
+        }
 
         // the last card of each hand is discarded at the end of an era (turns 7, 14 and 21)
         if (IsEraEnd(Turn))
         {
-            _knowledge?.EraEndDiscards(Players);
-            if (Tracing)
-                Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(Players.SelectMany(p => p.HandCards)));
-            // the cards leave the hands, so no card is in two places during a Halikarnassos build
-            foreach (PlayerState player in Players)
-            {
-                DiscardedCards.AddRange(player.HandCards);
-                player.HandCards = new List<Card>();
-            }
+            DiscardLastCardsOfHands();
         }
 
         if (StartPhase(Phase.DiscardBuild))
+        {
             return;
+        }
         AfterDiscardBuild();
     }
 
-    /// <summary>The end of a turn: at the end of an era battles and the next era's hands, otherwise pass the hands.</summary>
+    private void DiscardLastCardsOfHands()
+    {
+        _knowledge?.EraEndDiscards(Players);
+        if (Tracing)
+        {
+            IEnumerable<Card> lastCards = Players.SelectMany(player => player.HandCards);
+            Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(lastCards));
+        }
+        // the cards leave the hands, so no card is in two places during a Halikarnassos build
+        foreach (PlayerState player in Players)
+        {
+            DiscardedCards.AddRange(player.HandCards);
+            player.HandCards = new List<Card>();
+        }
+    }
+
+    /// <summary>
+    /// The end of a turn: at the end of an era battles and the next era's hands, otherwise pass the hands.
+    /// </summary>
     private void AfterDiscardBuild()
     {
         if (IsEraEnd(Turn))
         {
-            foreach (PlayerState player in Players)
-            {
-                // Olympia A stage 2: one free card per era
-                player.FreeCardOnce = player.Has(Ability.FreeCardEachEra);
-                player.Battle(Era);
-            }
-            if (Tracing)
-                foreach (PlayerState player in Players)
-                    TraceBattle(player);
-
+            RearmFreeCardsAndFightBattles();
             Era++;
-            if (Era >= 4)
+            if (AllErasPlayed())
             {
-                Trace.Debug("=== Game over ===");
-                Phase = Phase.GameOver;
-                Array.Clear(_waiting!);
+                EndGame();
                 return;
             }
-            if (Tracing)
-            {
-                Trace.Debug("=== Era {Era} ===", Era);
-                foreach (PlayerState player in Players.Where(p => p.FreeCardOnce))
-                    Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Id);
-            }
-            GiveCards();
+            StartNextEra();
         }
         else
         {
-            RotateHandCards();
-            Trace.Debug("Hands passed {Direction}", Era == 1 || Era == 3 ? "west" : "east");
+            PassHands();
         }
         StartPhase(Phase.ChooseMoves);
     }
 
+    private void RearmFreeCardsAndFightBattles()
+    {
+        foreach (PlayerState player in Players)
+        {
+            // Olympia A stage 2: one free card per era
+            player.FreeCardOnce = player.Has(Ability.FreeCardEachEra);
+            player.Battle(Era);
+        }
+        if (Tracing)
+        {
+            foreach (PlayerState player in Players)
+            {
+                TraceBattle(player);
+            }
+        }
+    }
+
+    private void EndGame()
+    {
+        Trace.Debug("=== Game over ===");
+        Phase = Phase.GameOver;
+        Array.Clear(_waiting!);
+    }
+
+    private void StartNextEra()
+    {
+        if (Tracing)
+        {
+            TraceEraStart();
+        }
+        GiveCards();
+    }
+
+    private void PassHands()
+    {
+        RotateHandCards();
+        string direction = "east";
+        if (HandsPassWestThisEra())
+        {
+            direction = "west";
+        }
+        Trace.Debug("Hands passed {Direction}", direction);
+    }
+
+    /// <summary>Eras I and III pass hands west, era II east.</summary>
+    private bool HandsPassWestThisEra()
+    {
+        return Era == 1 || Era == 3;
+    }
+
+    /// <summary>
+    /// Every player gives their hand to the neighbour on this era's side. Goes round the table from the first
+    /// player, each receiver keeping its own hand aside to give on.
+    /// </summary>
     public void RotateHandCards()
     {
-        PlayerState p,
-            p1,
-            neighbor;
-        p1 = p = Players.First();
-        List<Card> neighborHand,
-            passedHand = p1.HandCards;
+        _knowledge?.HandsPassing(Players, west: HandsPassWestThisEra());
 
-        bool clockwise = (Era == 1 || Era == 3);
-        _knowledge?.HandsPassing(Players, west: clockwise);
+        PlayerState p1 = Players[0];
+        PlayerState p = p1;
+        PlayerState neighbor;
+        List<Card> passedHand = p1.HandCards;
+        List<Card> neighborHand;
         do
         {
-            // Get the neighbor of player p who will receive the cards
-            // Keep his deck from being overwritten and lost
-            // The neighbor receives the cards from player p
-            // The neighbor becomes the player p
-            // Continue until you reach the first player again
-            neighbor = clockwise ? p.PlayerWest : p.PlayerEast;
-            // backup neighbor card list
+            neighbor = ReceiverOfHandFrom(p);
+            // keep the receiver's hand to give on next
             neighborHand = neighbor.HandCards;
-            // change card list references
             neighbor.HandCards = passedHand;
-            // go to next player
             p = neighbor;
-            // set new list reference that is the neighbors hand card list copy
             passedHand = neighborHand;
         } while (p1 != p);
+    }
+
+    private PlayerState ReceiverOfHandFrom(PlayerState player)
+    {
+        if (HandsPassWestThisEra())
+        {
+            return player.PlayerWest;
+        }
+        return player.PlayerEast;
     }
 
     /// <summary>
@@ -520,106 +765,246 @@ public class Game
     public Dictionary<int, int> Loop(bool record = false)
     {
         if (Agents.Count != Players.Count)
-            throw new InvalidOperationException($"{Players.Count} players but {Agents.Count} agents.");
-        if (Turn == 0 && Tracing)
-            TraceSetup();
-
-        while (PendingPlayers() is { Count: > 0 } pending)
         {
-            // Everyone chooses from a view of the same state before any choice is submitted, so no agent sees
-            // another's choice (M2).
-            List<GameView> views = pending.Select(seat => new GameView(this, seat)).ToList();
-            if (Tracing)
-                TracePhaseStart(views);
-
-            var choices = views.Select(v => (v.Seat, Move: Agents[v.Seat].Choose(v))).ToList();
-            if (Tracing && Phase != Phase.DiscardBuild)
-                foreach (var (seat, move) in choices)
-                    TraceChoice(seat, move);
-
-            foreach (var (seat, move) in choices)
-                Submit(seat, move);
+            throw new InvalidOperationException($"{Players.Count} players but {Agents.Count} agents.");
+        }
+        if (Turn == 0 && Tracing)
+        {
+            TraceSetup();
         }
 
-        //calculate scores
+        IReadOnlyList<int> pending = PendingPlayers();
+        while (pending.Count > 0)
+        {
+            AskAndSubmit(pending);
+            pending = PendingPlayers();
+        }
+
+        ScoreAllPlayers();
+        if (record)
+        {
+            Results = GameResult.ForPlayers(Players, Agents);
+        }
+
+        var scores = new Dictionary<int, int>();
+        foreach (PlayerState p in Players)
+        {
+            scores.Add(p.Id, p.VictoryPoints);
+        }
+        return scores;
+    }
+
+    /// <summary>
+    /// Asks every pending seat's agent for its decision, then submits them all. Everyone chooses from a view of the
+    /// same state before any choice is submitted, so no agent sees another's choice.
+    /// </summary>
+    private void AskAndSubmit(IReadOnlyList<int> pending)
+    {
+        List<GameView> views = pending.Select(seat => new GameView(this, seat)).ToList();
+        if (Tracing)
+        {
+            TracePhaseStart(views);
+        }
+
+        var choices = new List<Command>(views.Count);
+        foreach (GameView view in views)
+        {
+            choices.Add(Agents[view.Seat].Choose(view));
+        }
+        if (Tracing && Phase != Phase.DiscardBuild)
+        {
+            for (int choiceIndex = 0; choiceIndex < views.Count; choiceIndex++)
+            {
+                TraceChoice(views[choiceIndex].Seat, choices[choiceIndex]);
+            }
+        }
+
+        for (int choiceIndex = 0; choiceIndex < views.Count; choiceIndex++)
+        {
+            Submit(views[choiceIndex].Seat, choices[choiceIndex]);
+        }
+    }
+
+    /// <summary>Olympia B's guild copy, then every player's final score.</summary>
+    private void ScoreAllPlayers()
+    {
         foreach (PlayerState player in Players)
         {
             // Copies a neighbor guild before scoring if the player has the ability to do so.
             bool copied = player.CopyGuild();
             if (copied && Tracing)
-                Trace.Debug("Seat {Seat} copies {Guild} from a neighbour (Olympia B)", player.Id, player.PlayedCards[^1].Name);
+            {
+                Trace.Debug("Seat {Seat} copies {Guild} from a neighbour (Olympia B)",
+                    player.Id,
+                    LastBuiltCard(player).Name);
+            }
             player.CalculateScore();
         }
         if (Tracing)
+        {
             TraceScores();
+        }
+    }
 
-        if (record)
-            Results = GameResult.ForPlayers(Players, Agents);
-
-        var scores = new Dictionary<int, int>();
-        Players.ForEach(p => scores.Add(p.Id, p.VictoryPoints));
-        return scores;
+    private static Card LastBuiltCard(PlayerState player)
+    {
+        int lastIndex = player.PlayedCards.Count - 1;
+        return player.PlayedCards[lastIndex];
     }
 
     /// <summary>
-    /// A chosen move that the rules don't allow (E8). The game stops here instead of carrying on in a state
+    /// A chosen move that the rules don't allow. The game stops here instead of carrying on in a state
     /// that shouldn't exist; the message has what is needed to replay it.
     /// </summary>
-    private InvalidOperationException MoveFailed(PlayerState player, string move, Card card) =>
-        new($"Seat {player.Id} ({AgentName(player.Id)}) could not {move} {card.Name} on turn {Turn} " +
+    private InvalidOperationException MoveFailed(PlayerState player, string move, Card card)
+    {
+        return new InvalidOperationException(
+            $"Seat {player.Id} ({AgentName(player.Id)}) could not {move} {card.Name} on turn {Turn} " +
             $"(era {Era}, game seed {Seed}).");
+    }
 
-    private string AgentName(int seat) => seat < Agents.Count ? Agents[seat].Name : "no agent";
+    private string AgentName(int seat)
+    {
+        if (seat < Agents.Count)
+        {
+            return Agents[seat].Name;
+        }
+        return "no agent";
+    }
 
     /// <summary>
-    /// Carries out moves made at the same time (R5). Every move is checked and priced against the state before any
+    /// Carries out moves made at the same time. Every move is checked and priced against the state before any
     /// of them; then every player pays and places their card; then trade income, discard coins and the effects of
     /// the cards and wonder stages arrive. Coins received can't be spent in the same turn, and seat order doesn't
     /// change the result.
     /// </summary>
     public void ResolveMoves(IReadOnlyList<(PlayerState Player, Command Command, List<Card> Source)> moves)
     {
-        TraceSnapshot[]? before = Tracing ? moves.Select(m => TraceSnapshot.Of(m.Player)).ToArray() : null;
+        TraceSnapshot[]? before = null;
+        if (Tracing)
+        {
+            before = SnapshotsBefore(moves);
+        }
 
+        PlannedMove?[] planned = PlanAllMoves(moves);
+        PlaceAllCards(planned);
+        SettleAllMoves(planned);
+
+        if (before != null)
+        {
+            for (int i = 0; i < moves.Count; i++)
+            {
+                TraceResult(moves[i].Player, planned[i], before[i]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks and prices every move against the same state; throws, changing nothing, if one isn't allowed.
+    /// </summary>
+    private PlannedMove?[] PlanAllMoves(IReadOnlyList<(PlayerState Player, Command Command, List<Card> Source)> moves)
+    {
         var planned = new PlannedMove?[moves.Count];
         for (int i = 0; i < moves.Count; i++)
         {
             var (player, command, source) = moves[i];
-            if (command.Action != ActionType.Skip && command.Card is { } card)
-                planned[i] = player.PlanMove(command.Action, card, source) ?? throw MoveFailed(player, command.Action.ToString(), card);
-        }
+            Card? card = command.Card;
+            if (command.Action == ActionType.Skip || card == null)
+            {
+                continue;
+            }
 
+            PlannedMove? move = player.PlanMove(command.Action, card, source);
+            if (move == null)
+            {
+                throw MoveFailed(player, command.Action.ToString(), card);
+            }
+            planned[i] = move;
+        }
+        return planned;
+    }
+
+    /// <summary>Every player pays and places their card; a discarded card goes to the discard pile.</summary>
+    private void PlaceAllCards(PlannedMove?[] planned)
+    {
         foreach (PlannedMove? move in planned)
         {
             if (move == null)
+            {
                 continue;
+            }
             move.Player.Place(move);
             if (move.Action == ActionType.Discard)
+            {
                 DiscardedCards.Add(move.Card);
+            }
             _knowledge?.Moved(move);
         }
+    }
 
+    /// <summary>Trade income, discard coins and the effects of every move arrive.</summary>
+    private static void SettleAllMoves(PlannedMove?[] planned)
+    {
         foreach (PlannedMove? move in planned)
+        {
             if (move != null)
+            {
                 move.Player.Settle(move);
-
-        if (before != null)
-            for (int i = 0; i < moves.Count; i++)
-                TraceResult(moves[i].Player, planned[i], before[i]);
+            }
+        }
     }
 
     // ================= Trace (Debug / Verbose) =================
     // Read-only: these only read state that is already computed.
 
+    private static TraceSnapshot[] SnapshotsBefore(
+        IReadOnlyList<(PlayerState Player, Command Command, List<Card> Source)> moves)
+    {
+        var snapshots = new TraceSnapshot[moves.Count];
+        for (int i = 0; i < moves.Count; i++)
+        {
+            snapshots[i] = TraceSnapshot.Of(moves[i].Player);
+        }
+        return snapshots;
+    }
+
     private void TraceSetup()
     {
         Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players", Seed, Seed.ToString("x16"), Players.Count);
         foreach (PlayerState p in Players)
-            Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}", p.Id, AgentName(p.Id),
-                p.Id < Agents.Count ? Agents[p.Id].ConfigJson() : "{}", p.Board.Id);
+        {
+            Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}",
+                p.Id,
+                AgentName(p.Id),
+                AgentConfigJson(p.Id),
+                p.Board.Id);
+        }
         for (int era = 0; era < Decks.Length; era++)
+        {
             Trace.Verbose("Era {Era} deck: {Cards}", era + 1, Names(Decks[era]));
+        }
         Trace.Debug("=== Era 1 ===");
+    }
+
+    private string AgentConfigJson(int seat)
+    {
+        if (seat < Agents.Count)
+        {
+            return Agents[seat].ConfigJson();
+        }
+        return "{}";
+    }
+
+    private void TraceEraStart()
+    {
+        Trace.Debug("=== Era {Era} ===", Era);
+        foreach (PlayerState player in Players)
+        {
+            if (player.FreeCardOnce)
+            {
+                Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Id);
+            }
+        }
     }
 
     private void TraceTurnStart(IReadOnlyList<GameView> views)
@@ -629,15 +1014,24 @@ public class Game
         {
             PlayerState p = Players[v.Seat];
             Trace.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
-                p.Id, p.Resources[Resource.Coins], p.Resources[Resource.Shields], p.Board.Id, p.Board.Stage, Names(p.HandCards));
+                p.Id,
+                p.Resources[Resource.Coins],
+                p.Resources[Resource.Shields],
+                p.Board.Id,
+                p.Board.Stage,
+                Names(p.HandCards));
             TracePlayable(v);
         }
     }
 
     // what the agent was shown (worked out for its view, so tracing it changes nothing)
-    private void TracePlayable(GameView v) =>
+    private void TracePlayable(GameView v)
+    {
         Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
-            v.Seat, Names(v.PlayableCards), v.CanBuildWonder);
+            v.Seat,
+            Names(v.PlayableCards),
+            v.CanBuildWonder);
+    }
 
     private void TracePhaseStart(IReadOnlyList<GameView> views)
     {
@@ -650,7 +1044,11 @@ public class Game
         {
             PlayerState p = Players[v.Seat];
             if (Phase == Phase.SeventhCard)
-                Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}", p.Id, Names(p.HandCards));
+            {
+                Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}",
+                    p.Id,
+                    Names(p.HandCards));
+            }
             else
             {
                 Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", p.Id);
@@ -662,115 +1060,285 @@ public class Game
 
     private void TraceChoice(int seat, Command c)
     {
-        Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, c.Action, c.Card?.Name ?? "-");
+        string cardName = "-";
+        if (c.Card != null)
+        {
+            cardName = c.Card.Name;
+        }
+        Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, c.Action, cardName);
+
         // e.g. a search's top moves; the agent made the note when it chose, so reading it changes nothing
-        string? note = seat < Agents.Count ? Agents[seat].LastChoiceNote : null;
+        string? note = LastChoiceNoteOf(seat);
         if (note != null)
+        {
             Trace.Debug("Seat {Seat} {Agent}: {Note}", seat, AgentName(seat), note);
+        }
     }
 
-    /// <summary>What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.</summary>
+    private string? LastChoiceNoteOf(int seat)
+    {
+        if (seat < Agents.Count)
+        {
+            return Agents[seat].LastChoiceNote;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.
+    /// </summary>
     private void TraceResult(PlayerState p, PlannedMove? m, TraceSnapshot before)
     {
         TraceSnapshot after = TraceSnapshot.Of(p);
-        string name = m?.Card.Name ?? "";
-        string move = m == null ? "skips the move" : m.Action switch
-        {
-            ActionType.BuildFreeOnce => $"builds {name} for free (Olympia A)",
-            ActionType.BuildWonder => $"builds wonder stage {after.Stage} using {name}",
-            ActionType.Discard => $"discards {name}",
-            _ => $"builds {name}",
-        };
+        string move = DescribeMove(m, after.Stage);
 
         var details = new List<string>();
         if (m != null)
         {
-            if (m.Payment.ToWest > 0)
-                details.Add($"paid {m.Payment.ToWest} to seat {p.PlayerWest.Id} (west)");
-            if (m.Payment.ToEast > 0)
-                details.Add($"paid {m.Payment.ToEast} to seat {p.PlayerEast.Id} (east)");
-            if (m.CoinCost > 0)
-                details.Add($"paid {m.CoinCost} to the bank");
+            AddPaymentDetails(details, p, m);
         }
         var gained = after.Flags.Except(before.Flags).ToList();
         var lost = before.Flags.Except(after.Flags).ToList();
         if (gained.Count > 0)
+        {
             details.Add("gains " + string.Join(", ", gained));
+        }
         if (lost.Count > 0)
+        {
             details.Add("uses up " + string.Join(", ", lost));
+        }
 
-        Trace.Debug("Seat {Seat} {Move}: coins {Before} -> {After}{Details}", p.Id, move, before.Coins, after.Coins,
-            details.Count > 0 ? "; " + string.Join("; ", details) : "");
+        string detailsText = "";
+        if (details.Count > 0)
+        {
+            detailsText = "; " + string.Join("; ", details);
+        }
+        Trace.Debug("Seat {Seat} {Move}: coins {Before} -> {After}{Details}",
+            p.Id,
+            move,
+            before.Coins,
+            after.Coins,
+            detailsText);
+    }
+
+    /// <summary>The move in words, for the trace: "builds Loom", "discards Loom", "skips the move"...</summary>
+    private static string DescribeMove(PlannedMove? move, int stageAfter)
+    {
+        if (move == null)
+        {
+            return "skips the move";
+        }
+
+        string name = move.Card.Name;
+        switch (move.Action)
+        {
+            case ActionType.BuildFreeOnce:
+                return $"builds {name} for free (Olympia A)";
+            case ActionType.BuildWonder:
+                return $"builds wonder stage {stageAfter} using {name}";
+            case ActionType.Discard:
+                return $"discards {name}";
+            default:
+                return $"builds {name}";
+        }
+    }
+
+    /// <summary>The coins the move paid to each neighbour and to the bank, the ones above zero.</summary>
+    private static void AddPaymentDetails(List<string> details, PlayerState p, PlannedMove m)
+    {
+        if (m.Payment.ToWest > 0)
+        {
+            details.Add($"paid {m.Payment.ToWest} to seat {p.PlayerWest.Id} (west)");
+        }
+        if (m.Payment.ToEast > 0)
+        {
+            details.Add($"paid {m.Payment.ToEast} to seat {p.PlayerEast.Id} (east)");
+        }
+        if (m.CoinCost > 0)
+        {
+            details.Add($"paid {m.CoinCost} to the bank");
+        }
     }
 
     /// <summary>One player's two battles at the end of an era (after <see cref="Rules.Battle"/>; read-only).</summary>
     private void TraceBattle(PlayerState p)
     {
         int mine = p.Resources[Resource.Shields];
-        int win = Era == 1 ? 1 : Era == 2 ? 3 : 5;
-        string Outcome(int theirs) => mine > theirs ? $"+{win}" : mine < theirs ? "-1" : "draw";
-        int west = p.PlayerWest.Resources[Resource.Shields], east = p.PlayerEast.Resources[Resource.Shields];
+        int win = VictoryTokensForWinningBattle(Era);
+        int west = p.PlayerWest.Resources[Resource.Shields];
+        int east = p.PlayerEast.Resources[Resource.Shields];
         Trace.Debug("Seat {Seat} battles with {Shields} shields: vs seat {West} (west, {WestShields}) {WestResult}, " +
                     "vs seat {East} (east, {EastShields}) {EastResult}",
-            p.Id, mine, p.PlayerWest.Id, west, Outcome(west), p.PlayerEast.Id, east, Outcome(east));
+            p.Id,
+            mine,
+            p.PlayerWest.Id,
+            west,
+            DescribeBattleOutcome(mine, west, win),
+            p.PlayerEast.Id,
+            east,
+            DescribeBattleOutcome(mine, east, win));
+    }
+
+    /// <summary>The token a battle gave, for the trace: "+3" for a win in era II, "-1" for a loss, or "draw".</summary>
+    private static string DescribeBattleOutcome(int shields, int neighbourShields, int tokensForWin)
+    {
+        if (shields > neighbourShields)
+        {
+            return $"+{tokensForWin}";
+        }
+        if (shields < neighbourShields)
+        {
+            return "-1";
+        }
+        return "draw";
     }
 
     private void TraceScores()
     {
         foreach (PlayerState p in Players)
+        {
             Trace.Debug("Seat {Seat} {Agent}: {Total} VP = military {Military} + coins {Money} + wonder {Wonder} + " +
-                        "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; {Coins} coins left",
-                p.Id, AgentName(p.Id), p.VictoryPoints, p.CalculateMilitaryScore(), p.CalculateMoneyScore(),
-                p.CalculateWonderScore(), p.CalculateCivilianScore(), p.CalculateCommercialScore(),
-                p.CalculateGuildScore(), p.CalculateScientificScore(), p.Resources[Resource.Coins]);
+                        "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; " +
+                        "{Coins} coins left",
+                p.Id,
+                AgentName(p.Id),
+                p.VictoryPoints,
+                p.CalculateMilitaryScore(),
+                p.CalculateMoneyScore(),
+                p.CalculateWonderScore(),
+                p.CalculateCivilianScore(),
+                p.CalculateCommercialScore(),
+                p.CalculateGuildScore(),
+                p.CalculateScientificScore(),
+                p.Resources[Resource.Coins]);
+        }
     }
 
 
     // ================= Legal moves (for search agents) =================
     /// <summary>Every move a seat may make now. A seat with nothing to decide gets a single Skip.</summary>
-    public List<Command> LegalMoves(int seat) => Moves(seat, pruned: false);
+    public List<Command> LegalMoves(int seat)
+    {
+        return Moves(seat, pruned: false);
+    }
 
     /// <summary>
     /// Like <see cref="LegalMoves"/>, but with one wonder-stage move and one discard, each with a random hand
     /// card (from the game's own random stream), instead of one per card.
     /// </summary>
-    public List<Command> LegalMovesPruned(int seat) => Moves(seat, pruned: true);
+    public List<Command> LegalMovesPruned(int seat)
+    {
+        return Moves(seat, pruned: true);
+    }
 
     private List<Command> Moves(int seat, bool pruned)
     {
         var moves = new List<Command>();
-        if (PendingPlayers().Contains(seat))
+        if (IsPending(seat))
         {
             PlayerState player = Players[seat];
-            List<Card> hand = player.HandCards;
-
             if (Phase == Phase.DiscardBuild)
-                moves.AddRange(player.GetPlayableCards(DiscardedCards, playAllFree: true).Select(c => new Command(ActionType.Build, c)));
+            {
+                AddDiscardPileBuilds(moves, player);
+            }
             else
             {
-                moves.AddRange(player.GetPlayableCards(hand).Select(c => new Command(ActionType.Build, c)));
-                if (player.CanBuildWonder() && hand.Count > 0)
-                {
-                    if (pruned)
-                        moves.Add(new Command(ActionType.BuildWonder, hand[_rng.Next(hand.Count)]));
-                    else
-                        moves.AddRange(hand.Select(c => new Command(ActionType.BuildWonder, c)));
-                }
-                if (Phase == Phase.ChooseMoves && player.FreeCardOnce)
-                    moves.AddRange(player.GetPlayableCards(hand, playAllFree: true).Select(c => new Command(ActionType.BuildFreeOnce, c)));
-                if (hand.Count > 0)
-                {
-                    if (pruned)
-                        moves.Add(new Command(ActionType.Discard, hand[_rng.Next(hand.Count)]));
-                    else
-                        moves.AddRange(hand.Select(c => new Command(ActionType.Discard, c)));
-                }
+                AddBuilds(moves, player);
+                AddWonderStages(moves, player, pruned);
+                AddOlympiaFreeBuilds(moves, player);
+                AddDiscards(moves, player, pruned);
             }
         }
 
         if (moves.Count == 0)
+        {
             moves.Add(new Command(ActionType.Skip, null));
-        // the same card twice in a hand gives the same move twice
-        return moves.Distinct().ToList();
+        }
+        return moves;
+    }
+
+    /// <summary>Halikarnassos: a free build of any discard-pile card the city doesn't have.</summary>
+    private void AddDiscardPileBuilds(List<Command> moves, PlayerState player)
+    {
+        foreach (Card card in player.GetPlayableCards(DiscardedCards, playAllFree: true))
+        {
+            AddIfNew(moves, new Command(ActionType.Build, card));
+        }
+    }
+
+    private static void AddBuilds(List<Command> moves, PlayerState player)
+    {
+        foreach (Card card in player.GetPlayableCards(player.HandCards))
+        {
+            AddIfNew(moves, new Command(ActionType.Build, card));
+        }
+    }
+
+    /// <summary>The next wonder stage with each hand card, or with one random hand card when pruned.</summary>
+    private void AddWonderStages(List<Command> moves, PlayerState player, bool pruned)
+    {
+        List<Card> hand = player.HandCards;
+        if (!player.CanBuildWonder() || hand.Count == 0)
+        {
+            return;
+        }
+        if (pruned)
+        {
+            AddIfNew(moves, new Command(ActionType.BuildWonder, RandomCardOf(hand)));
+            return;
+        }
+        foreach (Card card in hand)
+        {
+            AddIfNew(moves, new Command(ActionType.BuildWonder, card));
+        }
+    }
+
+    /// <summary>Olympia A: any hand card the city doesn't have, for free, once per era.</summary>
+    private void AddOlympiaFreeBuilds(List<Command> moves, PlayerState player)
+    {
+        if (Phase != Phase.ChooseMoves || !player.FreeCardOnce)
+        {
+            return;
+        }
+        foreach (Card card in player.GetPlayableCards(player.HandCards, playAllFree: true))
+        {
+            AddIfNew(moves, new Command(ActionType.BuildFreeOnce, card));
+        }
+    }
+
+    /// <summary>Discarding each hand card, or one random hand card when pruned.</summary>
+    private void AddDiscards(List<Command> moves, PlayerState player, bool pruned)
+    {
+        List<Card> hand = player.HandCards;
+        if (hand.Count == 0)
+        {
+            return;
+        }
+        if (pruned)
+        {
+            AddIfNew(moves, new Command(ActionType.Discard, RandomCardOf(hand)));
+            return;
+        }
+        foreach (Card card in hand)
+        {
+            AddIfNew(moves, new Command(ActionType.Discard, card));
+        }
+    }
+
+    private Card RandomCardOf(List<Card> hand)
+    {
+        int cardIndex = _rng.Next(hand.Count);
+        return hand[cardIndex];
+    }
+
+    /// <summary>
+    /// Adds the move unless it is in the list already (the same card twice in a hand gives the same move).
+    /// </summary>
+    private static void AddIfNew(List<Command> moves, Command move)
+    {
+        if (!moves.Contains(move))
+        {
+            moves.Add(move);
+        }
     }
 }
