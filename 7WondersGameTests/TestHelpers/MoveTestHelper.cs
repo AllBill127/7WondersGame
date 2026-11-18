@@ -29,7 +29,7 @@ internal static class MoveTestHelper
     /// <returns>true if the stage was built; otherwise false (nothing changes)</returns>
     public static bool BuildWonderStage(PlayerState player, Card card, List<Card> source)
     {
-        PlannedMove? plannedMove = player.PlanMove(ActionType.BuildWonder, card, source);
+        PlannedMove? plannedMove = player.PlanMove(MoveAction.BuildWonderStage, card, source);
         return Resolve(player, plannedMove);
     }
 
@@ -37,16 +37,16 @@ internal static class MoveTestHelper
     {
         if (!isFree)
         {
-            return player.PlanMove(ActionType.Build, card, source);
+            return player.PlanMove(MoveAction.Build, card, source);
         }
 
-        List<Card> buildableForFree = player.GetPlayableCards(source, playAllFree: true);
+        List<Card> buildableForFree = player.BuildableCards(source, everyCardFree: true);
         if (!buildableForFree.Contains(card))
         {
             return null;
         }
 
-        return new PlannedMove(player, ActionType.Build, card, source, PaymentPlan.Free, 0);
+        return new PlannedMove(player, MoveAction.Build, card, source, PaymentPlan.Free, 0);
     }
 
     private static bool Resolve(PlayerState player, PlannedMove? plannedMove)

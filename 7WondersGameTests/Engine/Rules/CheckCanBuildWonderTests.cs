@@ -16,16 +16,16 @@ public class CheckCanBuildWonderTests
     public void CheckCanBuildWonder_WhenAvailable_ReturnsTrue()
     {
         // Arrange
-        List<Wonder> allWonders = MockHelper.MockWonders();
-        List<Wonder> selectWonders = allWonders.GetRange(0, 3);
+        List<WonderBoardProgress> allWonders = MockHelper.MockWonders();
+        List<WonderBoardProgress> selectWonders = allWonders.GetRange(0, 3);
         List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
         // give resources for situation
-        players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
         // manually add clay from clayPool card (building the card would add it; not done here)
         players[0].Resources[Resource.Clay] += 1;
         players[1].Resources[Resource.Coins] = 3;
-        players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
         // Expected values
         int expThisPlayerCoins = 3;

@@ -16,7 +16,7 @@ public sealed class Points : IEffect
     public int Vp { get; }
 
     /// <inheritdoc/>
-    public int EndGameVp(PlayerState owner)
+    public int EndGameVictoryPoints(PlayerState owner)
     {
         return Vp;
     }

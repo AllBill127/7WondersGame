@@ -11,42 +11,42 @@ internal class MockHelper
     /// List of Gizah, Babylon, Olympia, Rhodos, Ephesos, Alexandria, Halikarnassos
     /// </summary>
     /// <returns>List of A and B Wonders</returns>
-    public static List<Wonder> MockWonders()
+    public static List<WonderBoardProgress> MockWonders()
     {
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.BabylonA),
-            new Wonder(WonderId.OlympiaA),
-            new Wonder(WonderId.RhodosA),
-            new Wonder(WonderId.EphesosA),
-            new Wonder(WonderId.AlexandriaA),
-            new Wonder(WonderId.HalikarnassosA),
-            new Wonder(WonderId.GizahB),
-            new Wonder(WonderId.BabylonB),
-            new Wonder(WonderId.OlympiaB),
-            new Wonder(WonderId.RhodosB),
-            new Wonder(WonderId.EphesosB),
-            new Wonder(WonderId.AlexandriaB),
-            new Wonder(WonderId.HalikarnassosB)
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.BabylonA),
+            new WonderBoardProgress(WonderId.OlympiaA),
+            new WonderBoardProgress(WonderId.RhodosA),
+            new WonderBoardProgress(WonderId.EphesosA),
+            new WonderBoardProgress(WonderId.AlexandriaA),
+            new WonderBoardProgress(WonderId.HalikarnassosA),
+            new WonderBoardProgress(WonderId.GizahB),
+            new WonderBoardProgress(WonderId.BabylonB),
+            new WonderBoardProgress(WonderId.OlympiaB),
+            new WonderBoardProgress(WonderId.RhodosB),
+            new WonderBoardProgress(WonderId.EphesosB),
+            new WonderBoardProgress(WonderId.AlexandriaB),
+            new WonderBoardProgress(WonderId.HalikarnassosB)
         };
 
         return wonders;
     }
 
     /// <summary>One player per wonder, seated in that order, each with its west and east neighbour set.</summary>
-    public static List<PlayerState> MockPlayers(List<Wonder> wonders)
+    public static List<PlayerState> MockPlayers(List<WonderBoardProgress> wonders)
     {
         List<PlayerState> players = new List<PlayerState>();
         for (int seat = 0; seat < wonders.Count; seat++)
         {
-            players.Add(new PlayerState(seat) { Board = wonders[seat] });
+            players.Add(new PlayerState(seat) { Wonder = wonders[seat] });
         }
 
         foreach (PlayerState player in players)
         {
-            player.PlayerWest = players[SeatToTheWest(player.Id, players.Count)];
-            player.PlayerEast = players[SeatToTheEast(player.Id, players.Count)];
+            player.WestNeighbour = players[SeatToTheWest(player.Seat, players.Count)];
+            player.EastNeighbour = players[SeatToTheEast(player.Seat, players.Count)];
         }
 
         return players;

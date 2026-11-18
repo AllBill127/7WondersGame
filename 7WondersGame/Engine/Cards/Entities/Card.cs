@@ -25,7 +25,7 @@ public sealed class Card : IEquatable<Card>
     public int Era { get; }
 
     /// <summary>The card that lets this one be built for free (chaining), or <see cref="CardId.None"/>.</summary>
-    public CardId FreeWithId { get; }
+    public CardId FreeIfBuiltCardId { get; }
 
     /// <summary>The resources and coins it costs.</summary>
     public IReadOnlyDictionary<Resource, int> Cost { get; }
@@ -52,14 +52,14 @@ public sealed class Card : IEquatable<Card>
     /// Wood, Ore, Clay, Stone, Loom, Glass, Papyrus, Coins (not the <see cref="Resource"/> order).
     /// </param>
     /// <param name="copies">Copies in the deck for 3, 4, 5, 6 and 7 players.</param>
-    public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] copies,
+    public Card(CardId id, string name, CardType type, int era, CardId freeIfBuilt, int[] cost, int[] copies,
                 params IEffect[] effects)
     {
         Id = id;
         Name = name;
         Type = type;
         Era = era;
-        FreeWithId = freeWithId;
+        FreeIfBuiltCardId = freeIfBuilt;
         _copies = copies.ToArray();
         Effects = effects;
 
@@ -139,7 +139,7 @@ public sealed class Card : IEquatable<Card>
         string copies = string.Join(' ', _copies);
         StringBuilder description = new StringBuilder();
         description.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  Copies (3-7 players): {copies}");
-        description.AppendLine($"Type: {Type}   FreeWith: {FreeWithId}");
+        description.AppendLine($"Type: {Type}   FreeWith: {FreeIfBuiltCardId}");
         return description.ToString();
     }
 }

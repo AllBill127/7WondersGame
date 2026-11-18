@@ -27,9 +27,9 @@ public sealed class MctsAgent : IAgent
     public MctsConfig Config { get; } = new();
 
     /// <summary>The move a search of the view's game finds, or the only legal move without a search.</summary>
-    public Command Choose(GameView view)
+    public Move Choose(GameView view)
     {
-        List<Command> legal = view.LegalMoves();
+        List<Move> legal = view.LegalMoves();
         if (legal.Count == 1)
         {
             _statistics.LastNote = null;
@@ -39,7 +39,7 @@ public sealed class MctsAgent : IAgent
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var clock = Stopwatch.StartNew();
         var search = new MctsSearch(Config, view.Seat, view.CopyGame(), view.Known, view.Random, clock);
-        Command move = search.Run();
+        Move move = search.Run();
         double milliseconds = clock.Elapsed.TotalMilliseconds;
 
         long allocatedHere = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;

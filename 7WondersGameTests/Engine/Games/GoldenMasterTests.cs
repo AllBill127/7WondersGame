@@ -94,21 +94,21 @@ public class GoldenMasterTests
             game.Agents.Add(NewAgent(agentKind));
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         game.Loop(record: true);
 
         var lines = new List<string>();
         string prefix = $"p{players} g{gameIndex} seed={seed}";
         foreach (PlayerState player in game.Players)
         {
-            lines.Add($"{prefix} seat={player.Id} {game.Agents[player.Id].Name} {player.Board.Id} " +
-                      $"stage={player.Board.Stage} " +
+            lines.Add($"{prefix} seat={player.Seat} {game.Agents[player.Seat].Name} {player.Wonder.Id} " +
+                      $"stage={player.Wonder.BuiltStageCount} " +
                       $"vp={player.VictoryPoints} coins={player.Resources[Resource.Coins]} " +
                       $"military=+{player.VictoryTokens}/-{player.DefeatTokens} " +
-                      $"built={string.Join(",", player.PlayedCards.Select(card => card.Id))}");
+                      $"built={string.Join(",", player.BuiltCards.Select(card => card.Id))}");
         }
 
-        lines.Add($"{prefix} discarded={string.Join(",", game.DiscardedCards.Select(card => card.Id))}");
+        lines.Add($"{prefix} discarded={string.Join(",", game.DiscardPile.Select(card => card.Id))}");
         return lines;
     }
 

@@ -22,9 +22,9 @@ public interface IAgent
 
     /// <summary>
     /// The move for the view's phase: in <see cref="Phase.ChooseMoves"/> and <see cref="Phase.SeventhCard"/> a
-    /// move with a hand card; in <see cref="Phase.DiscardBuild"/> a Build of a discard-pile card, or Skip.
+    /// move with a hand card; in <see cref="Phase.DiscardPileBuild"/> a Build of a discard-pile card, or Skip.
     /// </summary>
-    Command Choose(GameView view);
+    Move Choose(GameView view);
 
     /// <summary>
     /// What the agent measured over its game (e.g. search time and iterations), as JSON for the results'

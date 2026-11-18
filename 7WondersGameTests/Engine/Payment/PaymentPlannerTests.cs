@@ -32,19 +32,20 @@ public class PaymentPlannerTests
     /// <summary>
     /// Three players, all resources 0. Returns (west, buyer, east); the buyer has the given coins, the others 0.
     /// </summary>
-    private static (PlayerState West, PlayerState Buyer, PlayerState East) SetUp(int coins, Wonder? buyerWonder = null)
+    private static (PlayerState West, PlayerState Buyer, PlayerState East) SetUp(
+        int coins, WonderBoardProgress? buyerWonder = null)
     {
-        Wonder buyersBoard = new Wonder(WonderId.GizahA);
+        WonderBoardProgress buyersWonder = new WonderBoardProgress(WonderId.GizahA);
         if (buyerWonder != null)
         {
-            buyersBoard = buyerWonder;
+            buyersWonder = buyerWonder;
         }
 
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
-            new Wonder(WonderId.GizahA),
-            buyersBoard,
-            new Wonder(WonderId.GizahA)
+            new WonderBoardProgress(WonderId.GizahA),
+            buyersWonder,
+            new WonderBoardProgress(WonderId.GizahA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState player in players)
@@ -65,7 +66,7 @@ public class PaymentPlannerTests
     {
         foreach (CardId id in cards)
         {
-            player.PlayedCards.Add(CardsDataset.GameCards[id]);
+            player.BuiltCards.Add(CardsDataset.GameCards[id]);
         }
     }
 
@@ -159,7 +160,7 @@ public class PaymentPlannerTests
     {
         // East Trading Post: 1 coin per raw from the east. East has one wood, west has plenty.
         var (west, buyer, east) = SetUp(coins: 3);
-        buyer.Abilities |= Ability.RawCheapEast;
+        buyer.Abilities |= Ability.RawMaterialsCheapFromEastNeighbour;
         west.Resources[Resource.Wood] = 3;
         east.Resources[Resource.Wood] = 1;
         Assert.AreEqual(new PaymentPlan(2, 1), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))));
@@ -178,7 +179,7 @@ public class PaymentPlannerTests
     public void CheaperNeighbourWins()
     {
         var (west, buyer, east) = SetUp(coins: 2);
-        buyer.Abilities |= Ability.RawCheapEast;
+        buyer.Abilities |= Ability.RawMaterialsCheapFromEastNeighbour;
         west.Resources[Resource.Stone] = 1;
         east.Resources[Resource.Stone] = 1;
         Assert.AreEqual(new PaymentPlan(0, 1), PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
@@ -188,7 +189,7 @@ public class PaymentPlannerTests
     public void OlympiaB_RawFromBothNeighboursCostsOne()
     {
         var (west, buyer, east) = SetUp(coins: 2);
-        buyer.Abilities |= Ability.WonderRawCheap;
+        buyer.Abilities |= Ability.RawMaterialsCheapFromBothNeighbours;
         west.Resources[Resource.Ore] = 1;
         east.Resources[Resource.Ore] = 1;
         Assert.AreEqual(new PaymentPlan(1, 1), PaymentPlanner.Plan(buyer, Cost((Resource.Ore, 2))));
@@ -198,7 +199,7 @@ public class PaymentPlannerTests
     public void Marketplace_ManufacturedCostsOne_RawStillTwo()
     {
         var (west, buyer, _) = SetUp(coins: 3);
-        buyer.Abilities |= Ability.ManufCheap;
+        buyer.Abilities |= Ability.ManufacturedGoodsCheapFromBothNeighbours;
         west.Resources[Resource.Glass] = 1;
         west.Resources[Resource.Wood] = 1;
         Assert.AreEqual(
@@ -223,13 +224,13 @@ public class PaymentPlannerTests
     [TestMethod]
     public void AlexandriaWildcards()
     {
-        var (_, buyer, _) = SetUp(coins: 0, new Wonder(WonderId.AlexandriaB));
+        var (_, buyer, _) = SetUp(coins: 0, new WonderBoardProgress(WonderId.AlexandriaB));
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
-        buyer.Board.Stage = 1;   // any raw
+        buyer.Wonder.BuiltStageCount = 1;   // any raw
         Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1), (Resource.Clay, 1))));
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Glass, 1))));
-        buyer.Board.Stage = 2;   // and any manufactured good
+        buyer.Wonder.BuiltStageCount = 2;   // and any manufactured good
         Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1), (Resource.Glass, 1))));
     }
 
@@ -247,7 +248,7 @@ public class PaymentPlannerTests
         foreach (PlayerState player in players)
         {
             resourcesBefore.Add(ResourcesOf(player));
-            cardsBefore.Add(new List<Card>(player.PlayedCards));
+            cardsBefore.Add(new List<Card>(player.BuiltCards));
         }
 
         var cost = Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1));
@@ -257,7 +258,7 @@ public class PaymentPlannerTests
         {
             CollectionAssert.AreEquivalent(resourcesBefore[seat], ResourcesOf(players[seat]),
                                            $"resources of player {seat}");
-            CollectionAssert.AreEqual(cardsBefore[seat], players[seat].PlayedCards, $"cards of player {seat}");
+            CollectionAssert.AreEqual(cardsBefore[seat], players[seat].BuiltCards, $"cards of player {seat}");
         }
     }
 
@@ -268,9 +269,9 @@ public class PaymentPlannerTests
         Build(west, CardId.TreeFarm);
         Build(east, CardId.TimberYard);
         Card caravansery = CardsDataset.GameCards[CardId.Caravansery];   // 2 wood
-        buyer.HandCards.Add(caravansery);
+        buyer.Hand.Add(caravansery);
 
-        Assert.IsTrue(MoveTestHelper.BuildCard(buyer, caravansery, buyer.HandCards, false));
+        Assert.IsTrue(MoveTestHelper.BuildCard(buyer, caravansery, buyer.Hand, false));
         Assert.AreEqual(0, buyer.Resources[Resource.Coins]);
         Assert.AreEqual(2, west.Resources[Resource.Coins]);
         Assert.AreEqual(2, east.Resources[Resource.Coins]);
@@ -286,9 +287,9 @@ public class PaymentPlannerTests
 
         for (int test = 0; test < 3000; test++)
         {
-            Wonder buyerBoard = new Wonder(boards[random.Next(boards.Length)]);
-            buyerBoard.Stage = random.Next(0, 3);
-            var (west, buyer, east) = SetUp(coins: random.Next(0, 9), buyerBoard);
+            WonderBoardProgress buyersWonder = new WonderBoardProgress(boards[random.Next(boards.Length)]);
+            buyersWonder.BuiltStageCount = random.Next(0, 3);
+            var (west, buyer, east) = SetUp(coins: random.Next(0, 9), buyersWonder);
             foreach (PlayerState player in new[] { west, buyer, east })
             {
                 GiveRandomResourcesAndCards(player, random);
@@ -339,22 +340,22 @@ public class PaymentPlannerTests
     {
         if (random.Next(3) == 0)
         {
-            buyer.Abilities |= Ability.RawCheapWest;
+            buyer.Abilities |= Ability.RawMaterialsCheapFromWestNeighbour;
         }
 
         if (random.Next(3) == 0)
         {
-            buyer.Abilities |= Ability.RawCheapEast;
+            buyer.Abilities |= Ability.RawMaterialsCheapFromEastNeighbour;
         }
 
         if (random.Next(5) == 0)
         {
-            buyer.Abilities |= Ability.WonderRawCheap;
+            buyer.Abilities |= Ability.RawMaterialsCheapFromBothNeighbours;
         }
 
         if (random.Next(3) == 0)
         {
-            buyer.Abilities |= Ability.ManufCheap;
+            buyer.Abilities |= Ability.ManufacturedGoodsCheapFromBothNeighbours;
         }
     }
 

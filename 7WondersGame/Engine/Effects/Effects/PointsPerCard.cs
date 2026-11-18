@@ -30,7 +30,7 @@ public sealed class PointsPerCard : IEffect
     public CardType[] Types { get; }
 
     /// <inheritdoc/>
-    public int EndGameVp(PlayerState owner)
+    public int EndGameVictoryPoints(PlayerState owner)
     {
         int cardCount = 0;
         foreach (CardType type in Types)

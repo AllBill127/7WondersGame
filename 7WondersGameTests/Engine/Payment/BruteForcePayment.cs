@@ -69,10 +69,10 @@ internal sealed class BruteForcePayment
 
     private void CollectSourcesAndSupply()
     {
-        PlayerState[] owners = { _buyer, _buyer.PlayerWest, _buyer.PlayerEast };
+        PlayerState[] owners = { _buyer, _buyer.WestNeighbour, _buyer.EastNeighbour };
         for (int ownerIndex = 0; ownerIndex < 3; ownerIndex++)
         {
-            foreach (Card card in owners[ownerIndex].PlayedCards)
+            foreach (Card card in owners[ownerIndex].BuiltCards)
             {
                 Resource[]? options = OptionsOf(card.Id, ownerIndex == Buyer);
                 if (options != null)
@@ -82,8 +82,8 @@ internal sealed class BruteForcePayment
             }
         }
 
-        WonderId board = _buyer.Board.Id;
-        int stage = _buyer.Board.Stage;
+        WonderId board = _buyer.Wonder.Id;
+        int stage = _buyer.Wonder.BuiltStageCount;
         if (board == WonderId.AlexandriaA && stage >= 2 || board == WonderId.AlexandriaB && stage >= 1)
         {
             AddSource(Buyer, Raw);
@@ -221,11 +221,11 @@ internal sealed class BruteForcePayment
         bool cheap;
         if (Raw.Contains(resource))
         {
-            cheap = _buyer.Has(Ability.WonderRawCheap) || HasRawDiscountWith(seller);
+            cheap = _buyer.Has(Ability.RawMaterialsCheapFromBothNeighbours) || HasRawDiscountWith(seller);
         }
         else
         {
-            cheap = _buyer.Has(Ability.ManufCheap);
+            cheap = _buyer.Has(Ability.ManufacturedGoodsCheapFromBothNeighbours);
         }
 
         if (cheap)
@@ -240,9 +240,9 @@ internal sealed class BruteForcePayment
     {
         if (seller == West)
         {
-            return _buyer.Has(Ability.RawCheapWest);
+            return _buyer.Has(Ability.RawMaterialsCheapFromWestNeighbour);
         }
 
-        return _buyer.Has(Ability.RawCheapEast);
+        return _buyer.Has(Ability.RawMaterialsCheapFromEastNeighbour);
     }
 }

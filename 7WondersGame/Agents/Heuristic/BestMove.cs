@@ -17,13 +17,13 @@ internal struct BestMove
     }
 
     /// <summary>The best move's action.</summary>
-    public ActionType Action { get; private set; }
+    public MoveAction Action { get; private set; }
 
     /// <summary>The best move's card; null while no move was considered.</summary>
     public Card? Card { get; private set; }
 
     /// <summary>Takes the move if it is worth more than the best so far (a tie keeps the earlier one).</summary>
-    public void Consider(ActionType action, Card card, double value)
+    public void Consider(MoveAction action, Card card, double value)
     {
         if (value > _value)
         {

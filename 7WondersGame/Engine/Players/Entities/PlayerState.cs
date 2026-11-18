@@ -13,23 +13,23 @@ namespace _7WondersGame.Engine.Players.Entities;
 /// </summary>
 public sealed class PlayerState
 {
-    /// <summary>The player at seat <paramref name="id"/>, with 3 coins and nothing else yet.</summary>
-    public PlayerState(int id)
+    /// <summary>The player at seat <paramref name="seat"/>, with 3 coins and nothing else yet.</summary>
+    public PlayerState(int seat)
     {
-        Id = id;
+        Seat = seat;
     }
 
-    /// <summary>The seat: Game.Players[Id] is this player.</summary>
-    public int Id { get; }
+    /// <summary>The seat: Game.Players[Seat] is this player.</summary>
+    public int Seat { get; }
 
     /// <summary>The player's wonder board and how many of its stages are built.</summary>
-    public Wonder Board { get; set; } = null!;
+    public WonderBoardProgress Wonder { get; set; } = null!;
 
     /// <summary>The cards in the player's hand this turn.</summary>
-    public List<Card> HandCards { get; set; } = new();
+    public List<Card> Hand { get; set; } = new();
 
     /// <summary>The cards built in the player's city, in building order.</summary>
-    public List<Card> PlayedCards { get; set; } = new();
+    public List<Card> BuiltCards { get; set; } = new();
 
     /// <summary>The victory points won in battles.</summary>
     public int VictoryTokens = 0;
@@ -48,21 +48,21 @@ public sealed class PlayerState
 
     // One-use effects (see docs/08-special-effects.md)
     /// <summary>Olympia A stage 2: this era's free card is still unused. Re-armed at the start of each era.</summary>
-    public bool FreeCardOnce = false;
+    public bool OlympiaFreeBuildAvailable = false;
 
     /// <summary>
     /// Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.
     /// </summary>
-    public bool DiscardFree = false;
+    public bool HalikarnassosDiscardBuildPending = false;
 
     /// <summary>Production, science symbols, coins and shields.</summary>
     public ResourceCounts Resources = new() { [Resource.Coins] = 3 };
 
     /// <summary>The neighbour to the east.</summary>
-    public PlayerState PlayerEast { get; set; } = null!;
+    public PlayerState EastNeighbour { get; set; } = null!;
 
     /// <summary>The neighbour to the west.</summary>
-    public PlayerState PlayerWest { get; set; } = null!;
+    public PlayerState WestNeighbour { get; set; } = null!;
 
     /// <summary>
     /// A copy of everything. The copy's neighbours are still this player's neighbours; a copy of a whole table
@@ -71,9 +71,9 @@ public sealed class PlayerState
     public PlayerState Clone()
     {
         var copy = (PlayerState)MemberwiseClone();
-        copy.Board = (Wonder)Board.DeepCopy();
-        copy.HandCards = new List<Card>(HandCards);
-        copy.PlayedCards = new List<Card>(PlayedCards);
+        copy.Wonder = Wonder.Clone();
+        copy.Hand = new List<Card>(Hand);
+        copy.BuiltCards = new List<Card>(BuiltCards);
         copy.Resources = Resources.Clone();
         return copy;
     }
@@ -86,34 +86,34 @@ public sealed class PlayerState
     /// </summary>
     public void CopyFrom(PlayerState source)
     {
-        if (source.Id != Id)
+        if (source.Seat != Seat)
         {
-            throw new ArgumentException($"Seat {Id} can't copy seat {source.Id}.", nameof(source));
+            throw new ArgumentException($"Seat {Seat} can't copy seat {source.Seat}.", nameof(source));
         }
 
         // the same board only needs its stage counter
-        if (Board.Id == source.Board.Id)
+        if (Wonder.Id == source.Wonder.Id)
         {
-            Board.Stage = source.Board.Stage;
+            Wonder.BuiltStageCount = source.Wonder.BuiltStageCount;
         }
         else
         {
-            Board = (Wonder)source.Board.DeepCopy();
+            Wonder = source.Wonder.Clone();
         }
 
-        HandCards.Clear();
-        HandCards.AddRange(source.HandCards);
-        PlayedCards.Clear();
-        PlayedCards.AddRange(source.PlayedCards);
+        Hand.Clear();
+        Hand.AddRange(source.Hand);
+        BuiltCards.Clear();
+        BuiltCards.AddRange(source.BuiltCards);
         VictoryTokens = source.VictoryTokens;
         DefeatTokens = source.DefeatTokens;
         VictoryPoints = source.VictoryPoints;
         Abilities = source.Abilities;
-        FreeCardOnce = source.FreeCardOnce;
-        DiscardFree = source.DiscardFree;
+        OlympiaFreeBuildAvailable = source.OlympiaFreeBuildAvailable;
+        HalikarnassosDiscardBuildPending = source.HalikarnassosDiscardBuildPending;
         Resources.CopyFrom(source.Resources);
-        PlayerEast = source.PlayerEast;
-        PlayerWest = source.PlayerWest;
+        EastNeighbour = source.EastNeighbour;
+        WestNeighbour = source.WestNeighbour;
     }
 
     /// <summary>
@@ -129,8 +129,8 @@ public sealed class PlayerState
 
         foreach (PlayerState copy in copies)
         {
-            copy.PlayerWest = copies[copy.PlayerWest.Id];
-            copy.PlayerEast = copies[copy.PlayerEast.Id];
+            copy.WestNeighbour = copies[copy.WestNeighbour.Seat];
+            copy.EastNeighbour = copies[copy.EastNeighbour.Seat];
         }
         return copies;
     }

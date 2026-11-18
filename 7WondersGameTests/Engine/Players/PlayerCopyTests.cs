@@ -26,15 +26,15 @@ public class PlayerCopyTests
             game.Agents.Add(new HeuristicAI());
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         while (game.Era < 2 || game.Turn % Game.TurnsPerEra < 3)
         {
             // every pending player chooses from the same state, then all moves are submitted
             List<int> pendingSeats = new List<int>(game.PendingPlayers());
-            List<Command> moves = new List<Command>();
+            List<Move> moves = new List<Move>();
             foreach (int seat in pendingSeats)
             {
-                moves.Add(heuristicAgent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardedCards));
+                moves.Add(heuristicAgent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardPile));
             }
 
             for (int pendingIndex = 0; pendingIndex < pendingSeats.Count; pendingIndex++)
@@ -49,13 +49,13 @@ public class PlayerCopyTests
     /// <summary>Everything about a player, as text.</summary>
     private static string Describe(PlayerState player)
     {
-        string handCards = string.Join(",", player.HandCards.Select(card => card.Id));
-        string playedCards = string.Join(",", player.PlayedCards.Select(card => card.Id));
+        string handCards = string.Join(",", player.Hand.Select(card => card.Id));
+        string playedCards = string.Join(",", player.BuiltCards.Select(card => card.Id));
         string resources = string.Join(",", player.Resources.Select(resource => $"{resource.Key}={resource.Value}"));
-        return $"{player.Id} {player.Board.Id} {player.Board.Stage} | {handCards} | {playedCards} | " +
+        return $"{player.Seat} {player.Wonder.Id} {player.Wonder.BuiltStageCount} | {handCards} | {playedCards} | " +
                $"{player.VictoryTokens} {player.DefeatTokens} {player.VictoryPoints} " +
-               $"{player.Abilities} {player.FreeCardOnce} {player.DiscardFree} | " +
-               $"{resources} | {player.PlayerWest.Id} {player.PlayerEast.Id}";
+               $"{player.Abilities} {player.OlympiaFreeBuildAvailable} {player.HalikarnassosDiscardBuildPending} | " +
+               $"{resources} | {player.WestNeighbour.Seat} {player.EastNeighbour.Seat}";
     }
 
     [TestMethod]
@@ -69,16 +69,16 @@ public class PlayerCopyTests
 
         string[] knownFields =
         {
-            "<Board>k__BackingField",
-            "<HandCards>k__BackingField",
-            "<Id>k__BackingField",
-            "<PlayedCards>k__BackingField",
-            "<PlayerEast>k__BackingField",
-            "<PlayerWest>k__BackingField",
+            "<BuiltCards>k__BackingField",
+            "<EastNeighbour>k__BackingField",
+            "<Hand>k__BackingField",
+            "<Seat>k__BackingField",
+            "<WestNeighbour>k__BackingField",
+            "<Wonder>k__BackingField",
             "Abilities",
             "DefeatTokens",
-            "DiscardFree",
-            "FreeCardOnce",
+            "HalikarnassosDiscardBuildPending",
+            "OlympiaFreeBuildAvailable",
             "Resources",
             "VictoryPoints",
             "VictoryTokens",
@@ -99,27 +99,27 @@ public class PlayerCopyTests
             PlayerState scratch = player.Clone();
 
             // change everything a try can change
-            scratch.PlayedCards.Add(scratch.HandCards[0]);
-            scratch.HandCards.RemoveAt(0);
-            scratch.Board.AddStage(scratch);
+            scratch.BuiltCards.Add(scratch.Hand[0]);
+            scratch.Hand.RemoveAt(0);
+            scratch.Wonder.AddStage(scratch);
             scratch.Resources[Resource.Coins] += 5;
             scratch.Resources[Resource.Shields] += 2;
             scratch.VictoryTokens += 3;
             scratch.DefeatTokens += 1;
             scratch.VictoryPoints = 99;
-            scratch.Abilities |= Ability.ManufCheap;
-            scratch.FreeCardOnce = !scratch.FreeCardOnce;
-            scratch.DiscardFree = !scratch.DiscardFree;
-            scratch.PlayerWest = scratch;
+            scratch.Abilities |= Ability.ManufacturedGoodsCheapFromBothNeighbours;
+            scratch.OlympiaFreeBuildAvailable = !scratch.OlympiaFreeBuildAvailable;
+            scratch.HalikarnassosDiscardBuildPending = !scratch.HalikarnassosDiscardBuildPending;
+            scratch.WestNeighbour = scratch;
 
             scratch.CopyFrom(player);
 
-            Assert.AreEqual(before, Describe(scratch), $"seat {player.Id}");
+            Assert.AreEqual(before, Describe(scratch), $"seat {player.Seat}");
             Assert.AreEqual(before, Describe(player), "the source doesn't change");
-            Assert.AreNotSame(player.HandCards, scratch.HandCards);
-            Assert.AreNotSame(player.PlayedCards, scratch.PlayedCards);
+            Assert.AreNotSame(player.Hand, scratch.Hand);
+            Assert.AreNotSame(player.BuiltCards, scratch.BuiltCards);
             Assert.AreNotSame(player.Resources, scratch.Resources);
-            Assert.AreNotSame(player.Board, scratch.Board);
+            Assert.AreNotSame(player.Wonder, scratch.Wonder);
         }
     }
 

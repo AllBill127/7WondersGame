@@ -40,11 +40,11 @@ public class CalculateScientificScoreTests
         int wildcards,
         int expected)
     {
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
-            new Wonder(WonderId.BabylonA),
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.GizahA)
+            new WonderBoardProgress(WonderId.BabylonA),
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.GizahA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         PlayerState player = players[0];
@@ -53,12 +53,12 @@ public class CalculateScientificScoreTests
         player.Resources[Resource.Tablet] = tablet;
         if (wildcards >= 1)
         {
-            player.PlayedCards.Add(CardsDataset.GameCards[CardId.Scientists]);
+            player.BuiltCards.Add(CardsDataset.GameCards[CardId.Scientists]);
         }
 
         if (wildcards >= 2)
         {
-            player.Board.Stage = 2;
+            player.Wonder.BuiltStageCount = 2;
         }
 
         Assert.AreEqual(expected, player.CalculateScientificScore());

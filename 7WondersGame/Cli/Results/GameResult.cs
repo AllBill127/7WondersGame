@@ -47,7 +47,7 @@ public static class GameResult
         for (int seat = 0; seat < players.Count; seat++)
         {
             PlayerState player = players[seat];
-            scores.Add((player.Id, player.VictoryPoints, player.Resources[Resource.Coins]));
+            scores.Add((player.Seat, player.VictoryPoints, player.Resources[Resource.Coins]));
         }
         return Rank(scores);
     }
@@ -69,12 +69,12 @@ public static class GameResult
     /// <summary>What one seat got: the board name and side apart (e.g. "Gizah" and "A"), and the agent.</summary>
     private static SeatResult ResultOf(PlayerState player, IAgent agent, PlayerStanding standing)
     {
-        string board = player.Board.Id.ToString();
+        string board = player.Wonder.Id.ToString();
         int sideStart = board.Length - 1;
         string wonder = board.Substring(0, sideStart);
         string side = board.Substring(sideStart);
         return new SeatResult(
-            player.Id,
+            player.Seat,
             agent.Name,
             agent.ConfigJson(),
             wonder,

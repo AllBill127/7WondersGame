@@ -5,7 +5,8 @@ namespace _7WondersGame.Engine.Effects.Interfaces;
 
 /// <summary>
 /// What a card or wonder stage does. <see cref="OnBuild"/> runs once, when it is built;
-/// <see cref="EndGameVp"/> is its share of the final score. Effects are shared by every game, so they hold no state.
+/// <see cref="EndGameVictoryPoints"/> is its share of the final score. Effects are shared by every game, so they hold
+/// no state.
 /// </summary>
 public interface IEffect
 {
@@ -15,7 +16,7 @@ public interface IEffect
     }
 
     /// <summary>The victory points it is worth to its owner at the end of the game; 0 unless overridden.</summary>
-    int EndGameVp(PlayerState owner)
+    int EndGameVictoryPoints(PlayerState owner)
     {
         return 0;
     }

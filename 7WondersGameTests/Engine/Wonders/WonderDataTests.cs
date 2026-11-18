@@ -48,7 +48,7 @@ public class WonderDataTests
         for (int stageIndex = 0; stageIndex < stages; stageIndex++)
         {
             GiveResources(player, 10);
-            Assert.IsTrue(player.Board.AddStage(player), $"stage {stageIndex + 1}");
+            Assert.IsTrue(player.Wonder.AddStage(player), $"stage {stageIndex + 1}");
         }
 
         GiveResources(player, 10);
@@ -69,7 +69,7 @@ public class WonderDataTests
     [DataRow("BabylonA", 2, "3 Wood",           0, 0, 0, "ScienceWildcard")]
     [DataRow("BabylonA", 3, "4 Clay",           7, 0, 0, "")]
     [DataRow("BabylonB", 1, "Clay, Loom",       3, 0, 0, "")]
-    [DataRow("BabylonB", 2, "2 Wood, Glass",    0, 0, 0, "PlaySeventh")]
+    [DataRow("BabylonB", 2, "2 Wood, Glass",    0, 0, 0, "PlaySeventhCard")]
     [DataRow("BabylonB", 3, "3 Clay, Papyrus",  0, 0, 0, "ScienceWildcard")]
     [DataRow("OlympiaA", 1, "2 Wood",           3, 0, 0, "")]
     [DataRow("OlympiaA", 2, "2 Stone",          0, 0, 0, "FreeBuildOncePerAge")]
@@ -113,7 +113,7 @@ public class WonderDataTests
         for (int earlierStage = 1; earlierStage < stage; earlierStage++)
         {
             GiveResources(player, 10);
-            Assert.IsTrue(player.Board.AddStage(player), $"building earlier stage {earlierStage}");
+            Assert.IsTrue(player.Wonder.AddStage(player), $"building earlier stage {earlierStage}");
         }
 
         int builtStages = stage - 1;
@@ -123,20 +123,20 @@ public class WonderDataTests
 
         // Build it and check the rewards.
         SetResources(player, stageCost);
-        int victoryPointsBefore = player.Board.WonderPoints(player);
+        int victoryPointsBefore = player.Wonder.WonderPoints(player);
         int shieldsBefore = player.Resources[Resource.Shields];
         int scienceBefore = player.CalculateScientificScore();
-        Ability abilitiesBefore = player.Board.Abilities;
-        player.FreeCardOnce = false;
-        player.DiscardFree = false;
+        Ability abilitiesBefore = player.Wonder.Abilities;
+        player.OlympiaFreeBuildAvailable = false;
+        player.HalikarnassosDiscardBuildPending = false;
 
-        Assert.IsTrue(player.Board.AddStage(player), "build stage");
-        Assert.AreEqual(stage, player.Board.Stage, "stage number");
-        Assert.AreEqual(victoryPoints, player.Board.WonderPoints(player) - victoryPointsBefore, "VP");
+        Assert.IsTrue(player.Wonder.AddStage(player), "build stage");
+        Assert.AreEqual(stage, player.Wonder.BuiltStageCount, "stage number");
+        Assert.AreEqual(victoryPoints, player.Wonder.WonderPoints(player) - victoryPointsBefore, "VP");
         Assert.AreEqual(coins, player.Resources[Resource.Coins], "coins");
         Assert.AreEqual(shields, player.Resources[Resource.Shields] - shieldsBefore, "shields");
 
-        Ability gained = player.Board.Abilities & ~abilitiesBefore;
+        Ability gained = player.Wonder.Abilities & ~abilitiesBefore;
         CheckEffect(player, effect, gained, scienceBefore);
     }
 
@@ -180,21 +180,22 @@ public class WonderDataTests
     /// <summary>The stage gave exactly the <paramref name="effect"/> named in the row, and nothing else.</summary>
     private static void CheckEffect(PlayerState player, string effect, Ability gained, int scienceBefore)
     {
-        bool freeBuild = player.FreeCardOnce && gained.HasFlag(Ability.FreeCardEachEra);
+        bool freeBuild = player.OlympiaFreeBuildAvailable && gained.HasFlag(Ability.OlympiaFreeBuildEachEra);
         int expectedScienceGain = 0;
         if (effect == "ScienceWildcard")
         {
             expectedScienceGain = 1;
         }
 
-        Assert.AreEqual(effect == "PlaySeventh", gained.HasFlag(Ability.PlaySeventh), "play seventh card");
+        Assert.AreEqual(effect == "PlaySeventhCard", gained.HasFlag(Ability.PlaySeventhCard), "play seventh card");
         Assert.AreEqual(effect == "FreeBuildOncePerAge", freeBuild, "free build once per age");
-        Assert.AreEqual(effect == "BuildFromDiscard", player.DiscardFree, "build from discard");
-        Assert.AreEqual(effect == "RawTradingDiscount", gained.HasFlag(Ability.WonderRawCheap), "raw trading discount");
-        Assert.AreEqual(effect == "RawWildcard", gained.HasFlag(Ability.AnyRaw), "raw wildcard");
+        Assert.AreEqual(effect == "BuildFromDiscard", player.HalikarnassosDiscardBuildPending, "build from discard");
+        Assert.AreEqual(effect == "RawTradingDiscount", gained.HasFlag(Ability.RawMaterialsCheapFromBothNeighbours),
+                        "raw trading discount");
+        Assert.AreEqual(effect == "RawWildcard", gained.HasFlag(Ability.AnyRawMaterialEachTurn), "raw wildcard");
         Assert.AreEqual(
             effect == "ManufacturedWildcard",
-            gained.HasFlag(Ability.AnyManufactured),
+            gained.HasFlag(Ability.AnyManufacturedGoodEachTurn),
             "manufactured wildcard");
         Assert.AreEqual(effect == "CopyGuild", gained.HasFlag(Ability.CopyGuild), "copy a guild");
         Assert.AreEqual(
@@ -215,8 +216,8 @@ public class WonderDataTests
         if (effect == "CopyGuild")
         {
             // The east neighbour's Workers Guild is worth 1 VP per brown card next door.
-            player.PlayerEast.PlayedCards.Add(CardsDataset.GameCards[CardId.Workers]);
-            player.PlayerWest.PlayedCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+            player.EastNeighbour.BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+            player.WestNeighbour.BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
             Assert.IsTrue(player.CopyGuild(), "copy a neighbour's guild");
         }
     }
@@ -231,18 +232,18 @@ public class WonderDataTests
         }
     }
 
-    private static Wonder CreateWonder(string name)
+    private static WonderBoardProgress CreateWonder(string name)
     {
-        return new Wonder(Enum.Parse<WonderId>(name));
+        return new WonderBoardProgress(Enum.Parse<WonderId>(name));
     }
 
     private static PlayerState SetUpPlayer(string wonder)
     {
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
             CreateWonder(wonder),
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.GizahA)
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.GizahA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState player in players)

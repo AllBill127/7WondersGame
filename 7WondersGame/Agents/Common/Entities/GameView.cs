@@ -30,7 +30,7 @@ public sealed class GameView
         Era = game.Era;
         Turn = game.Turn;
         Players = PlayerState.CloneTable(game.Players);
-        DiscardPile = new List<Card>(game.DiscardedCards);
+        DiscardPile = new List<Card>(game.DiscardPile);
         Me = Players[seat];
         PlayableCards = PlayableCardsNow();
         CanBuildWonder = Me.CanBuildWonder();
@@ -60,7 +60,7 @@ public sealed class GameView
 
     /// <summary>
     /// The cards the player may build now: hand cards it can pay for or chain, or in
-    /// <see cref="Phase.DiscardBuild"/> the discard-pile cards it hasn't built yet.
+    /// <see cref="Phase.DiscardPileBuild"/> the discard-pile cards it hasn't built yet.
     /// </summary>
     public List<Card> PlayableCards { get; }
 
@@ -83,7 +83,7 @@ public sealed class GameView
     public SeatKnowledge? Known { get; }
 
     /// <summary>Every move the rules allow the seat now (see <see cref="Game.LegalMoves"/>).</summary>
-    public List<Command> LegalMoves()
+    public List<Move> LegalMoves()
     {
         return _game.LegalMoves(Seat);
     }
@@ -99,11 +99,11 @@ public sealed class GameView
 
     private List<Card> PlayableCardsNow()
     {
-        if (Phase == Phase.DiscardBuild)
+        if (Phase == Phase.DiscardPileBuild)
         {
             // the discard-pile build is free, so only the no-duplicates rule limits it
-            return Me.GetPlayableCards(DiscardPile, playAllFree: true);
+            return Me.BuildableCards(DiscardPile, everyCardFree: true);
         }
-        return Me.GetPlayableCards(Me.HandCards);
+        return Me.BuildableCards(Me.Hand);
     }
 }

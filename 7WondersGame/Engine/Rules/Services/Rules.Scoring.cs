@@ -19,8 +19,8 @@ public static partial class Rules
     public static void Battle(this PlayerState player, int era)
     {
         int tokensForWin = VictoryTokensForWinningBattle(era);
-        BattleWithNeighbour(player, player.PlayerEast, tokensForWin);
-        BattleWithNeighbour(player, player.PlayerWest, tokensForWin);
+        BattleWithNeighbour(player, player.EastNeighbour, tokensForWin);
+        BattleWithNeighbour(player, player.WestNeighbour, tokensForWin);
     }
 
     /// <summary>What winning one battle is worth: 1 in era I, 3 in era II, 5 in era III.</summary>
@@ -59,7 +59,7 @@ public static partial class Rules
     /// Olympia B stage 3: at the end of the game, copy one guild built by a neighbour, as if built. <br/>
     /// - each candidate is scored with the real CalculateScore(); the best one is kept (ties go to the first
     ///   candidate, west then east) <br/>
-    /// - the copy stays in PlayedCards, so Shipowners counts it and a copied Scientists Guild gives its wildcard <br/>
+    /// - the copy stays in BuiltCards, so Shipowners counts it and a copied Scientists Guild gives its wildcard <br/>
     /// - a guild the player already has is skipped (no two identical structures) <br/>
     /// - should be called before calculating scores <br/>
     /// Sources: https://rules.dized.com/7-wonders/rule/wonder-boards/the-statue-of-zeus-in-olympia,
@@ -78,7 +78,7 @@ public static partial class Rules
         {
             return false;
         }
-        player.PlayedCards.Add(bestGuild);
+        player.BuiltCards.Add(bestGuild);
         return true;
     }
 
@@ -93,17 +93,17 @@ public static partial class Rules
         Card? bestGuild = null;
         int bestScore = int.MinValue;
 
-        foreach (Card guild in player.PlayerWest.PlayedCards)
+        foreach (Card guild in player.WestNeighbour.BuiltCards)
         {
             if (CanCopyGuild(player, guild))
             {
                 KeepGuildIfBetter(player, guild, ref bestGuild, ref bestScore);
             }
         }
-        foreach (Card guild in player.PlayerEast.PlayedCards)
+        foreach (Card guild in player.EastNeighbour.BuiltCards)
         {
             // a guild both neighbours have is only tried once, from the west
-            bool alreadyTried = player.PlayerWest.PlayedCards.Contains(guild);
+            bool alreadyTried = player.WestNeighbour.BuiltCards.Contains(guild);
             if (CanCopyGuild(player, guild) && !alreadyTried)
             {
                 KeepGuildIfBetter(player, guild, ref bestGuild, ref bestScore);
@@ -126,7 +126,7 @@ public static partial class Rules
     /// </summary>
     private static void KeepGuildIfBetter(PlayerState player, Card guild, ref Card? bestGuild, ref int bestScore)
     {
-        player.PlayedCards.Add(guild);
+        player.BuiltCards.Add(guild);
         int score = player.CalculateScore();
         RemoveLastBuiltCard(player);
         if (score > bestScore)
@@ -139,8 +139,8 @@ public static partial class Rules
     /// <summary>Takes back the card added last to the player's city.</summary>
     private static void RemoveLastBuiltCard(PlayerState player)
     {
-        int lastIndex = player.PlayedCards.Count - 1;
-        player.PlayedCards.RemoveAt(lastIndex);
+        int lastIndex = player.BuiltCards.Count - 1;
+        player.BuiltCards.RemoveAt(lastIndex);
     }
 
     // =========== End of game scoring related ===========
@@ -175,7 +175,7 @@ public static partial class Rules
     private static int CardPoints(this PlayerState player, CardType type)
     {
         int victoryPoints = 0;
-        foreach (Card card in player.PlayedCards)
+        foreach (Card card in player.BuiltCards)
         {
             if (card.Type != type)
             {
@@ -183,7 +183,7 @@ public static partial class Rules
             }
             for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
             {
-                victoryPoints += card.Effects[effectIndex].EndGameVp(player);
+                victoryPoints += card.Effects[effectIndex].EndGameVictoryPoints(player);
             }
         }
         return victoryPoints;
@@ -235,7 +235,7 @@ public static partial class Rules
     /// <summary>The player's victory points from built wonder stages.</summary>
     public static int CalculateWonderScore(this PlayerState player)
     {
-        return player.Board.WonderPoints(player);
+        return player.Wonder.WonderPoints(player);
     }
 
     /// <summary>

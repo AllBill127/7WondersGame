@@ -28,7 +28,7 @@ namespace _7WondersGame.Cli.Datasets;
 /// Wonders:
 /// 13, 7, 8
 /// </code>
-/// A deal is <c>[deck1, deck2, deck3, wonders]</c> as card and wonder ids, as <see cref="Game.InitGameNotRandom"/>
+/// A deal is <c>[deck1, deck2, deck3, wonders]</c> as card and wonder ids, as <see cref="Game.SetUpGameFromDataset"/>
 /// takes it.
 /// </remarks>
 public static class Filer
@@ -307,7 +307,7 @@ public static class Filer
         {
             throw new InvalidDataException($"{where}: wonder ids are 0 to 13.");
         }
-        if (wonders.Select(Wonder.BoardOf).Distinct().Count() != players)
+        if (wonders.Select(WonderBoardProgress.BoardOf).Distinct().Count() != players)
         {
             throw new InvalidDataException($"{where}: two seats have the same wonder.");
         }

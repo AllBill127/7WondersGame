@@ -10,7 +10,7 @@ namespace _7WondersGameTests.Cli.Datasets;
 [TestClass]
 public class DatasetFileTests
 {
-    /// <summary>The deal <see cref="Game.InitGame"/> makes, as a dataset deal.</summary>
+    /// <summary>The deal <see cref="Game.SetUpRandomGame"/> makes, as a dataset deal.</summary>
     private static List<int>[] Deal(int players, ulong seed)
     {
         var game = new Game(seed);
@@ -19,14 +19,14 @@ public class DatasetFileTests
             game.Agents.Add(new RandomChoiceAI());
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         var deal = new List<int>[4];
         for (int era = 0; era < 3; era++)
         {
             deal[era] = game.Decks[era].Select(card => (int)card.Id).ToList();
         }
 
-        deal[3] = game.Players.Select(player => (int)player.Board.Id).ToList();
+        deal[3] = game.Players.Select(player => (int)player.Wonder.Id).ToList();
         return deal;
     }
 

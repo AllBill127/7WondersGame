@@ -9,6 +9,6 @@ public sealed class BuildFromDiscardPile : IEffect
     /// <inheritdoc/>
     public void OnBuild(PlayerState owner)
     {
-        owner.DiscardFree = true;
+        owner.HalikarnassosDiscardBuildPending = true;
     }
 }

@@ -9,13 +9,13 @@ namespace _7WondersGame.Engine.Effects.Effects;
 /// Olympia A stage 2: one card per era for free. The ability is on from this stage; the first use is available
 /// straight away, and <see cref="Game"/> re-arms it at the start of each era.
 /// </summary>
-public sealed class FreeCardEachEra : IEffect
+public sealed class OlympiaFreeBuildEachEra : IEffect
 {
     /// <inheritdoc/>
     public void OnBuild(PlayerState owner)
     {
-        owner.Abilities |= Ability.FreeCardEachEra;
-        owner.FreeCardOnce = true;
+        owner.Abilities |= Ability.OlympiaFreeBuildEachEra;
+        owner.OlympiaFreeBuildAvailable = true;
     }
 
     /// <inheritdoc/>
@@ -23,7 +23,7 @@ public sealed class FreeCardEachEra : IEffect
     {
         get
         {
-            return Ability.FreeCardEachEra;
+            return Ability.OlympiaFreeBuildEachEra;
         }
     }
 }

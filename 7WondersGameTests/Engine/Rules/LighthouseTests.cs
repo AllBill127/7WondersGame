@@ -18,16 +18,16 @@ public class LighthouseTests
 {
     private static PlayerState PlayerWithTwoYellowCards()
     {
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.BabylonA),
-            new Wonder(WonderId.OlympiaA)
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.BabylonA),
+            new WonderBoardProgress(WonderId.OlympiaA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         PlayerState player = players[0];
-        player.PlayedCards.Add(CardsDataset.GameCards[CardId.Marketplace]);
-        player.PlayedCards.Add(CardsDataset.GameCards[CardId.Tavern]);
+        player.BuiltCards.Add(CardsDataset.GameCards[CardId.Marketplace]);
+        player.BuiltCards.Add(CardsDataset.GameCards[CardId.Tavern]);
         return player;
     }
 

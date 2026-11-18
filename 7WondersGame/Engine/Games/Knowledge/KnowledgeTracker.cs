@@ -67,14 +67,14 @@ internal sealed class KnowledgeTracker
         _inHand = NewHands();
         foreach (PlayerState player in players)
         {
-            _inHand[player.Id, player.Id].AddRange(player.HandCards);
+            _inHand[player.Seat, player.Seat].AddRange(player.Hand);
         }
     }
 
     /// <summary>A move made with a card (after it was placed).</summary>
     public void Moved(PlannedMove move)
     {
-        int seat = move.Player.Id;
+        int seat = move.Player.Seat;
         Card card = move.Card;
         if (move.FromDiscardPile)
         {
@@ -84,8 +84,8 @@ internal sealed class KnowledgeTracker
         _inHand[seat, seat].Remove(card);
         switch (move.Action)
         {
-            case ActionType.Build:
-            case ActionType.BuildFreeOnce:
+            case MoveAction.Build:
+            case MoveAction.BuildWithOlympiaFreeBuild:
                 // everyone sees the card built
                 for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
                 {
@@ -95,10 +95,10 @@ internal sealed class KnowledgeTracker
                     }
                 }
                 break;
-            case ActionType.BuildWonder:
+            case MoveAction.BuildWonderStage:
                 _buried[seat].Add(card);
                 break;
-            case ActionType.Discard:
+            case MoveAction.Discard:
                 _inPile[seat].Add(card);
                 break;
         }
@@ -125,7 +125,7 @@ internal sealed class KnowledgeTracker
     {
         foreach (PlayerState player in players)
         {
-            _inPile[player.Id].AddRange(player.HandCards);
+            _inPile[player.Seat].AddRange(player.Hand);
         }
         // the hands are empty until the next era's deal
         _inHand = NewHands();
@@ -146,7 +146,7 @@ internal sealed class KnowledgeTracker
                 // a seat knows the hand it is passing on exactly
                 if (holderSeat == observerSeat)
                 {
-                    known = players[observerSeat].HandCards;
+                    known = players[observerSeat].Hand;
                 }
                 int receiverSeat = ReceiverOf(players, holderSeat, west);
                 next[observerSeat, receiverSeat].AddRange(known);
@@ -156,7 +156,7 @@ internal sealed class KnowledgeTracker
         {
             int receiverSeat = ReceiverOf(players, holderSeat, west);
             next[receiverSeat, receiverSeat].Clear();
-            next[receiverSeat, receiverSeat].AddRange(players[holderSeat].HandCards);
+            next[receiverSeat, receiverSeat].AddRange(players[holderSeat].Hand);
         }
         _inHand = next;
     }
@@ -167,8 +167,8 @@ internal sealed class KnowledgeTracker
         PlayerState holder = players[holderSeat];
         if (west)
         {
-            return holder.PlayerWest.Id;
+            return holder.WestNeighbour.Seat;
         }
-        return holder.PlayerEast.Id;
+        return holder.EastNeighbour.Seat;
     }
 }

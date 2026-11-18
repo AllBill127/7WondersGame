@@ -4,27 +4,27 @@ using _7WondersGame.Engine.Moves.Enums;
 namespace _7WondersGame.Engine.Moves.Dtos;
 
 /// <summary>
-/// A move: an action and the card it uses (null only for <see cref="ActionType.Skip"/>).
+/// A move: an action and the card it uses (null only for <see cref="MoveAction.Skip"/>).
 /// Two moves are equal when their action and card (compared by Id) are equal: the search tree finds its moves by
 /// this, and the legal moves are de-duplicated with it.
 /// </summary>
-public sealed class Command : IEquatable<Command>
+public sealed class Move : IEquatable<Move>
 {
     /// <summary>The move <paramref name="action"/> with <paramref name="card"/>.</summary>
-    public Command(ActionType action, Card? card)
+    public Move(MoveAction action, Card? card)
     {
         Action = action;
         Card = card;
     }
 
     /// <summary>What the player does.</summary>
-    public ActionType Action { get; }
+    public MoveAction Action { get; }
 
-    /// <summary>The card it uses; null only for <see cref="ActionType.Skip"/>.</summary>
+    /// <summary>The card it uses; null only for <see cref="MoveAction.Skip"/>.</summary>
     public Card? Card { get; }
 
     /// <inheritdoc/>
-    public bool Equals(Command? other)
+    public bool Equals(Move? other)
     {
         if (other is null)
         {
@@ -37,7 +37,7 @@ public sealed class Command : IEquatable<Command>
     /// <inheritdoc/>
     public override bool Equals(object? obj)
     {
-        return Equals(obj as Command);
+        return Equals(obj as Move);
     }
 
     /// <inheritdoc/>
@@ -47,7 +47,7 @@ public sealed class Command : IEquatable<Command>
     }
 
     /// <summary>Whether both are the same move.</summary>
-    public static bool operator ==(Command? left, Command? right)
+    public static bool operator ==(Move? left, Move? right)
     {
         if (left is null)
         {
@@ -57,7 +57,7 @@ public sealed class Command : IEquatable<Command>
     }
 
     /// <summary>Whether the moves differ.</summary>
-    public static bool operator !=(Command? left, Command? right)
+    public static bool operator !=(Move? left, Move? right)
     {
         return !(left == right);
     }

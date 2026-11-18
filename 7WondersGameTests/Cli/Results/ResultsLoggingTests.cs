@@ -37,8 +37,8 @@ public class ResultsLoggingTests
     public void Loop_WithRecord_GivesOneResultPerSeat()
     {
         Game game = NewGame(3);
-        game.InitGame();
-        var wonders = game.Players.Select(player => player.Board.Id.ToString()).ToList();
+        game.SetUpRandomGame();
+        var wonders = game.Players.Select(player => player.Wonder.Id.ToString()).ToList();
 
         Dictionary<int, int> scores = game.Loop(record: true);
 
@@ -63,7 +63,7 @@ public class ResultsLoggingTests
     public void Loop_WithoutRecord_KeepsNoResults()
     {
         Game game = NewGame(3);
-        game.InitGame();
+        game.SetUpRandomGame();
         game.Loop();
         Assert.IsNull(game.Results);
     }

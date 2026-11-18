@@ -25,11 +25,11 @@ public class SimultaneousResolutionTests
     private static Game GameWithoutCoins()
     {
         Game game = new Game(seed: 0);
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.GizahA)
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.GizahA)
         };
         game.Players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState player in game.Players)
@@ -51,19 +51,19 @@ public class SimultaneousResolutionTests
         game.Players[1].Resources[Resource.Coins] = seat1Coins;
         game.Players[1].Resources[Resource.Wood] = 1;
         game.Players[2].Resources[Resource.Stone] = 1;
-        game.Players[0].HandCards.Add(Stockade);
-        game.Players[1].HandCards.Add(Baths);
+        game.Players[0].Hand.Add(Stockade);
+        game.Players[1].Hand.Add(Baths);
         return game;
     }
 
     /// <summary>Each of the seats builds the first card of its hand, listed in the given seat order.</summary>
-    private static List<(PlayerState, Command, List<Card>)> Moves(Game game, params int[] seats)
+    private static List<(PlayerState, Move, List<Card>)> Moves(Game game, params int[] seats)
     {
-        List<(PlayerState, Command, List<Card>)> moves = new List<(PlayerState, Command, List<Card>)>();
+        List<(PlayerState, Move, List<Card>)> moves = new List<(PlayerState, Move, List<Card>)>();
         foreach (int seat in seats)
         {
             PlayerState player = game.Players[seat];
-            moves.Add((player, new Command(ActionType.Build, player.HandCards[0]), player.HandCards));
+            moves.Add((player, new Move(MoveAction.Build, player.Hand[0]), player.Hand));
         }
 
         return moves;
@@ -84,8 +84,8 @@ public class SimultaneousResolutionTests
 
         // the turn is refused before anything changes
         CollectionAssert.AreEqual(new[] { 2, 0, 0 }, Coins(game));
-        Assert.AreEqual(0, game.Players[0].PlayedCards.Count);
-        CollectionAssert.Contains(game.Players[0].HandCards, Stockade);
+        Assert.AreEqual(0, game.Players[0].BuiltCards.Count);
+        CollectionAssert.Contains(game.Players[0].Hand, Stockade);
     }
 
     [TestMethod]
@@ -95,10 +95,10 @@ public class SimultaneousResolutionTests
 
         // one seat at a time: the turn resolves on the last move
         Game game = TradingTurn(seat0Coins: 2, seat1Coins: 0);
-        game.Players[2].HandCards.Add(lumberYard);
-        game.Submit(0, new Command(ActionType.Build, Stockade));
-        game.Submit(1, new Command(ActionType.Build, Baths));
-        Command lastMove = new Command(ActionType.Build, lumberYard);
+        game.Players[2].Hand.Add(lumberYard);
+        game.Submit(0, new Move(MoveAction.Build, Stockade));
+        game.Submit(1, new Move(MoveAction.Build, Baths));
+        Move lastMove = new Move(MoveAction.Build, lumberYard);
         Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, lastMove));
     }
 
@@ -112,8 +112,8 @@ public class SimultaneousResolutionTests
 
             // seat 0 paid 2 to seat 1, seat 1 paid 2 to seat 2
             CollectionAssert.AreEqual(new[] { 0, 2, 2 }, Coins(game), $"order {string.Join(",", order)}");
-            CollectionAssert.Contains(game.Players[0].PlayedCards, Stockade);
-            CollectionAssert.Contains(game.Players[1].PlayedCards, Baths);
+            CollectionAssert.Contains(game.Players[0].BuiltCards, Stockade);
+            CollectionAssert.Contains(game.Players[1].BuiltCards, Baths);
         }
     }
 
@@ -123,8 +123,8 @@ public class SimultaneousResolutionTests
         foreach (int[] order in new[] { new[] { 0, 1 }, new[] { 1, 0 } })
         {
             Game game = GameWithoutCoins();
-            game.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Vineyard]);
-            game.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+            game.Players[0].Hand.Add(CardsDataset.GameCards[CardId.Vineyard]);
+            game.Players[1].Hand.Add(CardsDataset.GameCards[CardId.LumberYard]);
 
             game.ResolveMoves(Moves(game, order));
 

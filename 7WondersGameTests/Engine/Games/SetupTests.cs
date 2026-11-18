@@ -14,29 +14,29 @@ public class SetupTests
     /// wonder's starting resource).
     /// </summary>
     [TestMethod]
-    public void InitGameNotRandom_FromRandomGamesDeal_GivesSamePlayerState()
+    public void SetUpGameFromDataset_FromRandomGamesDeal_GivesSamePlayerState()
     {
         for (int repeat = 0; repeat < 20; repeat++)
         {
             Game random = NewGame((ulong)repeat);
-            random.InitGame();
+            random.SetUpRandomGame();
 
             List<int>[] dataset = DealOf(random);
 
             Game fromDataset = NewGame((ulong)repeat);
-            fromDataset.InitGameNotRandom(dataset);
+            fromDataset.SetUpGameFromDataset(dataset);
 
             for (int seat = 0; seat < random.Players.Count; seat++)
             {
                 PlayerState expected = random.Players[seat];
                 PlayerState actual = fromDataset.Players[seat];
 
-                Assert.AreEqual(expected.Board.Id, actual.Board.Id, "wonder");
+                Assert.AreEqual(expected.Wonder.Id, actual.Wonder.Id, "wonder");
                 CollectionAssert.AreEquivalent(expected.Resources.ToList(), actual.Resources.ToList(), "resources");
-                Assert.AreEqual(1, actual.Resources[actual.Board.Production], "starting resource");
+                Assert.AreEqual(1, actual.Resources[actual.Wonder.Production], "starting resource");
                 CollectionAssert.AreEqual(
-                    expected.HandCards.Select(card => card.Id).ToList(),
-                    actual.HandCards.Select(card => card.Id).ToList(),
+                    expected.Hand.Select(card => card.Id).ToList(),
+                    actual.Hand.Select(card => card.Id).ToList(),
                     "hand");
             }
         }
@@ -51,7 +51,7 @@ public class SetupTests
             deal[era] = game.Decks[era].Select(card => (int)card.Id).ToList();
         }
 
-        deal[3] = game.Players.Select(player => (int)player.Board.Id).ToList();
+        deal[3] = game.Players.Select(player => (int)player.Wonder.Id).ToList();
         return deal;
     }
 

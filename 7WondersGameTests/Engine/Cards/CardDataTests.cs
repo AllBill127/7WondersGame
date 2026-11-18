@@ -117,15 +117,15 @@ public class CardDataTests
 
         if (chainFrom == "")
         {
-            Assert.AreEqual(CardId.None, card.FreeWithId, "chained from");
+            Assert.AreEqual(CardId.None, card.FreeIfBuiltCardId, "chained from");
         }
         else if (chainFrom == "East or West Trading Post")
         {
-            Assert.AreEqual(CardId.AnyTradingPost, card.FreeWithId, "chained from");
+            Assert.AreEqual(CardId.AnyTradingPost, card.FreeIfBuiltCardId, "chained from");
         }
         else
         {
-            Assert.AreEqual(chainFrom, CardsDataset.GameCards[card.FreeWithId].Name, "chained from");
+            Assert.AreEqual(chainFrom, CardsDataset.GameCards[card.FreeIfBuiltCardId].Name, "chained from");
         }
 
         // the copies column starts at 3 players
@@ -167,7 +167,7 @@ public class CardDataTests
             game.Agents.Add(new RandomChoiceAI());
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         for (int era = 0; era < 3; era++)
         {
             Assert.AreEqual(7 * players, game.Decks[era].Count, $"dealt deck for age {era + 1}");
@@ -368,11 +368,11 @@ public class CardDataTests
             card = FindCard(name, era);
         }
 
-        List<Wonder> wonders = new List<Wonder>
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
         {
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.BabylonA),
-            new Wonder(WonderId.OlympiaA)
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.BabylonA),
+            new WonderBoardProgress(WonderId.OlympiaA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         PlayerState player = players[0];

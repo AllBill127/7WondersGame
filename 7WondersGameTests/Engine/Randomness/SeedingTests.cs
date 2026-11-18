@@ -63,9 +63,9 @@ public class SeedingTests
     public void DeepCopy_DoesNotUseUpTheGamesRandomStreams()
     {
         Game searched = NewGame(55);
-        searched.InitGame();
+        searched.SetUpRandomGame();
         Game untouched = NewGame(55);
-        untouched.InitGame();
+        untouched.SetUpRandomGame();
 
         // a search makes copies and draws from them
         for (int copyIndex = 0; copyIndex < 5; copyIndex++)
@@ -86,7 +86,7 @@ public class SeedingTests
     public void DeepCopies_GetDifferentSeeds()
     {
         Game game = NewGame(9);
-        game.InitGame();
+        game.SetUpRandomGame();
         ulong first = game.DeepCopy().Seed;
         ulong second = game.DeepCopy().Seed;
 
@@ -109,7 +109,7 @@ public class SeedingTests
     private static (string setup, List<int> scores) PlayGame(ulong seed)
     {
         Game game = NewGame(seed);
-        game.InitGame();
+        game.SetUpRandomGame();
 
         List<string> dealParts = new List<string>();
         foreach (List<Card> deck in game.Decks)
@@ -117,7 +117,7 @@ public class SeedingTests
             dealParts.Add(DeckText(deck));
         }
 
-        dealParts.Add(string.Join(",", game.Players.Select(player => player.Board.Id)));
+        dealParts.Add(string.Join(",", game.Players.Select(player => player.Wonder.Id)));
         string setup = string.Join(" | ", dealParts);
 
         Dictionary<int, int> scores = game.Loop();
@@ -134,7 +134,7 @@ public class SeedingTests
     }
 
     // the move's action and card name, or an empty name for a move without a card
-    private static string MoveText(Command move)
+    private static string MoveText(Move move)
     {
         string cardName = "";
         if (move.Card != null)

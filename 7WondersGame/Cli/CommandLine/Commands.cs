@@ -349,11 +349,11 @@ public static class Commands
         };
         if (deals != null)
         {
-            game.InitGameNotRandom(deals[setup.Deal!.Value]);
+            game.SetUpGameFromDataset(deals[setup.Deal!.Value]);
         }
         else
         {
-            game.InitGame();
+            game.SetUpRandomGame();
         }
         return game;
     }
@@ -606,7 +606,7 @@ public static class Commands
             agents.Add(new RandomChoiceAI());
         }
         var game = new Game(Seeding.GameSeed(seed, gameIndex)) { Agents = agents };
-        game.InitGame();
+        game.SetUpRandomGame();
 
         int decksAndWonders = Game.LastEra + 1;
         var deal = new List<int>[decksAndWonders];
@@ -623,7 +623,7 @@ public static class Commands
         var wonders = new List<int>();
         foreach (PlayerState player in game.Players)
         {
-            wonders.Add((int)player.Board.Id);
+            wonders.Add((int)player.Wonder.Id);
         }
         deal[Game.LastEra] = wonders;
         return deal;

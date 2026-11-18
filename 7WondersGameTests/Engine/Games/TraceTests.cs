@@ -45,7 +45,7 @@ public class TraceTests
             game.Trace = trace;
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         return game;
     }
 
@@ -95,7 +95,7 @@ public class TraceTests
             game.Trace = trace;
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         game.Loop(record: true);
         return game;
     }

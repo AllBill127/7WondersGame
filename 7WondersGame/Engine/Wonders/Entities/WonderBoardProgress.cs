@@ -11,21 +11,21 @@ namespace _7WondersGame.Engine.Wonders.Entities;
 /// <summary>
 /// A player's wonder board: its fixed description from <see cref="WonderBoards"/> plus how many stages are built.
 /// </summary>
-public sealed class Wonder
+public sealed class WonderBoardProgress
 {
     /// <summary>Wonder boards, each with sides A and B: <see cref="WonderId"/> 0-6 are side A, 7-13 side B.</summary>
-    public const int Boards = 7;
+    public const int BoardCount = 7;
 
     /// <summary>The board of a wonder id, whatever the side (0-6).</summary>
     public static int BoardOf(int wonderId)
     {
-        return wonderId % Boards;
+        return wonderId % BoardCount;
     }
 
     private readonly WonderBoard _board;
 
     /// <summary>The board <paramref name="id"/> with no stage built.</summary>
-    public Wonder(WonderId id)
+    public WonderBoardProgress(WonderId id)
     {
         _board = WonderBoards.All[id];
     }
@@ -76,7 +76,7 @@ public sealed class Wonder
     }
 
     /// <summary>How many stages are built.</summary>
-    public int Stage { get; set; } = 0;
+    public int BuiltStageCount { get; set; } = 0;
 
     /// <summary>
     /// The most of each raw and manufactured resource that any one stage needs (used by the heuristics).
@@ -94,11 +94,11 @@ public sealed class Wonder
     {
         get
         {
-            if (Stage >= StageCount)
+            if (BuiltStageCount >= StageCount)
             {
                 return null;
             }
-            return _board.Stages[Stage].Cost;
+            return _board.Stages[BuiltStageCount].Cost;
         }
     }
 
@@ -107,7 +107,7 @@ public sealed class Wonder
     {
         get
         {
-            return _board.AbilitiesAfter[Stage];
+            return _board.AbilitiesAfter[BuiltStageCount];
         }
     }
 
@@ -116,7 +116,7 @@ public sealed class Wonder
     {
         get
         {
-            return _board.ScienceWildcardsAfter[Stage];
+            return _board.ScienceWildcardsAfter[BuiltStageCount];
         }
     }
 
@@ -124,20 +124,20 @@ public sealed class Wonder
     public int WonderPoints(PlayerState owner)
     {
         int victoryPoints = 0;
-        for (int stageIndex = 0; stageIndex < Stage; stageIndex++)
+        for (int stageIndex = 0; stageIndex < BuiltStageCount; stageIndex++)
         {
             foreach (IEffect effect in _board.Stages[stageIndex].Effects)
             {
-                victoryPoints += effect.EndGameVp(owner);
+                victoryPoints += effect.EndGameVictoryPoints(owner);
             }
         }
         return victoryPoints;
     }
 
     /// <summary>Only the stage counter changes during a game, so a shallow copy is a full copy.</summary>
-    public object DeepCopy()
+    public WonderBoardProgress Clone()
     {
-        return MemberwiseClone();
+        return (WonderBoardProgress)MemberwiseClone();
     }
 
     /// <summary>
@@ -146,13 +146,13 @@ public sealed class Wonder
     /// <returns>false if every stage is already built</returns>
     public bool AddStage(PlayerState player)
     {
-        if (Stage >= StageCount)
+        if (BuiltStageCount >= StageCount)
         {
             return false;
         }
 
-        WonderStage builtStage = _board.Stages[Stage];
-        Stage++;
+        WonderStage builtStage = _board.Stages[BuiltStageCount];
+        BuiltStageCount++;
         foreach (IEffect effect in builtStage.Effects)
         {
             effect.OnBuild(player);

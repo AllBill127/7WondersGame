@@ -38,7 +38,7 @@ public class KnowledgeTests
             }
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         return game;
     }
 
@@ -52,7 +52,7 @@ public class KnowledgeTests
     private static void PlayOneStep(Game game)
     {
         List<int> pendingSeats = new List<int>(game.PendingPlayers());
-        List<Command> moves = new List<Command>();
+        List<Move> moves = new List<Move>();
         foreach (int seat in pendingSeats)
         {
             moves.Add(game.Agents[seat].Choose(new GameView(game, seat)));
@@ -115,18 +115,18 @@ public class KnowledgeTests
         {
             SeatKnowledge knowledge = game.KnowledgeOf(observerSeat)!;
             string where = $"observer {observerSeat}, {game.Phase}, turn {game.Turn}";
-            Assert.IsTrue(SameCards(knowledge.InHand[observerSeat], game.Players[observerSeat].HandCards), where);
+            Assert.IsTrue(SameCards(knowledge.InHand[observerSeat], game.Players[observerSeat].Hand), where);
             for (int handOwnerSeat = 0; handOwnerSeat < players; handOwnerSeat++)
             {
                 if (knowledge.InHand[handOwnerSeat].Count > 0)
                 {
-                    Assert.IsTrue(SubsetOf(game.Players[handOwnerSeat].HandCards, knowledge.InHand[handOwnerSeat]),
+                    Assert.IsTrue(SubsetOf(game.Players[handOwnerSeat].Hand, knowledge.InHand[handOwnerSeat]),
                                   $"{where}, hand of {handOwnerSeat}");
                 }
             }
 
-            Assert.IsTrue(SubsetOf(knowledge.InPile, game.DiscardedCards), where);
-            Assert.AreEqual(game.Players[observerSeat].Board.Stage, knowledge.Buried.Count, where);
+            Assert.IsTrue(SubsetOf(knowledge.InPile, game.DiscardPile), where);
+            Assert.AreEqual(game.Players[observerSeat].Wonder.BuiltStageCount, knowledge.Buried.Count, where);
 
             if (game.Phase == Phase.ChooseMoves)
             {
@@ -136,9 +136,9 @@ public class KnowledgeTests
                 Assert.AreEqual(Math.Min(game.Turn % 7, players - 1), seen, where);
             }
 
-            if (game.Phase == Phase.DiscardBuild && game.PendingPlayers().Contains(observerSeat))
+            if (game.Phase == Phase.DiscardPileBuild && game.PendingPlayers().Contains(observerSeat))
             {
-                Assert.IsTrue(SameCards(knowledge.InPile, game.DiscardedCards), where);
+                Assert.IsTrue(SameCards(knowledge.InPile, game.DiscardPile), where);
                 halikarnassosLooks++;
             }
         }
@@ -152,12 +152,12 @@ public class KnowledgeTests
         Game game = NewGame(3, 0);
         PlayerState firstPlayer = game.Players[0];
         PlayerState secondPlayer = game.Players[1];
-        Card discarded = firstPlayer.HandCards[0];
-        Card built = secondPlayer.GetPlayableCards(secondPlayer.HandCards).First();
+        Card discarded = firstPlayer.Hand[0];
+        Card built = secondPlayer.BuildableCards(secondPlayer.Hand).First();
 
-        game.Submit(0, new Command(ActionType.Discard, discarded));
-        game.Submit(1, new Command(ActionType.Build, built));
-        game.Submit(2, new Command(ActionType.Discard, game.Players[2].HandCards[0]));
+        game.Submit(0, new Move(MoveAction.Discard, discarded));
+        game.Submit(1, new Move(MoveAction.Build, built));
+        game.Submit(2, new Move(MoveAction.Discard, game.Players[2].Hand[0]));
 
         // era 1 passes west: seat 0's old hand is now seat 2's, seat 1's is seat 0's
         SeatKnowledge seat0 = game.KnowledgeOf(0)!;
@@ -167,7 +167,7 @@ public class KnowledgeTests
         CollectionAssert.DoesNotContain(seat0.InHand[2].ToList(), discarded);
         Assert.AreEqual(0, seat1.InPile.Count);
         // seat 1 passed its hand to seat 0 and knows it without the card it built
-        Assert.IsTrue(SameCards(seat1.InHand[0], game.Players[0].HandCards));
+        Assert.IsTrue(SameCards(seat1.InHand[0], game.Players[0].Hand));
         CollectionAssert.DoesNotContain(seat1.InHand[0].ToList(), built);
         Assert.IsNull(game.DeepCopy().KnowledgeOf(0), "a copy doesn't keep track");
     }
@@ -205,12 +205,12 @@ public class KnowledgeTests
 
         Assert.AreEqual(game.Phase, sample.Phase, where);
         CollectionAssert.AreEquivalent(game.PendingPlayers().ToList(), sample.PendingPlayers().ToList(), where);
-        Assert.IsTrue(SameCards(game.Players[seat].HandCards, sample.Players[seat].HandCards), where);
-        Assert.AreEqual(game.DiscardedCards.Count, sample.DiscardedCards.Count, where);
-        Assert.IsTrue(SubsetOf(known.InPile, sample.DiscardedCards), where);
-        if (game.Phase == Phase.DiscardBuild)
+        Assert.IsTrue(SameCards(game.Players[seat].Hand, sample.Players[seat].Hand), where);
+        Assert.AreEqual(game.DiscardPile.Count, sample.DiscardPile.Count, where);
+        Assert.IsTrue(SubsetOf(known.InPile, sample.DiscardPile), where);
+        if (game.Phase == Phase.DiscardPileBuild)
         {
-            Assert.IsTrue(SameCards(game.DiscardedCards, sample.DiscardedCards), where);
+            Assert.IsTrue(SameCards(game.DiscardPile, sample.DiscardPile), where);
         }
 
         // the seat's own legal moves don't depend on the guess
@@ -220,18 +220,18 @@ public class KnowledgeTests
         {
             PlayerState real = game.Players[handOwnerSeat];
             PlayerState guessed = sample.Players[handOwnerSeat];
-            Assert.AreEqual(real.HandCards.Count, guessed.HandCards.Count, where);
-            Assert.AreEqual(real.PlayedCards.Count, guessed.PlayedCards.Count, where);
+            Assert.AreEqual(real.Hand.Count, guessed.Hand.Count, where);
+            Assert.AreEqual(real.BuiltCards.Count, guessed.BuiltCards.Count, where);
             Assert.AreEqual(real.Resources[Resource.Coins], guessed.Resources[Resource.Coins], where);
             if (handOwnerSeat != seat && known.InHand[handOwnerSeat].Count > 0)
             {
-                Assert.IsTrue(SubsetOf(guessed.HandCards, known.InHand[handOwnerSeat]),
+                Assert.IsTrue(SubsetOf(guessed.Hand, known.InHand[handOwnerSeat]),
                               $"{where}, hand of {handOwnerSeat}");
             }
 
             if (handOwnerSeat != seat && game.Era == sample.Era)
             {
-                Assert.IsTrue(guessed.HandCards.All(card => card.Era == game.Era), where);
+                Assert.IsTrue(guessed.Hand.All(card => card.Era == game.Era), where);
             }
         }
 
@@ -242,8 +242,8 @@ public class KnowledgeTests
     private static void CheckEveryCardAddsUp(Game sample, int players, string where)
     {
         var everything = sample.Players
-            .SelectMany(player => player.PlayedCards.Concat(player.HandCards))
-            .Concat(sample.DiscardedCards)
+            .SelectMany(player => player.BuiltCards.Concat(player.Hand))
+            .Concat(sample.DiscardPile)
             .Concat(sample.Decks.SelectMany(deck => deck))
             .ToList();
         foreach (var (id, count) in Count(everything))
@@ -299,10 +299,10 @@ public class KnowledgeTests
         // the same public state and knowledge, other hidden cards: seat 1's unseen hand, the later decks, the pile
         // order
         Game other = game.DeepCopy();
-        other.Players[1].HandCards = other.Players[1].HandCards.AsEnumerable().Reverse().ToList();
+        other.Players[1].Hand = other.Players[1].Hand.AsEnumerable().Reverse().ToList();
         other.Decks[1] = other.Decks[1].AsEnumerable().Reverse().ToList();
         other.Decks[2] = other.Decks[2].Skip(3).Concat(other.Decks[2].Take(3)).ToList();
-        other.DiscardedCards = other.DiscardedCards.AsEnumerable().Reverse().ToList();
+        other.DiscardPile = other.DiscardPile.AsEnumerable().Reverse().ToList();
 
         Game firstSample = Determinization.Sample(game, 0, known, new Random(9));
         Game secondSample = Determinization.Sample(other, 0, known, new Random(9));
@@ -314,8 +314,8 @@ public class KnowledgeTests
     // every hand, the discard pile (sorted: its order is hidden too) and the decks, as text
     private static string HiddenCards(Game game)
     {
-        string hands = string.Join(" | ", game.Players.Select(player => CardIdsText(player.HandCards)));
-        string discardPile = string.Join(",", game.DiscardedCards.Select(card => card.Id).OrderBy(cardId => cardId));
+        string hands = string.Join(" | ", game.Players.Select(player => CardIdsText(player.Hand)));
+        string discardPile = string.Join(",", game.DiscardPile.Select(card => card.Id).OrderBy(cardId => cardId));
         string decks = string.Join(" / ", game.Decks.Select(CardIdsText));
         return hands + " # " + discardPile + " # " + decks;
     }

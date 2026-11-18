@@ -38,24 +38,29 @@ public class TurnStateMachineTests
                                      params CardId[][] hands)
     {
         Game game = new Game(seed: 0);
-        var wonders = new List<Wonder> { new Wonder(seat0Wonder), new Wonder(seat1Wonder), new Wonder(seat2Wonder) };
+        var wonders = new List<WonderBoardProgress>
+        {
+            new WonderBoardProgress(seat0Wonder),
+            new WonderBoardProgress(seat1Wonder),
+            new WonderBoardProgress(seat2Wonder),
+        };
         game.Players = MockHelper.MockPlayers(wonders);
         for (int seat = 0; seat < hands.Length; seat++)
         {
-            game.Players[seat].HandCards.AddRange(hands[seat].Select(C));
+            game.Players[seat].Hand.AddRange(hands[seat].Select(C));
         }
 
         return game;
     }
 
-    private static Command Discard(CardId id)
+    private static Move Discard(CardId id)
     {
-        return new Command(ActionType.Discard, C(id));
+        return new Move(MoveAction.Discard, C(id));
     }
 
-    private static Command Build(CardId id)
+    private static Move Build(CardId id)
     {
-        return new Command(ActionType.Build, C(id));
+        return new Move(MoveAction.Build, C(id));
     }
 
     [TestMethod]
@@ -72,10 +77,10 @@ public class TurnStateMachineTests
 
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
         CollectionAssert.AreEqual(new[] { 1, 2 }, game.PendingPlayers().ToArray());
-        Assert.IsTrue(game.MovesWaiting);
+        Assert.IsTrue(game.SomeMovesSubmitted);
         Assert.AreEqual(0, game.Turn);
         Assert.AreEqual(coins, game.Players[0].Resources[Resource.Coins]);
-        CollectionAssert.Contains(game.Players[0].HandCards, C(CardId.Baths));
+        CollectionAssert.Contains(game.Players[0].Hand, C(CardId.Baths));
     }
 
     [TestMethod]
@@ -95,9 +100,9 @@ public class TurnStateMachineTests
         Assert.AreEqual(1, game.Turn);
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
         CollectionAssert.AreEqual(new[] { 0, 1, 2 }, game.PendingPlayers().ToArray());
-        Assert.IsFalse(game.MovesWaiting);
+        Assert.IsFalse(game.SomeMovesSubmitted);
         Assert.AreEqual(coins + 3, game.Players[0].Resources[Resource.Coins]);
-        Assert.AreEqual(3, game.DiscardedCards.Count);
+        Assert.AreEqual(3, game.DiscardPile.Count);
     }
 
     [TestMethod]
@@ -152,9 +157,9 @@ public class TurnStateMachineTests
         Assert.AreEqual(7, game.Turn);
         Assert.AreEqual(2, game.Era);
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
-        Assert.AreEqual(7, game.Players[0].HandCards.Count);
+        Assert.AreEqual(7, game.Players[0].Hand.Count);
         // the three discards and the three last cards
-        Assert.AreEqual(6, game.DiscardedCards.Count);
+        Assert.AreEqual(6, game.DiscardPile.Count);
     }
 
     [TestMethod]
@@ -165,7 +170,7 @@ public class TurnStateMachineTests
             new[] { CardId.Baths, CardId.LumberYard },
             new[] { CardId.Walls, CardId.Altar },
             new[] { CardId.ClayPit, CardId.Altar });
-        game.Players[0].Board.Stage = 2;   // its 2nd stage plays the 7th card
+        game.Players[0].Wonder.BuiltStageCount = 2;   // its 2nd stage plays the 7th card
         game.Turn = 5;
         game.CreateDecks();
 
@@ -180,7 +185,7 @@ public class TurnStateMachineTests
 
         game.Submit(0, Build(CardId.LumberYard));
 
-        CollectionAssert.Contains(game.Players[0].PlayedCards, C(CardId.LumberYard));
+        CollectionAssert.Contains(game.Players[0].BuiltCards, C(CardId.LumberYard));
         Assert.AreEqual(7, game.Turn);
         Assert.AreEqual(2, game.Era);
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
@@ -196,7 +201,7 @@ public class TurnStateMachineTests
             new[] { CardId.LumberYard, CardId.Altar },
             new[] { CardId.Baths, CardId.Altar },
             new[] { CardId.StonePit, CardId.Altar });
-        game.Players[1].Board.Stage = 1;
+        game.Players[1].Wonder.BuiltStageCount = 1;
         game.Players[1].Resources[Resource.Ore] = 3;
         return game;
     }
@@ -204,7 +209,7 @@ public class TurnStateMachineTests
     private static void PlayTurn0(Game game)
     {
         game.Submit(0, Build(CardId.LumberYard));
-        game.Submit(1, new Command(ActionType.BuildWonder, C(CardId.Baths)));
+        game.Submit(1, new Move(MoveAction.BuildWonderStage, C(CardId.Baths)));
         game.Submit(2, Build(CardId.StonePit));
     }
 
@@ -214,13 +219,13 @@ public class TurnStateMachineTests
         Game game = HalikarnassosBuildsStage2();
         PlayTurn0(game);
 
-        Assert.AreEqual(Phase.DiscardBuild, game.Phase);
+        Assert.AreEqual(Phase.DiscardPileBuild, game.Phase);
         CollectionAssert.AreEqual(new[] { 1 }, game.PendingPlayers().ToArray());
-        CollectionAssert.AreEqual(new[] { new Command(ActionType.Skip, null) }, game.LegalMoves(1));
+        CollectionAssert.AreEqual(new[] { new Move(MoveAction.Skip, null) }, game.LegalMoves(1));
 
-        game.Submit(1, new Command(ActionType.Skip, null));
+        game.Submit(1, new Move(MoveAction.Skip, null));
 
-        Assert.IsFalse(game.Players[1].DiscardFree);
+        Assert.IsFalse(game.Players[1].HalikarnassosDiscardBuildPending);
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
         Assert.AreEqual(1, game.Turn);
     }
@@ -229,17 +234,17 @@ public class TurnStateMachineTests
     public void Halikarnassos_BuildsACardItCantAfford_FromThePile()
     {
         Game game = HalikarnassosBuildsStage2();
-        game.DiscardedCards.Add(C(CardId.Palace));
+        game.DiscardPile.Add(C(CardId.Palace));
         PlayTurn0(game);
 
-        Assert.AreEqual(Phase.DiscardBuild, game.Phase);
+        Assert.AreEqual(Phase.DiscardPileBuild, game.Phase);
         CollectionAssert.Contains(game.LegalMoves(1), Build(CardId.Palace));
 
         game.Submit(1, Build(CardId.Palace));
 
-        Assert.IsFalse(game.Players[1].DiscardFree);
-        CollectionAssert.Contains(game.Players[1].PlayedCards, C(CardId.Palace));
-        CollectionAssert.DoesNotContain(game.DiscardedCards, C(CardId.Palace));
+        Assert.IsFalse(game.Players[1].HalikarnassosDiscardBuildPending);
+        CollectionAssert.Contains(game.Players[1].BuiltCards, C(CardId.Palace));
+        CollectionAssert.DoesNotContain(game.DiscardPile, C(CardId.Palace));
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
     }
 
@@ -257,7 +262,7 @@ public class TurnStateMachineTests
             game.Agents.Add(spy);
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         game.Loop(record: true);
 
         Assert.AreEqual(Phase.GameOver, game.Phase);
@@ -275,7 +280,7 @@ public class TurnStateMachineTests
             game.Agents.Add(NewAgent(agentKind));
         }
 
-        game.InitGame();
+        game.SetUpRandomGame();
         return game;
     }
 
@@ -295,19 +300,20 @@ public class TurnStateMachineTests
     private static List<string> Final(Game game)
     {
         List<string> lines = game.Players.Select(FinalStateOf).ToList();
-        lines.Add($"discarded={string.Join(",", game.DiscardedCards.Select(card => card.Id))}");
+        lines.Add($"discarded={string.Join(",", game.DiscardPile.Select(card => card.Id))}");
         return lines;
     }
 
     private static string FinalStateOf(PlayerState player)
     {
-        return $"seat={player.Id} {player.Board.Id} stage={player.Board.Stage} vp={player.VictoryPoints} " +
+        return $"seat={player.Seat} {player.Wonder.Id} stage={player.Wonder.BuiltStageCount} " +
+               $"vp={player.VictoryPoints} " +
                $"coins={player.Resources[Resource.Coins]} military=+{player.VictoryTokens}/-{player.DefeatTokens} " +
-               $"built={string.Join(",", player.PlayedCards.Select(card => card.Id))}";
+               $"built={string.Join(",", player.BuiltCards.Select(card => card.Id))}";
     }
 
     /// <summary>The agent's decision, asked the way <see cref="Game.Loop"/> asks it.</summary>
-    private static Command Ask(Game game, int seat)
+    private static Move Ask(Game game, int seat)
     {
         return game.Agents[seat].Choose(new GameView(game, seat));
     }
@@ -355,7 +361,7 @@ public class TurnStateMachineTests
             }
         }
 
-        CollectionAssert.IsSubsetOf(new[] { Phase.SeventhCard, Phase.DiscardBuild }, phasesSeen.ToList(),
+        CollectionAssert.IsSubsetOf(new[] { Phase.SeventhCard, Phase.DiscardPileBuild }, phasesSeen.ToList(),
             "the games should include Babylon's 7th card and a Halikarnassos build");
     }
 

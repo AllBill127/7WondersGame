@@ -17,7 +17,7 @@ public sealed class PlannedMove
     /// <param name="source">Where the card comes from: the hand, or the discard pile (Halikarnassos).</param>
     /// <param name="payment">Coins to each neighbour for the resources bought from them.</param>
     /// <param name="coinCost">The card's own coin cost, paid to the bank.</param>
-    public PlannedMove(PlayerState player, ActionType action, Card card, List<Card> source, PaymentPlan payment,
+    public PlannedMove(PlayerState player, MoveAction action, Card card, List<Card> source, PaymentPlan payment,
                        int coinCost)
     {
         Player = player;
@@ -32,7 +32,7 @@ public sealed class PlannedMove
     public PlayerState Player { get; }
 
     /// <summary>What the player does.</summary>
-    public ActionType Action { get; }
+    public MoveAction Action { get; }
 
     /// <summary>The card built, used for a wonder stage or discarded.</summary>
     public Card Card { get; }

@@ -17,13 +17,14 @@ internal static class Cities
         switch (who)
         {
             case Who.Self:
-                return player.AmountOfType(type);
+                return player.CountBuiltCardsOfType(type);
             case Who.Neighbours:
-                return player.PlayerEast.AmountOfType(type) + player.PlayerWest.AmountOfType(type);
+                return player.EastNeighbour.CountBuiltCardsOfType(type)
+                       + player.WestNeighbour.CountBuiltCardsOfType(type);
             default:
-                return player.PlayerEast.AmountOfType(type)
-                    + player.PlayerWest.AmountOfType(type)
-                    + player.AmountOfType(type);
+                return player.EastNeighbour.CountBuiltCardsOfType(type)
+                    + player.WestNeighbour.CountBuiltCardsOfType(type)
+                    + player.CountBuiltCardsOfType(type);
         }
     }
 
@@ -33,11 +34,13 @@ internal static class Cities
         switch (who)
         {
             case Who.Self:
-                return player.Board.Stage;
+                return player.Wonder.BuiltStageCount;
             case Who.Neighbours:
-                return player.PlayerEast.Board.Stage + player.PlayerWest.Board.Stage;
+                return player.EastNeighbour.Wonder.BuiltStageCount + player.WestNeighbour.Wonder.BuiltStageCount;
             default:
-                return player.PlayerEast.Board.Stage + player.PlayerWest.Board.Stage + player.Board.Stage;
+                return player.EastNeighbour.Wonder.BuiltStageCount
+                       + player.WestNeighbour.Wonder.BuiltStageCount
+                       + player.Wonder.BuiltStageCount;
         }
     }
 
@@ -49,9 +52,9 @@ internal static class Cities
             case Who.Self:
                 return player.DefeatTokens;
             case Who.Neighbours:
-                return player.PlayerEast.DefeatTokens + player.PlayerWest.DefeatTokens;
+                return player.EastNeighbour.DefeatTokens + player.WestNeighbour.DefeatTokens;
             default:
-                return player.PlayerEast.DefeatTokens + player.PlayerWest.DefeatTokens + player.DefeatTokens;
+                return player.EastNeighbour.DefeatTokens + player.WestNeighbour.DefeatTokens + player.DefeatTokens;
         }
     }
 }

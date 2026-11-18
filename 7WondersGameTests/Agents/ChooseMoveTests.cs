@@ -18,70 +18,70 @@ namespace _7WondersGameTests.Agents;
 public class ChooseMoveTests
 {
     [TestMethod]
-    public void ChooseMoveCommand_WhenOlympiaA2_AndPlayableCardsViolateNoDuplicateRule_SetCommandToDiscard()
+    public void ChooseMove_WhenOlympiaA2_AndBuildableCardsViolateNoDuplicateRule_ChoosesDiscard()
     {
         // Arrange
         Game testGame = new Game(seed: 0);
-        List<Wonder> wonders = new List<Wonder>()
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>()
         {
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.OlympiaA),
-            new Wonder(WonderId.BabylonA),
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.OlympiaA),
+            new WonderBoardProgress(WonderId.BabylonA),
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         testGame.Players = players;
 
         // set wonder stage and effect
-        players[1].Board.Stage = 2;
-        players[1].FreeCardOnce = true;
+        players[1].Wonder.BuiltStageCount = 2;
+        players[1].OlympiaFreeBuildAvailable = true;
 
         // set played cards for situation
-        players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]);
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
         // set hand cards for situation
-        players[1].HandCards.Add(CardsDataset.GameCards[CardId.Forum]);
+        players[1].Hand.Add(CardsDataset.GameCards[CardId.Forum]);
 
         // Expected values
-        ActionType expP1Action = ActionType.Discard;
+        MoveAction expectedAction = MoveAction.Discard;
 
         // Test
-        Command move = new RandomChoiceAI().Choose(new GameView(testGame, 1));
+        Move move = new RandomChoiceAI().Choose(new GameView(testGame, 1));
 
         // Evaluate
-        Assert.AreEqual(expP1Action, move.Action);
+        Assert.AreEqual(expectedAction, move.Action);
     }
 
     [TestMethod]
-    public void ChooseMoveCommand_WhenOlympiaA2_NoResourceToBuildCard_SetCommandToBuildFreeOnce()
+    public void ChooseMove_WhenOlympiaA2_NoResourceToBuildCard_ChoosesOlympiaFreeBuild()
     {
         // Arrange
         Game testGame = new Game(seed: 0);
-        List<Wonder> wonders = new List<Wonder>()
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>()
         {
-            new Wonder(WonderId.GizahA),
-            new Wonder(WonderId.OlympiaA),
-            new Wonder(WonderId.BabylonA),
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.OlympiaA),
+            new WonderBoardProgress(WonderId.BabylonA),
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         testGame.Players = players;
 
         // set wonder stage and effect
-        players[1].Board.Stage = 2;
-        players[1].FreeCardOnce = true;
+        players[1].Wonder.BuiltStageCount = 2;
+        players[1].OlympiaFreeBuildAvailable = true;
 
         // set played cards for situation
-        players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.Forum]);
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Forum]);
 
         // set hand cards for situation
-        players[1].HandCards.Add(CardsDataset.GameCards[CardId.Palace]);
+        players[1].Hand.Add(CardsDataset.GameCards[CardId.Palace]);
 
         // Expected values
-        ActionType expP1Action = ActionType.BuildFreeOnce;
+        MoveAction expectedAction = MoveAction.BuildWithOlympiaFreeBuild;
 
         // Test
-        Command move = new HeuristicAI().Choose(new GameView(testGame, 1));
+        Move move = new HeuristicAI().Choose(new GameView(testGame, 1));
 
         // Evaluate
-        Assert.AreEqual(expP1Action, move.Action);
+        Assert.AreEqual(expectedAction, move.Action);
     }
 }

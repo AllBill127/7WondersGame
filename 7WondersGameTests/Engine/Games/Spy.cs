@@ -25,10 +25,10 @@ internal sealed class Spy : IAgent
     public bool SawLiveState { get; private set; }
 
     /// <summary>Records what the view shows, then chooses a random move.</summary>
-    public Command Choose(GameView view)
+    public Move Choose(GameView view)
     {
         Game game = Game!;
-        if (game.MovesWaiting)
+        if (game.SomeMovesSubmitted)
         {
             SawAnotherChoice = true;
         }
@@ -51,6 +51,6 @@ internal sealed class Spy : IAgent
             }
         }
 
-        return ReferenceEquals(view.DiscardPile, game.DiscardedCards);
+        return ReferenceEquals(view.DiscardPile, game.DiscardPile);
     }
 }

@@ -21,73 +21,74 @@ namespace _7WondersGame.Agents.RandomChoice;
 public class RandomChoiceAI : IAgent
 {
     /// <summary>A random move for the view's seat (see the class summary).</summary>
-    public Command Choose(GameView view)
+    public Move Choose(GameView view)
     {
-        if (view.Phase == Phase.DiscardBuild)
+        if (view.Phase == Phase.DiscardPileBuild)
         {
             Card? discardPileCard = ChooseCard(view, view.PlayableCards);
-            return MoveOrSkip(ActionType.Build, discardPileCard);
+            return MoveOrSkip(MoveAction.Build, discardPileCard);
         }
 
         PlayerState player = view.Me;
-        ActionType action = ChooseAction(view);
+        MoveAction action = ChooseAction(view);
         Card? card;
-        if (action == ActionType.Build)
+        if (action == MoveAction.Build)
         {
             card = ChooseCard(view, view.PlayableCards);
         }
-        else if (action == ActionType.BuildFreeOnce)
+        else if (action == MoveAction.BuildWithOlympiaFreeBuild)
         {
-            List<Card> free = player.GetPlayableCards(player.HandCards, playAllFree: true);
+            List<Card> free = player.BuildableCards(player.Hand, everyCardFree: true);
             if (free.Count > 0)
             {
                 card = ChooseCard(view, free);
             }
             else
             {
-                action = ActionType.Discard;
-                card = ChooseCard(view, player.HandCards);
+                action = MoveAction.Discard;
+                card = ChooseCard(view, player.Hand);
             }
         }
         else
         {
-            card = ChooseCard(view, player.HandCards);
+            card = ChooseCard(view, player.Hand);
         }
 
         return MoveOrSkip(action, card);
     }
 
     /// <summary>The move with the card, or Skip when there is no card.</summary>
-    private static Command MoveOrSkip(ActionType action, Card? card)
+    private static Move MoveOrSkip(MoveAction action, Card? card)
     {
         if (card == null)
         {
-            return new Command(ActionType.Skip, null);
+            return new Move(MoveAction.Skip, null);
         }
-        return new Command(action, card);
+        return new Move(action, card);
     }
 
-    /// <summary>Build, BuildFreeOnce (only while Olympia A's free card is unused), BuildWonder or Discard.</summary>
-    private static ActionType ChooseAction(GameView view)
+    /// <summary>Build, BuildWithOlympiaFreeBuild (only while Olympia A's free card is unused), BuildWonderStage or
+    /// Discard.</summary>
+    private static MoveAction ChooseAction(GameView view)
     {
-        var options = new List<ActionType>
+        var options = new List<MoveAction>
         {
-            ActionType.Build,
-            ActionType.BuildFreeOnce,
-            ActionType.BuildWonder,
-            ActionType.Discard,
+            MoveAction.Build,
+            MoveAction.BuildWithOlympiaFreeBuild,
+            MoveAction.BuildWonderStage,
+            MoveAction.Discard,
         };
         if (view.PlayableCards.Count == 0)
         {
-            options.Remove(ActionType.Build);
+            options.Remove(MoveAction.Build);
         }
         if (!view.CanBuildWonder)
         {
-            options.Remove(ActionType.BuildWonder);
+            options.Remove(MoveAction.BuildWonderStage);
         }
-        if (!view.Me.FreeCardOnce)
+        if (!view.Me.OlympiaFreeBuildAvailable)
         {
-            options.Remove(ActionType.BuildFreeOnce);
+            options.Remove(MoveAction.BuildWithOlympiaFreeBuild);
         }
         int optionIndex = view.Random.Next(options.Count);
         return options[optionIndex];

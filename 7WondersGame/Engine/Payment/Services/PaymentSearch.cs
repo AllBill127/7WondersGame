@@ -61,22 +61,22 @@ internal sealed class PaymentSearch
 
         CollectOwnSources(buyer);
 
-        AddSeller(buyer.PlayerWest, westSupply);
+        AddSeller(buyer.WestNeighbour, westSupply);
         westSourceCount = sellerSources.Count;
-        AddSeller(buyer.PlayerEast, eastSupply);
+        AddSeller(buyer.EastNeighbour, eastSupply);
 
         for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
         {
             bool isRaw = (Raw & (1 << goodIndex)) != 0;
-            westPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawCheapWest);
-            eastPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawCheapEast);
+            westPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawMaterialsCheapFromWestNeighbour);
+            eastPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawMaterialsCheapFromEastNeighbour);
         }
     }
 
     /// <summary>The buyer's either/or cards and wildcards, one entry (a mask of goods) per unit they give.</summary>
     private void CollectOwnSources(PlayerState buyer)
     {
-        foreach (Card card in buyer.PlayedCards)
+        foreach (Card card in buyer.BuiltCards)
         {
             int choiceMask = card.ChoiceMask;
             if (choiceMask != 0)
@@ -84,11 +84,11 @@ internal sealed class PaymentSearch
                 ownSources.Add(choiceMask);
             }
         }
-        if (buyer.Has(Ability.AnyRaw))
+        if (buyer.Has(Ability.AnyRawMaterialEachTurn))
         {
             ownSources.Add(Raw);
         }
-        if (buyer.Has(Ability.AnyManufactured))
+        if (buyer.Has(Ability.AnyManufacturedGoodEachTurn))
         {
             ownSources.Add(Manufactured);
         }
@@ -102,13 +102,13 @@ internal sealed class PaymentSearch
     {
         if (isRaw)
         {
-            if (buyer.Has(rawTradingPost | Ability.WonderRawCheap))
+            if (buyer.Has(rawTradingPost | Ability.RawMaterialsCheapFromBothNeighbours))
             {
                 return DiscountedTradePrice;
             }
             return StandardTradePrice;
         }
-        if (buyer.Has(Ability.ManufCheap))
+        if (buyer.Has(Ability.ManufacturedGoodsCheapFromBothNeighbours))
         {
             return DiscountedTradePrice;
         }
@@ -125,7 +125,7 @@ internal sealed class PaymentSearch
         {
             supply[goodIndex] = seller.Resources[(Resource)goodIndex];
         }
-        foreach (Card card in seller.PlayedCards)
+        foreach (Card card in seller.BuiltCards)
         {
             int choiceMask = card.SellableChoiceMask;
             if (choiceMask != 0)

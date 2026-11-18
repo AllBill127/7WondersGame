@@ -107,11 +107,11 @@ internal sealed class GameRunner
             var game = new Game(Seeding.GameSeed(_plan.Seed, slot.Deal)) { Agents = agents, Trace = log };
             if (_deals != null)
             {
-                game.InitGameNotRandom(_deals[slot.Deal]);
+                game.SetUpGameFromDataset(_deals[slot.Deal]);
             }
             else
             {
-                game.InitGame();
+                game.SetUpRandomGame();
             }
             return game;
         }

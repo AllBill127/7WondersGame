@@ -51,7 +51,7 @@ public static class Determinization
 
         // take out the cards the seat knows where they are
         RemoveBuiltCards(pool, players);
-        RemoveAll(pool, players[seat].HandCards);
+        RemoveAll(pool, players[seat].Hand);
         RemoveAll(pool, buried);
         List<Card> pileKnown = TakeOutOfPool(pool, inPile);
 
@@ -60,7 +60,7 @@ public static class Determinization
         List<Card>?[] hands = HandsOfSeenCards(players, seat, known, pool, goneFaceDown, random);
         FillHandsWithUnseenCards(players, seat, hands, pool, era, random);
 
-        copy.DiscardedCards = DiscardPileGuess(copy, seat, pileKnown, goneFaceDown, pool, random);
+        copy.DiscardPile = DiscardPileGuess(copy, seat, pileKnown, goneFaceDown, pool, random);
         ShuffleDecks(copy, era, playerCount, random);
         return copy;
     }
@@ -107,9 +107,9 @@ public static class Determinization
         var seen = new List<Card>();
         foreach (PlayerState player in players)
         {
-            seen.AddRange(player.PlayedCards);
+            seen.AddRange(player.BuiltCards);
         }
-        seen.AddRange(players[seat].HandCards);
+        seen.AddRange(players[seat].Hand);
         for (int handOwnerSeat = 0; handOwnerSeat < players.Count; handOwnerSeat++)
         {
             seen.AddRange(SeenInHand(known, handOwnerSeat));
@@ -124,7 +124,7 @@ public static class Determinization
     {
         foreach (PlayerState player in players)
         {
-            RemoveAll(pool, player.PlayedCards);
+            RemoveAll(pool, player.BuiltCards);
         }
     }
 
@@ -165,7 +165,7 @@ public static class Determinization
             {
                 continue;
             }
-            int size = players[handOwnerSeat].HandCards.Count;
+            int size = players[handOwnerSeat].Hand.Count;
             List<Card> candidates = TakeOutOfPool(pool, SeenInHand(known, handOwnerSeat));
             Shuffle(candidates, random);
             hands[handOwnerSeat] = FirstCards(candidates, size);
@@ -211,7 +211,7 @@ public static class Determinization
             {
                 continue;
             }
-            while (hand.Count < players[handOwnerSeat].HandCards.Count)
+            while (hand.Count < players[handOwnerSeat].Hand.Count)
             {
                 if (next == unseenThisEra.Count)
                 {
@@ -224,7 +224,7 @@ public static class Determinization
                 pool.Remove(card);
                 hand.Add(card);
             }
-            players[handOwnerSeat].HandCards = hand;
+            players[handOwnerSeat].Hand = hand;
         }
     }
 
@@ -252,7 +252,7 @@ public static class Determinization
         var unplacedCards = new List<Card>(goneFaceDown);
         unplacedCards.AddRange(pool);
         Shuffle(unplacedCards, random);
-        int unknownInPile = copy.DiscardedCards.Count - pileKnown.Count;
+        int unknownInPile = copy.DiscardPile.Count - pileKnown.Count;
         if (unknownInPile > unplacedCards.Count)
         {
             throw new InvalidOperationException(

@@ -14,7 +14,7 @@ public enum Phase
     /// <summary>
     /// Halikarnassos: after the turn a stage was built, the player may build a card from the discard pile for free.
     /// </summary>
-    DiscardBuild,
+    DiscardPileBuild,
 
     /// <summary>The third era is over; nobody decides anything any more.</summary>
     GameOver,

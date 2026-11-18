@@ -32,7 +32,7 @@ namespace _7WondersGame.Agents.Mcts.Search;
 /// </remarks>
 internal sealed class MctsSearch
 {
-    private static readonly Command Skip = new(ActionType.Skip, null);
+    private static readonly Move Skip = new(MoveAction.Skip, null);
 
     private readonly MctsConfig _configuration;
     private readonly int _searchingSeat;
@@ -123,7 +123,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Searches until the budget is used up (at least one iteration) and returns the move to play.</summary>
-    public Command Run()
+    public Move Run()
     {
         if (!IsParallel)
         {
@@ -188,13 +188,13 @@ internal sealed class MctsSearch
     /// Selection and expansion: walks down from the root, making the tree policy's moves in
     /// <paramref name="searchGame"/>, until it adds a new node (or the game ends). Returns the moves made at each node.
     /// </summary>
-    private List<(Node Node, List<(int Seat, Command Move)> Moves)> Descend(Game searchGame, Random random)
+    private List<(Node Node, List<(int Seat, Move Move)> Moves)> Descend(Game searchGame, Random random)
     {
-        var path = new List<(Node Node, List<(int Seat, Command Move)> Moves)>();
+        var path = new List<(Node Node, List<(int Seat, Move Move)> Moves)>();
         Node node = _tree;
         while (searchGame.Phase != Phase.GameOver)
         {
-            List<(int Seat, Command Move)> moves = ChooseMoves(node, searchGame, random);
+            List<(int Seat, Move Move)> moves = ChooseMoves(node, searchGame, random);
             path.Add((node, moves));
             foreach (var (seat, move) in moves)
             {
@@ -214,7 +214,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Backpropagation: adds a rollout's rewards to every move on the path.</summary>
-    private void Backup(List<(Node Node, List<(int Seat, Command Move)> Moves)> path,
+    private void Backup(List<(Node Node, List<(int Seat, Move Move)> Moves)> path,
                         (double[] Reward, double MyWin) result)
     {
         double[] reward = result.Reward;
@@ -451,7 +451,7 @@ internal sealed class MctsSearch
         BackupHoldingLock(path, result);
     }
 
-    private List<(Node Node, List<(int Seat, Command Move)> Moves)> DescendHoldingLock(Game searchGame, Random random)
+    private List<(Node Node, List<(int Seat, Move Move)> Moves)> DescendHoldingLock(Game searchGame, Random random)
     {
         EnterTree();
         try
@@ -466,7 +466,7 @@ internal sealed class MctsSearch
         }
     }
 
-    private void BackupHoldingLock(List<(Node Node, List<(int Seat, Command Move)> Moves)> path,
+    private void BackupHoldingLock(List<(Node Node, List<(int Seat, Move Move)> Moves)> path,
                                    (double[] Reward, double MyWin) result)
     {
         EnterTree();
@@ -492,7 +492,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Adds (or with a negative count takes back) visits with reward 0 on every move of the path.</summary>
-    private static void AddVirtualLoss(List<(Node Node, List<(int Seat, Command Move)> Moves)> path, int count)
+    private static void AddVirtualLoss(List<(Node Node, List<(int Seat, Move Move)> Moves)> path, int count)
     {
         if (count == 0)
         {
@@ -510,7 +510,7 @@ internal sealed class MctsSearch
     // =========== tree policy ===========
 
     /// <summary>The moves made at a node: one player's (sequential tree) or every pending player's (DUCT).</summary>
-    private List<(int Seat, Command Move)> ChooseMoves(Node node, Game searchGame, Random random)
+    private List<(int Seat, Move Move)> ChooseMoves(Node node, Game searchGame, Random random)
     {
         if (_configuration.Tree == MctsTree.Sequential)
         {
@@ -522,10 +522,10 @@ internal sealed class MctsSearch
     /// <summary>
     /// One player decides: the searching player whenever it is pending, otherwise the lowest pending seat.
     /// </summary>
-    private List<(int Seat, Command Move)> ChooseSequential(Node node, Game searchGame, Random random)
+    private List<(int Seat, Move Move)> ChooseSequential(Node node, Game searchGame, Random random)
     {
         int seat = DecidingSeat(searchGame.PendingPlayers());
-        return new List<(int Seat, Command Move)> { (seat, Choose(node, searchGame, seat, random)) };
+        return new List<(int Seat, Move Move)> { (seat, Choose(node, searchGame, seat, random)) };
     }
 
     private int DecidingSeat(IReadOnlyList<int> pending)
@@ -541,10 +541,10 @@ internal sealed class MctsSearch
     }
 
     /// <summary>DUCT: every pending player decides, each from its own statistics.</summary>
-    private List<(int Seat, Command Move)> ChooseDuct(Node node, Game searchGame, Random random)
+    private List<(int Seat, Move Move)> ChooseDuct(Node node, Game searchGame, Random random)
     {
         IReadOnlyList<int> pending = searchGame.PendingPlayers();
-        var moves = new List<(int Seat, Command Move)>();
+        var moves = new List<(int Seat, Move Move)>();
         // an index loop: a foreach over the interface would allocate an enumerator
         for (int pendingIndex = 0; pendingIndex < pending.Count; pendingIndex++)
         {
@@ -555,10 +555,10 @@ internal sealed class MctsSearch
     }
 
     /// <summary>A move not tried yet at this node (a random one), else the best by the tree policy.</summary>
-    private Command Choose(Node node, Game searchGame, int seat, Random random)
+    private Move Choose(Node node, Game searchGame, int seat, Random random)
     {
-        List<Command> legal = LegalMovesFor(searchGame, seat);
-        List<Command> untried = CountAvailableAndListUntried(node, seat, legal);
+        List<Move> legal = LegalMovesFor(searchGame, seat);
+        List<Move> untried = CountAvailableAndListUntried(node, seat, legal);
         if (untried.Count > 0)
         {
             return TryNewMove(node, seat, untried, random);
@@ -567,7 +567,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>The moves the tree considers for the seat (all legal moves, or the pruned ones).</summary>
-    private List<Command> LegalMovesFor(Game searchGame, int seat)
+    private List<Move> LegalMovesFor(Game searchGame, int seat)
     {
         if (_configuration.Pruning == MctsPruning.RandomCard)
         {
@@ -579,10 +579,10 @@ internal sealed class MctsSearch
     /// <summary>
     /// Counts the node's tried moves as available once more, and returns the moves not tried yet, in legal order.
     /// </summary>
-    private static List<Command> CountAvailableAndListUntried(Node node, int seat, List<Command> legal)
+    private static List<Move> CountAvailableAndListUntried(Node node, int seat, List<Move> legal)
     {
-        var untried = new List<Command>();
-        foreach (Command move in legal)
+        var untried = new List<Move>();
+        foreach (Move move in legal)
         {
             if (node.Stats.TryGetValue((seat, move), out MoveStats? moveStatistics))
             {
@@ -597,21 +597,21 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Expansion: a random untried move, added to the node's statistics.</summary>
-    private Command TryNewMove(Node node, int seat, List<Command> untried, Random random)
+    private Move TryNewMove(Node node, int seat, List<Move> untried, Random random)
     {
         int untriedIndex = random.Next(untried.Count);
-        Command move = untried[untriedIndex];
+        Move move = untried[untriedIndex];
         node.Stats[(seat, move)] = new MoveStats(_playerCount) { Available = 1 };
         node.Order.Add((seat, move));
         return move;
     }
 
     /// <summary>Selection: the legal move with the highest tree value (the first of equal ones).</summary>
-    private Command BestByTreeValue(Node node, int seat, List<Command> legal)
+    private Move BestByTreeValue(Node node, int seat, List<Move> legal)
     {
-        Command best = legal[0];
+        Move best = legal[0];
         double bestValue = double.NegativeInfinity;
-        foreach (Command move in legal)
+        foreach (Move move in legal)
         {
             double treeValue = TreeValue(node.Stats[(seat, move)], seat);
             if (treeValue > bestValue)
@@ -665,9 +665,9 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Of the searching player's moves at the root, the one the config says.</summary>
-    private Command FinalMove()
+    private Move FinalMove()
     {
-        Command? best = null;
+        Move? best = null;
         double bestValue = double.NegativeInfinity;
         foreach (var key in _tree.Order)
         {
@@ -717,12 +717,12 @@ internal sealed class MctsSearch
         return string.Join(" | ", descriptions);
     }
 
-    private bool IsSearchingPlayersMove((int Seat, Command Move) key)
+    private bool IsSearchingPlayersMove((int Seat, Move Move) key)
     {
         return key.Seat == _searchingSeat;
     }
 
-    private int VisitsOf((int Seat, Command Move) key)
+    private int VisitsOf((int Seat, Move Move) key)
     {
         return _tree.Stats[key].Visits;
     }
@@ -730,7 +730,7 @@ internal sealed class MctsSearch
     /// <summary>
     /// One root move for <see cref="TopMoves"/>, e.g. "Build Loom 412 visits, reward 0.61, wins 55%".
     /// </summary>
-    private string DescribeRootMove((int Seat, Command Move) key)
+    private string DescribeRootMove((int Seat, Move Move) key)
     {
         MoveStats moveStatistics = _tree.Stats[key];
         double averageReward = Average(moveStatistics.Total[_searchingSeat], moveStatistics.Visits);
@@ -740,7 +740,7 @@ internal sealed class MctsSearch
             $"reward {averageReward:0.##}, wins {averageWins:0%}");
     }
 
-    private static string CardNameOrDash(Command move)
+    private static string CardNameOrDash(Move move)
     {
         if (move.Card == null)
         {
@@ -765,7 +765,7 @@ internal sealed class MctsSearch
     {
         int era = searchGame.Era;
         bool eraEnd = _configuration.RolloutEnd == MctsRolloutEnd.EraEnd;
-        var moves = new List<(int Seat, Command Move)>(_playerCount);
+        var moves = new List<(int Seat, Move Move)>(_playerCount);
         while (searchGame.Phase != Phase.GameOver && !(eraEnd && searchGame.Era != era))
         {
             // everyone chooses from the same state, as in a real game
@@ -784,14 +784,14 @@ internal sealed class MctsSearch
         return Score(searchGame);
     }
 
-    private Command RolloutMove(Game searchGame, int seat, Random random)
+    private Move RolloutMove(Game searchGame, int seat, Random random)
     {
         PlayerState player = searchGame.Players[seat];
         if (IsRandomRolloutMove(random))
         {
             return RandomMove(searchGame, player, random);
         }
-        return _policy.Choose(player, searchGame.Phase, searchGame.Era, searchGame.DiscardedCards);
+        return _policy.Choose(player, searchGame.Phase, searchGame.Era, searchGame.DiscardPile);
     }
 
     /// <summary>Whether this rollout move is a random one (always, never, or with probability ε).</summary>
@@ -811,68 +811,68 @@ internal sealed class MctsSearch
     /// <summary>
     /// A random action the player can take, then a random card for it (as <see cref="RandomChoiceAI"/>).
     /// </summary>
-    private static Command RandomMove(Game searchGame, PlayerState player, Random random)
+    private static Move RandomMove(Game searchGame, PlayerState player, Random random)
     {
-        if (searchGame.Phase == Phase.DiscardBuild)
+        if (searchGame.Phase == Phase.DiscardPileBuild)
         {
             return RandomDiscardPileBuild(searchGame, player, random);
         }
-        List<Card> hand = player.HandCards;
+        List<Card> hand = player.Hand;
         if (hand.Count == 0)
         {
             return Skip;
         }
 
-        List<Card> playable = player.GetPlayableCards(hand);
+        List<Card> buildable = player.BuildableCards(hand);
         List<Card>? free = null;
-        if (searchGame.Phase == Phase.ChooseMoves && player.FreeCardOnce)
+        if (searchGame.Phase == Phase.ChooseMoves && player.OlympiaFreeBuildAvailable)
         {
-            free = player.GetPlayableCards(hand, playAllFree: true);
+            free = player.BuildableCards(hand, everyCardFree: true);
         }
-        var options = new List<ActionType>(4);
-        if (playable.Count > 0)
+        var options = new List<MoveAction>(4);
+        if (buildable.Count > 0)
         {
-            options.Add(ActionType.Build);
+            options.Add(MoveAction.Build);
         }
         if (free != null && free.Count > 0)
         {
-            options.Add(ActionType.BuildFreeOnce);
+            options.Add(MoveAction.BuildWithOlympiaFreeBuild);
         }
         if (player.CanBuildWonder())
         {
-            options.Add(ActionType.BuildWonder);
+            options.Add(MoveAction.BuildWonderStage);
         }
-        options.Add(ActionType.Discard);
+        options.Add(MoveAction.Discard);
 
         int optionIndex = random.Next(options.Count);
-        ActionType action = options[optionIndex];
-        List<Card> cards = CardsFor(action, hand, playable, free);
+        MoveAction action = options[optionIndex];
+        List<Card> cards = CardsFor(action, hand, buildable, free);
         int cardIndex = random.Next(cards.Count);
-        return new Command(action, cards[cardIndex]);
+        return new Move(action, cards[cardIndex]);
     }
 
     /// <summary>Halikarnassos: a random playable discard-pile card, or Skip when there is none.</summary>
-    private static Command RandomDiscardPileBuild(Game searchGame, PlayerState player, Random random)
+    private static Move RandomDiscardPileBuild(Game searchGame, PlayerState player, Random random)
     {
-        List<Card> fromPile = player.GetPlayableCards(searchGame.DiscardedCards, playAllFree: true);
+        List<Card> fromPile = player.BuildableCards(searchGame.DiscardPile, everyCardFree: true);
         if (fromPile.Count == 0)
         {
             return Skip;
         }
         int cardIndex = random.Next(fromPile.Count);
-        return new Command(ActionType.Build, fromPile[cardIndex]);
+        return new Move(MoveAction.Build, fromPile[cardIndex]);
     }
 
     /// <summary>
     /// The cards the action can take: playable ones to build, the free ones for Olympia, else the hand.
     /// </summary>
-    private static List<Card> CardsFor(ActionType action, List<Card> hand, List<Card> playable, List<Card>? free)
+    private static List<Card> CardsFor(MoveAction action, List<Card> hand, List<Card> buildable, List<Card>? free)
     {
         switch (action)
         {
-            case ActionType.Build:
-                return playable;
-            case ActionType.BuildFreeOnce:
+            case MoveAction.Build:
+                return buildable;
+            case MoveAction.BuildWithOlympiaFreeBuild:
                 return free!;
             default:
                 return hand;
@@ -931,7 +931,7 @@ internal sealed class MctsSearch
         int best = int.MinValue;
         foreach (PlayerState opponent in players)
         {
-            if (opponent.Id != seat && opponent.VictoryPoints > best)
+            if (opponent.Seat != seat && opponent.VictoryPoints > best)
             {
                 best = opponent.VictoryPoints;
             }

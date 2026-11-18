@@ -7,10 +7,10 @@ namespace _7WondersGame.Agents.Mcts.Tree;
 /// </summary>
 internal readonly struct MoveKey : IEquatable<MoveKey>
 {
-    private readonly (int Seat, Command Move)[] _moves;
+    private readonly (int Seat, Move Move)[] _moves;
 
     /// <summary>A key of the moves, in their order (the list is copied).</summary>
-    public MoveKey(List<(int Seat, Command Move)> moves)
+    public MoveKey(List<(int Seat, Move Move)> moves)
     {
         _moves = moves.ToArray();
     }

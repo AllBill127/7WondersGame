@@ -31,11 +31,16 @@ public class HeuristicAITests
     private static List<PlayerState> Table(WonderId playerWonder, WonderId east, WonderId west)
     {
         // MockPlayers seats them in a ring: seat 0's east is seat 1, its west seat 2
-        List<Wonder> wonders = new List<Wonder> { new Wonder(playerWonder), new Wonder(east), new Wonder(west) };
+        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        {
+            new WonderBoardProgress(playerWonder),
+            new WonderBoardProgress(east),
+            new WonderBoardProgress(west),
+        };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState player in players)
         {
-            player.Resources[player.Board.Production] += 1;
+            player.Resources[player.Wonder.Production] += 1;
         }
 
         return players;
@@ -49,9 +54,9 @@ public class HeuristicAITests
         return new HeuristicAI { Weights = new HeuristicWeights { Denial = 0, CivilianEra1 = 0 } };
     }
 
-    private static Command ChooseEra1(HeuristicAI agent, PlayerState player, params CardId[] hand)
+    private static Move ChooseEra1(HeuristicAI agent, PlayerState player, params CardId[] hand)
     {
-        player.HandCards.AddRange(hand.Select(C));
+        player.Hand.AddRange(hand.Select(C));
         return agent.Choose(player, Phase.ChooseMoves, 1, new List<Card>());
     }
 
@@ -72,18 +77,18 @@ public class HeuristicAITests
                 game.Agents.Add(new HeuristicAI());
             }
 
-            game.InitGame();
+            game.SetUpRandomGame();
 
             while (game.Phase != Phase.GameOver)
             {
-                var moves = new List<(int Seat, Command Move)>();
+                var moves = new List<(int Seat, Move Move)>();
                 foreach (int seat in game.PendingPlayers())
                 {
                     string before = Snapshot(game);
                     var agent = (HeuristicAI)game.Agents[seat];
-                    Command fromView = agent.Choose(new GameView(game, seat));
+                    Move fromView = agent.Choose(new GameView(game, seat));
                     // the same choice made on the game's own state must not change it
-                    Command fromState = agent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardedCards);
+                    Move fromState = agent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardPile);
 
                     Assert.AreEqual(fromView, fromState, $"seat {seat}, turn {game.Turn}");
                     Assert.AreEqual(before, Snapshot(game), $"seat {seat}, turn {game.Turn}");
@@ -101,17 +106,18 @@ public class HeuristicAITests
 
     private static string Snapshot(Game game)
     {
-        return string.Join(" | ", game.Players.Select(PlayerSnapshot)) + $" discarded={game.DiscardedCards.Count}";
+        return string.Join(" | ", game.Players.Select(PlayerSnapshot)) + $" discarded={game.DiscardPile.Count}";
     }
 
     private static string PlayerSnapshot(PlayerState player)
     {
         string resources = string.Join(",", player.Resources.Select(resource => resource.Value));
-        string handCards = string.Join(",", player.HandCards.Select(card => card.Id));
-        string playedCards = string.Join(",", player.PlayedCards.Select(card => card.Id));
-        return $"{player.Id}: {resources} {player.Board.Stage} {player.Abilities} " +
-               $"{player.FreeCardOnce} {player.DiscardFree} {player.VictoryTokens}/{player.DefeatTokens} " +
-               $"[{handCards}] [{playedCards}]";
+        string hand = string.Join(",", player.Hand.Select(card => card.Id));
+        string builtCards = string.Join(",", player.BuiltCards.Select(card => card.Id));
+        return $"{player.Seat}: {resources} {player.Wonder.BuiltStageCount} {player.Abilities} " +
+               $"{player.OlympiaFreeBuildAvailable} {player.HalikarnassosDiscardBuildPending} " +
+               $"{player.VictoryTokens}/{player.DefeatTokens} " +
+               $"[{hand}] [{builtCards}]";
     }
 
     // =========== settings ===========
@@ -164,9 +170,9 @@ public class HeuristicAITests
         // Baths and Pawnshop are both 3 points; Baths needs stone, bought from the east neighbour (Gizah)
         PlayerState player = Table(WonderId.RhodosA, WonderId.GizahA, WonderId.EphesosA)[0];
 
-        Command move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Pawnshop);
+        Move move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Pawnshop);
 
-        Assert.AreEqual(new Command(ActionType.Build, C(CardId.Pawnshop)), move);
+        Assert.AreEqual(new Move(MoveAction.Build, C(CardId.Pawnshop)), move);
     }
 
     [TestMethod]
@@ -177,9 +183,9 @@ public class HeuristicAITests
         player.Resources[Resource.Stone] = 2;
 
         // Baths 3 points, Altar 2, Clay Pool nothing (Gizah A needs no clay)
-        Command move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Altar, CardId.ClayPool);
+        Move move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Altar, CardId.ClayPool);
 
-        Assert.AreEqual(new Command(ActionType.BuildWonder, C(CardId.ClayPool)), move);
+        Assert.AreEqual(new Move(MoveAction.BuildWonderStage, C(CardId.ClayPool)), move);
     }
 
     [TestMethod]
@@ -188,9 +194,9 @@ public class HeuristicAITests
         PlayerState player = OlympiaWithFreeCard();
 
         // Baths needs stone, which nobody here makes: only the free card could build it
-        Command move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths, CardId.Theater);
+        Move move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths, CardId.Theater);
 
-        Assert.AreEqual(new Command(ActionType.Build, C(CardId.Altar)), move);
+        Assert.AreEqual(new Move(MoveAction.Build, C(CardId.Altar)), move);
     }
 
     [TestMethod]
@@ -198,16 +204,16 @@ public class HeuristicAITests
     {
         PlayerState player = OlympiaWithFreeCard();
 
-        Command move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths);
+        Move move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths);
 
-        Assert.AreEqual(new Command(ActionType.BuildFreeOnce, C(CardId.Baths)), move);
+        Assert.AreEqual(new Move(MoveAction.BuildWithOlympiaFreeBuild, C(CardId.Baths)), move);
     }
 
     private static PlayerState OlympiaWithFreeCard()
     {
         PlayerState player = Table(WonderId.OlympiaA, WonderId.RhodosA, WonderId.EphesosA)[0];
-        player.Board.Stage = 2;
-        player.FreeCardOnce = true;
+        player.Wonder.BuiltStageCount = 2;
+        player.OlympiaFreeBuildAvailable = true;
         return player;
     }
 
@@ -218,8 +224,8 @@ public class HeuristicAITests
         PlayerState player = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
         var pile = new List<Card> { C(CardId.Altar), C(CardId.Pawnshop), C(CardId.ClayPool) };
 
-        Command move = Plain().Choose(player, Phase.DiscardBuild, 1, pile);
+        Move move = Plain().Choose(player, Phase.DiscardPileBuild, 1, pile);
 
-        Assert.AreEqual(new Command(ActionType.Build, C(CardId.Pawnshop)), move);
+        Assert.AreEqual(new Move(MoveAction.Build, C(CardId.Pawnshop)), move);
     }
 }

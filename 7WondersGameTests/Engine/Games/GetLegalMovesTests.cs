@@ -5,12 +5,12 @@
 public class GetLegalMovesTests
 {
     [TestMethod]
-    public void GetLegalMoves_AfterWonderWasBuilt_ReturnNoBuildWonderCommands()
+    public void GetLegalMoves_AfterWonderWasBuilt_ReturnNoBuildWonderStageMoves()
     {
 
     }
 
-    public void GetLegalMoves_PlaySeventhEffect_AfterUsefulCardPlaced_ReturnsPreviouslyUnbuildableCard()
+    public void GetLegalMoves_PlaySeventhCardEffect_AfterUsefulCardPlaced_ReturnsPreviouslyUnbuildableCard()
     {
 
     }

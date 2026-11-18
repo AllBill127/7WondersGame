@@ -30,7 +30,7 @@ public class MctsAgentTests
     private static Game NewGame(ulong seed, params IAgent[] agents)
     {
         var game = new Game(seed) { Agents = agents.ToList() };
-        game.InitGame();
+        game.SetUpRandomGame();
         return game;
     }
 
@@ -41,7 +41,7 @@ public class MctsAgentTests
 
     private static string PlayerOutcome(PlayerState player)
     {
-        return $"{player.VictoryPoints} {string.Join(",", player.PlayedCards.Select(card => card.Id))}";
+        return $"{player.VictoryPoints} {string.Join(",", player.BuiltCards.Select(card => card.Id))}";
     }
 
     // every value of every setting, each in a short game (the other settings at their defaults)
@@ -112,7 +112,7 @@ public class MctsAgentTests
         Game game = NewGame(3, new HeuristicAI(), new HeuristicAI(), new HeuristicAI());
         string before = Outcome(game) + AllHandsText(game);
 
-        Command move = Mcts(":n=50").Choose(new GameView(game, 0));
+        Move move = Mcts(":n=50").Choose(new GameView(game, 0));
 
         CollectionAssert.Contains(game.LegalMoves(0), move);
         Assert.AreEqual(before, Outcome(game) + AllHandsText(game));
@@ -120,7 +120,7 @@ public class MctsAgentTests
 
     private static string AllHandsText(Game game)
     {
-        return string.Join(",", game.Players.SelectMany(player => player.HandCards).Select(card => card.Id));
+        return string.Join(",", game.Players.SelectMany(player => player.Hand).Select(card => card.Id));
     }
 
     [TestMethod]
@@ -128,8 +128,8 @@ public class MctsAgentTests
     {
         // two deals that differ only in what seat 0 can't see: the other hands and the later decks
         var deal = new Game(11) { Agents = { new HeuristicAI(), new HeuristicAI(), new HeuristicAI() } };
-        deal.InitGame();
-        List<int> wonders = deal.Players.Select(player => (int)player.Board.Id).ToList();
+        deal.SetUpRandomGame();
+        List<int> wonders = deal.Players.Select(player => (int)player.Wonder.Id).ToList();
         List<int> era1 = CardIds(deal.Decks[0]);
         // the first seven cards (seat 0's hand) stay; the other two hands change places
         List<int> swapped = era1
@@ -152,10 +152,10 @@ public class MctsAgentTests
     }
 
     // seat 0's first choice in a game dealt from the dataset deal
-    private static Command SearchFromDeal(List<int>[] dataset, string settings)
+    private static Move SearchFromDeal(List<int>[] dataset, string settings)
     {
         var game = new Game(11) { Agents = { new HeuristicAI(), new HeuristicAI(), new HeuristicAI() } };
-        game.InitGameNotRandom(dataset);
+        game.SetUpGameFromDataset(dataset);
         return Mcts(":n=200" + settings).Choose(new GameView(game, 0));
     }
 

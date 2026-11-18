@@ -23,7 +23,7 @@ public class ScoreAfterBuildingCardTests
 
     private static List<PlayerState> ThreePlayersWithoutCoins()
     {
-        List<Wonder> allWonders = MockHelper.MockWonders();
+        List<WonderBoardProgress> allWonders = MockHelper.MockWonders();
         List<PlayerState> players = MockHelper.MockPlayers(allWonders.GetRange(0, 3));
 
         // set coins to 0 so they don't add to the score

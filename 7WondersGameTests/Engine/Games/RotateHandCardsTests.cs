@@ -19,37 +19,37 @@ public class RotateHandCardsTests
         Game testGame = new Game(seed: 0);
         testGame.Era = 1;
 
-        List<Wonder> wonders = MockHelper.MockWonders().GetRange(0, 3);
+        List<WonderBoardProgress> wonders = MockHelper.MockWonders().GetRange(0, 3);
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
         testGame.Players = players;
 
         // add some cards
-        testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
-        testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Pantheon]);
-        testGame.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Dispensary]);
+        testGame.Players[0].Hand.Add(CardsDataset.GameCards[CardId.ClayPool]);
+        testGame.Players[0].Hand.Add(CardsDataset.GameCards[CardId.Pantheon]);
+        testGame.Players[0].Hand.Add(CardsDataset.GameCards[CardId.Dispensary]);
 
-        testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.OreVein]);
-        testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Baths]);
-        testGame.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.Lodge]);
+        testGame.Players[1].Hand.Add(CardsDataset.GameCards[CardId.OreVein]);
+        testGame.Players[1].Hand.Add(CardsDataset.GameCards[CardId.Baths]);
+        testGame.Players[1].Hand.Add(CardsDataset.GameCards[CardId.Lodge]);
 
-        testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.Quarry]);
-        testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.Statue]);
-        testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.School]);
+        testGame.Players[2].Hand.Add(CardsDataset.GameCards[CardId.Quarry]);
+        testGame.Players[2].Hand.Add(CardsDataset.GameCards[CardId.Statue]);
+        testGame.Players[2].Hand.Add(CardsDataset.GameCards[CardId.School]);
 
         // Expected results
-        List<Card> expP0cards = new List<Card>(testGame.Players[1].HandCards);
-        List<Card> expP1cards = new List<Card>(testGame.Players[2].HandCards);
-        List<Card> expP2cards = new List<Card>(testGame.Players[0].HandCards);
+        List<Card> expectedHandOfSeat0 = new List<Card>(testGame.Players[1].Hand);
+        List<Card> expectedHandOfSeat1 = new List<Card>(testGame.Players[2].Hand);
+        List<Card> expectedHandOfSeat2 = new List<Card>(testGame.Players[0].Hand);
 
         // Test
         testGame.RotateHandCards();
 
         // Evaluate
-        bool isMatch = players[0].HandCards.SequenceEqual(expP0cards);
+        bool isMatch = players[0].Hand.SequenceEqual(expectedHandOfSeat0);
         Assert.IsTrue(isMatch);
-        isMatch = players[1].HandCards.SequenceEqual(expP1cards);
+        isMatch = players[1].Hand.SequenceEqual(expectedHandOfSeat1);
         Assert.IsTrue(isMatch);
-        isMatch = players[2].HandCards.SequenceEqual(expP2cards);
+        isMatch = players[2].Hand.SequenceEqual(expectedHandOfSeat2);
         Assert.IsTrue(isMatch);
     }
 }

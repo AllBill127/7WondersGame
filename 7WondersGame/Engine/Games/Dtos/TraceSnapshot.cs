@@ -9,10 +9,10 @@ namespace _7WondersGame.Engine.Games.Dtos;
 internal sealed class TraceSnapshot
 {
     /// <summary>A snapshot with these values.</summary>
-    public TraceSnapshot(int coins, int stage, List<string> flags)
+    public TraceSnapshot(int coins, int builtStageCount, List<string> flags)
     {
         Coins = coins;
-        Stage = stage;
+        BuiltStageCount = builtStageCount;
         Flags = flags;
     }
 
@@ -20,7 +20,7 @@ internal sealed class TraceSnapshot
     public int Coins { get; }
 
     /// <summary>The player's built wonder stages.</summary>
-    public int Stage { get; }
+    public int BuiltStageCount { get; }
 
     /// <summary>The abilities and one-use charges the player has, by name.</summary>
     public List<string> Flags { get; }
@@ -36,14 +36,14 @@ internal sealed class TraceSnapshot
                 flags.Add(ability.ToString());
             }
         }
-        if (player.DiscardFree)
+        if (player.HalikarnassosDiscardBuildPending)
         {
-            flags.Add(nameof(player.DiscardFree));
+            flags.Add(nameof(player.HalikarnassosDiscardBuildPending));
         }
-        if (player.FreeCardOnce)
+        if (player.OlympiaFreeBuildAvailable)
         {
-            flags.Add(nameof(player.FreeCardOnce));
+            flags.Add(nameof(player.OlympiaFreeBuildAvailable));
         }
-        return new TraceSnapshot(player.Resources[Resource.Coins], player.Board.Stage, flags);
+        return new TraceSnapshot(player.Resources[Resource.Coins], player.Wonder.BuiltStageCount, flags);
     }
 }

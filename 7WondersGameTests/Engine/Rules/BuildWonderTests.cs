@@ -17,20 +17,20 @@ public class BuildWonderTests
     public void BuildWonder_WhenAvailable_ReturnsTrue()
     {
         // Arrange
-        List<Wonder> allWonders = MockHelper.MockWonders();
-        List<Wonder> selectWonders = allWonders.GetRange(0, 3);
+        List<WonderBoardProgress> allWonders = MockHelper.MockWonders();
+        List<WonderBoardProgress> selectWonders = allWonders.GetRange(0, 3);
         List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
 
         // give resources for situation
-        players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
         // manually add clay from clayPool card (building the card would add it; not done here)
         players[0].Resources[Resource.Clay] += 1;
         players[1].Resources[Resource.Coins] = 3;
-        players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
         // set hand card for situation
         Card player1Card = CardsDataset.GameCards[CardId.Baths];
-        players[1].HandCards.Add(player1Card);
+        players[1].Hand.Add(player1Card);
 
         // Expected values
         int expThisPlayerCoins = 1;
@@ -39,13 +39,13 @@ public class BuildWonderTests
 
         // Test
         players[1].CanBuildWonder();
-        bool canBuildWonder = MoveTestHelper.BuildWonderStage(players[1], player1Card, players[1].HandCards);
+        bool canBuildWonder = MoveTestHelper.BuildWonderStage(players[1], player1Card, players[1].Hand);
 
         // Evaluate
         Assert.IsTrue(canBuildWonder);
         Assert.IsFalse(players[1].CanBuildWonder());
         // eval hand card change
-        bool cardInHand = players[1].HandCards.Contains<Card>(player1Card);
+        bool cardInHand = players[1].Hand.Contains<Card>(player1Card);
         Assert.IsFalse(cardInHand);
         // eval resources change
         Assert.AreEqual(expEastPlayerCoins, players[0].Resources[Resource.Coins]);

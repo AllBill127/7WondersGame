@@ -33,13 +33,13 @@ namespace _7WondersGame.Agents.Heuristic;
 /// </remarks>
 public sealed class HeuristicAI : IAgent
 {
-    private static readonly Command Skip = new(ActionType.Skip, null);
+    private static readonly Move Skip = new(MoveAction.Skip, null);
 
     /// <summary>Its numbers. Each is a setting of the agent.</summary>
     public HeuristicWeights Weights { get; init; } = new();
 
     /// <summary>The best move for the view's seat (see the class summary).</summary>
-    public Command Choose(GameView view)
+    public Move Choose(GameView view)
     {
         return Choose(view.Me, view.Phase, view.Era, view.DiscardPile);
     }
@@ -48,16 +48,16 @@ public sealed class HeuristicAI : IAgent
     /// The same choice without a <see cref="GameView"/>, for a search that plays its own copy of the game.
     /// <paramref name="player"/> must be part of a whole table (neighbours set); nothing changes.
     /// </summary>
-    public Command Choose(PlayerState player, Phase phase, int era, List<Card> discardPile)
+    public Move Choose(PlayerState player, Phase phase, int era, List<Card> discardPile)
     {
         var values = new HeuristicValues(player, era, Weights);
 
-        if (phase == Phase.DiscardBuild)
+        if (phase == Phase.DiscardPileBuild)
         {
             return ChooseDiscardPileBuild(player, discardPile, values);
         }
 
-        List<Card> hand = player.HandCards;
+        List<Card> hand = player.Hand;
         if (hand.Count == 0)
         {
             return Skip;
@@ -70,7 +70,7 @@ public sealed class HeuristicAI : IAgent
 
         var best = new BestMove();
         ConsiderBuilds(ref best, player, values, denied);
-        if (phase == Phase.ChooseMoves && player.FreeCardOnce)
+        if (phase == Phase.ChooseMoves && player.OlympiaFreeBuildAvailable)
         {
             ConsiderOlympiaFreeBuilds(ref best, player, values, denied);
         }
@@ -80,17 +80,17 @@ public sealed class HeuristicAI : IAgent
         double giveUpDenied = denied[giveUp];
         ConsiderWonderStage(ref best, player, values, giveUpCard, giveUpDenied);
         double discardValue = values.DiscardGain() - Weights.DiscardPenalty + giveUpDenied;
-        best.Consider(ActionType.Discard, giveUpCard, discardValue);
+        best.Consider(MoveAction.Discard, giveUpCard, discardValue);
 
         return MoveOrSkip(best.Action, best.Card);
     }
 
     /// <summary>Halikarnassos: the build is free, so only the card's worth counts.</summary>
-    private static Command ChooseDiscardPileBuild(PlayerState player, List<Card> discardPile, HeuristicValues values)
+    private static Move ChooseDiscardPileBuild(PlayerState player, List<Card> discardPile, HeuristicValues values)
     {
-        List<Card> playable = player.GetPlayableCards(discardPile, playAllFree: true);
-        Card? pick = HighestValueCard(playable, values);
-        return MoveOrSkip(ActionType.Build, pick);
+        List<Card> buildable = player.BuildableCards(discardPile, everyCardFree: true);
+        Card? pick = HighestValueCard(buildable, values);
+        return MoveOrSkip(MoveAction.Build, pick);
     }
 
     /// <summary>What taking each hand card keeps from the next player, by hand position (left at 0 if off).</summary>
@@ -109,17 +109,17 @@ public sealed class HeuristicAI : IAgent
     /// <summary>Building each hand card the player can build: its worth minus its price.</summary>
     private void ConsiderBuilds(ref BestMove best, PlayerState player, HeuristicValues values, Span<double> denied)
     {
-        List<Card> hand = player.HandCards;
+        List<Card> hand = player.Hand;
         for (int cardIndex = 0; cardIndex < hand.Count; cardIndex++)
         {
-            // a price means the card can be built (the cards GetPlayableCards gives)
+            // a price means the card can be built (the cards BuildableCards gives)
             int? price = player.BuildPrice(hand[cardIndex]);
             if (price == null)
             {
                 continue;
             }
             double value = values.Gain(hand[cardIndex]) - Weights.CoinValue * price.Value + denied[cardIndex];
-            best.Consider(ActionType.Build, hand[cardIndex], value);
+            best.Consider(MoveAction.Build, hand[cardIndex], value);
         }
     }
 
@@ -130,13 +130,13 @@ public sealed class HeuristicAI : IAgent
         HeuristicValues values,
         Span<double> denied)
     {
-        List<Card> hand = player.HandCards;
+        List<Card> hand = player.Hand;
         double keep = FreeBuildKeepValue(hand);
-        foreach (Card card in player.GetPlayableCards(hand, playAllFree: true))
+        foreach (Card card in player.BuildableCards(hand, everyCardFree: true))
         {
             int handIndex = hand.IndexOf(card);
             double value = values.Gain(card) - keep + denied[handIndex];
-            best.Consider(ActionType.BuildFreeOnce, card, value);
+            best.Consider(MoveAction.BuildWithOlympiaFreeBuild, card, value);
         }
     }
 
@@ -189,7 +189,7 @@ public sealed class HeuristicAI : IAgent
             return;
         }
         double value = values.WonderGain() + Weights.WonderStage - Weights.CoinValue * stagePrice.Value + giveUpDenied;
-        best.Consider(ActionType.BuildWonder, giveUpCard, value);
+        best.Consider(MoveAction.BuildWonderStage, giveUpCard, value);
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ public sealed class HeuristicAI : IAgent
     /// </summary>
     private static int? WonderStagePrice(PlayerState player)
     {
-        IReadOnlyDictionary<Resource, int>? stageCost = player.Board.NextStageCost;
+        IReadOnlyDictionary<Resource, int>? stageCost = player.Wonder.NextStageCost;
         if (stageCost == null)
         {
             return null;
@@ -229,12 +229,12 @@ public sealed class HeuristicAI : IAgent
     }
 
     /// <summary>The move with the card, or Skip when there is no card.</summary>
-    private static Command MoveOrSkip(ActionType action, Card? card)
+    private static Move MoveOrSkip(MoveAction action, Card? card)
     {
         if (card == null)
         {
             return Skip;
         }
-        return new Command(action, card);
+        return new Move(action, card);
     }
 }

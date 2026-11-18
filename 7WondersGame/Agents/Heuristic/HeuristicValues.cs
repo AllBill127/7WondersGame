@@ -81,7 +81,7 @@ public sealed class HeuristicValues
         int coinsBefore = scratchPlayer.Resources[Resource.Coins];
 
         // in the city before its effect applies, like a real build (the Lighthouse counts itself)
-        scratchPlayer.PlayedCards.Add(card);
+        scratchPlayer.BuiltCards.Add(card);
         scratchPlayer.ApplyCardEffect(card);
 
         int score = ScoreIfEraEnded(scratchPlayer);
@@ -107,7 +107,7 @@ public sealed class HeuristicValues
     public double WonderGain()
     {
         PlayerState scratchPlayer = Copy();
-        scratchPlayer.Board.AddStage(scratchPlayer);
+        scratchPlayer.Wonder.AddStage(scratchPlayer);
         return ScoreIfEraEnded(scratchPlayer) - _baseline;
     }
 
@@ -139,9 +139,9 @@ public sealed class HeuristicValues
     {
         if (_era == 2)
         {
-            return _player.PlayerEast;
+            return _player.EastNeighbour;
         }
-        return _player.PlayerWest;
+        return _player.WestNeighbour;
     }
 
     /// <summary>The player's score if the era ended now: a battle, then Olympia B's guild copy.</summary>
@@ -160,15 +160,15 @@ public sealed class HeuristicValues
         double bonus = ProductionBonus(card);
 
         Ability grants = AbilitiesGrantedBy(card);
-        if ((grants & Ability.RawCheapEast) != 0)
+        if ((grants & Ability.RawMaterialsCheapFromEastNeighbour) != 0)
         {
-            bonus += TradingPostBonus(_player.PlayerEast);
+            bonus += TradingPostBonus(_player.EastNeighbour);
         }
-        if ((grants & Ability.RawCheapWest) != 0)
+        if ((grants & Ability.RawMaterialsCheapFromWestNeighbour) != 0)
         {
-            bonus += TradingPostBonus(_player.PlayerWest);
+            bonus += TradingPostBonus(_player.WestNeighbour);
         }
-        if ((grants & Ability.ManufCheap) != 0)
+        if ((grants & Ability.ManufacturedGoodsCheapFromBothNeighbours) != 0)
         {
             bonus += MarketplaceBonus();
         }
@@ -205,8 +205,8 @@ public sealed class HeuristicValues
     /// </summary>
     private double ScienceBonus()
     {
-        bool isFirstScience = _player.AmountOfType(CardType.Scientific) == 0;
-        bool hasRawMaterials = _player.AmountOfType(CardType.Materials) >= 2;
+        bool isFirstScience = _player.CountBuiltCardsOfType(CardType.Scientific) == 0;
+        bool hasRawMaterials = _player.CountBuiltCardsOfType(CardType.Materials) >= 2;
         if (!isFirstScience || !hasRawMaterials)
         {
             return _weights.ScienceEarly;
@@ -362,9 +362,9 @@ public sealed class HeuristicValues
     private int Need(Resource resource)
     {
         int need = 0;
-        for (int stageIndex = _player.Board.Stage; stageIndex < _player.Board.StageCount; stageIndex++)
+        for (int stageIndex = _player.Wonder.BuiltStageCount; stageIndex < _player.Wonder.StageCount; stageIndex++)
         {
-            need = Math.Max(need, _player.Board.Stages[stageIndex].Cost.GetValueOrDefault(resource));
+            need = Math.Max(need, _player.Wonder.Stages[stageIndex].Cost.GetValueOrDefault(resource));
         }
         return need;
     }
@@ -376,8 +376,8 @@ public sealed class HeuristicValues
     {
         int need = Need(resource);
         int own = CountProducible(_player, resource, need, false);
-        int fromWest = CountProducible(_player.PlayerWest, resource, need, true);
-        int fromEast = CountProducible(_player.PlayerEast, resource, need, true);
+        int fromWest = CountProducible(_player.WestNeighbour, resource, need, true);
+        int fromEast = CountProducible(_player.EastNeighbour, resource, need, true);
         return own + fromWest + fromEast;
     }
 
@@ -394,18 +394,18 @@ public sealed class HeuristicValues
         }
 
         int resourceBit = 1 << (int)resource;
-        foreach (Card card in player.PlayedCards)
+        foreach (Card card in player.BuiltCards)
         {
             if ((ChoiceMaskOf(card, isNeighbor) & resourceBit) != 0)
             {
                 count++;
             }
         }
-        if (!isNeighbor && IsRaw(resource) && player.Has(Ability.AnyRaw))
+        if (!isNeighbor && IsRaw(resource) && player.Has(Ability.AnyRawMaterialEachTurn))
         {
             count++;
         }
-        if (!isNeighbor && IsGood(resource) && player.Has(Ability.AnyManufactured))
+        if (!isNeighbor && IsGood(resource) && player.Has(Ability.AnyManufacturedGoodEachTurn))
         {
             count++;
         }
@@ -428,12 +428,13 @@ public sealed class HeuristicValues
     /// </summary>
     private bool CheapRawTrade()
     {
-        int west = RawCards(_player.PlayerWest);
-        int east = RawCards(_player.PlayerEast);
+        int west = RawCards(_player.WestNeighbour);
+        int east = RawCards(_player.EastNeighbour);
         int plenty = _weights.RawNeighbourPlenty;
-        bool cheapFromEast = _player.Has(Ability.RawCheapEast) && east >= plenty;
-        bool cheapFromWest = _player.Has(Ability.RawCheapWest) && west >= plenty;
-        bool cheapFromEither = _player.Has(Ability.WonderRawCheap) && Math.Max(west, east) >= plenty;
+        bool cheapFromEast = _player.Has(Ability.RawMaterialsCheapFromEastNeighbour) && east >= plenty;
+        bool cheapFromWest = _player.Has(Ability.RawMaterialsCheapFromWestNeighbour) && west >= plenty;
+        bool cheapFromEither = _player.Has(Ability.RawMaterialsCheapFromBothNeighbours)
+                               && Math.Max(west, east) >= plenty;
         return cheapFromEast || cheapFromWest || cheapFromEither;
     }
 
@@ -450,7 +451,7 @@ public sealed class HeuristicValues
     private double MarketplaceBonus()
     {
         // each neighbour's own board
-        int theirs = GoodsCards(_player.PlayerWest) + GoodsCards(_player.PlayerEast);
+        int theirs = GoodsCards(_player.WestNeighbour) + GoodsCards(_player.EastNeighbour);
         return TradeDiscountBonus(GoodsCards(_player), _weights.FewOwnGoods, theirs);
     }
 
@@ -469,7 +470,7 @@ public sealed class HeuristicValues
     /// <summary>Whether the player or a neighbour produces any manufactured good.</summary>
     private bool GoodsNearby()
     {
-        return MakesGoods(_player) || MakesGoods(_player.PlayerWest) || MakesGoods(_player.PlayerEast);
+        return MakesGoods(_player) || MakesGoods(_player.WestNeighbour) || MakesGoods(_player.EastNeighbour);
     }
 
     private static bool MakesGoods(PlayerState cityOwner)
@@ -483,8 +484,8 @@ public sealed class HeuristicValues
     /// <summary>Raw material cards, plus 1 for a board that makes a raw material.</summary>
     private static int RawCards(PlayerState cityOwner)
     {
-        int count = cityOwner.AmountOfType(CardType.Materials);
-        if (IsRaw(cityOwner.Board.Production))
+        int count = cityOwner.CountBuiltCardsOfType(CardType.Materials);
+        if (IsRaw(cityOwner.Wonder.Production))
         {
             count++;
         }
@@ -494,8 +495,8 @@ public sealed class HeuristicValues
     /// <summary>Manufactured good cards, plus 1 for a board that makes a good.</summary>
     private static int GoodsCards(PlayerState cityOwner)
     {
-        int count = cityOwner.AmountOfType(CardType.Manufactured);
-        if (IsGood(cityOwner.Board.Production))
+        int count = cityOwner.CountBuiltCardsOfType(CardType.Manufactured);
+        if (IsGood(cityOwner.Wonder.Production))
         {
             count++;
         }
