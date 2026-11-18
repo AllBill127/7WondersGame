@@ -30,9 +30,9 @@ internal static class Program
 
             return await RunCommand(cli, args);
         }
-        catch (UsageException ex)
+        catch (UsageException exception)
         {
-            PrintUsageError(ex, cli);
+            PrintUsageError(exception, cli);
             return Commands.BadUsage;
         }
         finally
@@ -71,15 +71,15 @@ internal static class Program
     }
 
     /// <summary>Prints the mistake and where its help is: the command's own if it has one.</summary>
-    private static void PrintUsageError(UsageException ex, CliArgs? cli)
+    private static void PrintUsageError(UsageException exception, CliArgs? cli)
     {
-        string? command = ex.Command;
+        string? command = exception.Command;
         if (command == null && cli != null)
         {
             command = cli.Command;
         }
 
-        Console.Error.WriteLine($"Error: {ex.Message}");
+        Console.Error.WriteLine($"Error: {exception.Message}");
         if (command != null && HelpText.Topics.Contains(command))
         {
             Console.Error.WriteLine($"See: 7WondersGame help {command}");

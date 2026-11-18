@@ -45,25 +45,25 @@ public static class Filer
     /// <summary>Writes the deals, numbered 0, 1, ... in the order given.</summary>
     public static async Task WriteGameDatasetToFile(string path, int players, IReadOnlyList<List<int>[]> deals)
     {
-        for (int i = 0; i < deals.Count; i++)
+        for (int dealIndex = 0; dealIndex < deals.Count; dealIndex++)
         {
-            CheckDeal(deals[i], players, $"deal {i}");
+            CheckDeal(deals[dealIndex], players, $"deal {dealIndex}");
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         await using (var writer = new StreamWriter(path))
         {
             await writer.WriteLineAsync($"{HeaderPrefix} {players}");
-            for (int i = 0; i < deals.Count; i++)
+            for (int dealIndex = 0; dealIndex < deals.Count; dealIndex++)
             {
-                await writer.WriteLineAsync($"Game {i}:");
+                await writer.WriteLineAsync($"Game {dealIndex}:");
                 for (int era = 0; era < Game.LastEra; era++)
                 {
                     await writer.WriteLineAsync($"Deck{era + 1}:");
-                    await writer.WriteLineAsync(string.Join(", ", deals[i][era]));
+                    await writer.WriteLineAsync(string.Join(", ", deals[dealIndex][era]));
                 }
                 await writer.WriteLineAsync("Wonders:");
-                await writer.WriteLineAsync(string.Join(", ", deals[i][WondersIndex]));
+                await writer.WriteLineAsync(string.Join(", ", deals[dealIndex][WondersIndex]));
             }
         }
     }
@@ -84,22 +84,22 @@ public static class Filer
     /// <exception cref="InvalidDataException">The lines are not a valid dataset.</exception>
     public static (int Players, List<List<int>[]> Deals) Parse(IReadOnlyList<string> lines, string name)
     {
-        int i = 0;
-        int players = ParseHeader(NextNonEmptyLine(lines, ref i), name);
+        int lineIndex = 0;
+        int players = ParseHeader(NextNonEmptyLine(lines, ref lineIndex), name);
         var deals = new List<List<int>[]>();
-        string? line = NextNonEmptyLine(lines, ref i);
+        string? line = NextNonEmptyLine(lines, ref lineIndex);
         while (line != null)
         {
             string expected = $"Game {deals.Count}:";
             if (line != expected)
             {
-                throw new InvalidDataException($"{name}, line {i}: expected '{expected}', found '{line}'.");
+                throw new InvalidDataException($"{name}, line {lineIndex}: expected '{expected}', found '{line}'.");
             }
 
-            List<int>[] deal = ParseDeal(lines, ref i, name, deals.Count);
+            List<int>[] deal = ParseDeal(lines, ref lineIndex, name, deals.Count);
             CheckDeal(deal, players, $"{name}, game {deals.Count}");
             deals.Add(deal);
-            line = NextNonEmptyLine(lines, ref i);
+            line = NextNonEmptyLine(lines, ref lineIndex);
         }
         if (deals.Count == 0)
         {

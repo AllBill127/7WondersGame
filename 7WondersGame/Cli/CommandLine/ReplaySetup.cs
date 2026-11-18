@@ -12,7 +12,7 @@ namespace _7WondersGame.Cli.CommandLine;
 /// </summary>
 internal sealed class ReplaySetup
 {
-    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+    private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     private ReplaySetup(List<AgentSpec> specs, ulong gameSeed, string? datasetName, int? deal,
                         List<Dictionary<string, string>>? recorded)
@@ -60,7 +60,7 @@ internal sealed class ReplaySetup
 
         List<Dictionary<string, string>> recorded = RecordedRows(csv, runId, gameIndex);
         List<AgentSpec> specs = recorded.Select(RecordedSpec).ToList();
-        ulong gameSeed = ulong.Parse(recorded[0]["seed"], Inv);
+        ulong gameSeed = ulong.Parse(recorded[0]["seed"], InvariantCulture);
         var setup = new ReplaySetup(specs, gameSeed, datasetName, deal, recorded);
         setup.UseRunDataset(csv, runId, recorded);
         return setup;
@@ -87,7 +87,7 @@ internal sealed class ReplaySetup
     /// <summary>The rows of one game in a results CSV, in seat order, or a usage error if there are none.</summary>
     private static List<Dictionary<string, string>> RecordedRows(string csv, string runId, int gameIndex)
     {
-        string gameText = gameIndex.ToString(Inv);
+        string gameText = gameIndex.ToString(InvariantCulture);
         List<Dictionary<string, string>> recorded = ResultsCsvWriter.ReadRows(csv)
             .Where(row => row.GetValueOrDefault("runId") == runId && row.GetValueOrDefault("gameIndex") == gameText)
             .OrderBy(SeatOf)
@@ -101,7 +101,7 @@ internal sealed class ReplaySetup
 
     private static int SeatOf(Dictionary<string, string> row)
     {
-        return int.Parse(row["seat"], Inv);
+        return int.Parse(row["seat"], InvariantCulture);
     }
 
     private static AgentSpec RecordedSpec(Dictionary<string, string> row)
@@ -140,7 +140,7 @@ internal sealed class ReplaySetup
             DatasetName = runDataset;
             if (Deal == null)
             {
-                Deal = int.Parse(recorded[0]["dealIndex"], Inv);
+                Deal = int.Parse(recorded[0]["dealIndex"], InvariantCulture);
             }
         }
     }

@@ -20,21 +20,21 @@ public static class GameResult
     public static List<PlayerStanding> Rank(IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
     {
         var standings = new List<PlayerStanding>(players.Count);
-        for (int i = 0; i < players.Count; i++)
+        for (int seat = 0; seat < players.Count; seat++)
         {
-            var p = players[i];
-            int better = CountPlayersBeating(p, players);
-            standings.Add(new PlayerStanding(p.Id, p.VictoryPoints, p.Coins, better + 1, 0));
+            var player = players[seat];
+            int better = CountPlayersBeating(player, players);
+            standings.Add(new PlayerStanding(player.Id, player.VictoryPoints, player.Coins, better + 1, 0));
         }
 
         // the players tied for first share the win
         int winners = CountWinners(standings);
         double winShare = 1.0 / winners;
-        for (int i = 0; i < standings.Count; i++)
+        for (int standingIndex = 0; standingIndex < standings.Count; standingIndex++)
         {
-            if (standings[i].Rank == 1)
+            if (standings[standingIndex].Rank == 1)
             {
-                standings[i] = standings[i].WithWinShare(winShare);
+                standings[standingIndex] = standings[standingIndex].WithWinShare(winShare);
             }
         }
         return standings;
@@ -44,9 +44,9 @@ public static class GameResult
     public static List<PlayerStanding> Rank(IReadOnlyList<PlayerState> players)
     {
         var scores = new List<(int Id, int VictoryPoints, int Coins)>(players.Count);
-        for (int i = 0; i < players.Count; i++)
+        for (int seat = 0; seat < players.Count; seat++)
         {
-            PlayerState player = players[i];
+            PlayerState player = players[seat];
             scores.Add((player.Id, player.VictoryPoints, player.Resources[Resource.Coins]));
         }
         return Rank(scores);
@@ -59,9 +59,9 @@ public static class GameResult
     {
         List<PlayerStanding> standings = Rank(players);
         var results = new List<SeatResult>(players.Count);
-        for (int i = 0; i < players.Count; i++)
+        for (int seat = 0; seat < players.Count; seat++)
         {
-            results.Add(ResultOf(players[i], agents[i], standings[i]));
+            results.Add(ResultOf(players[seat], agents[seat], standings[seat]));
         }
         return results;
     }
@@ -91,9 +91,9 @@ public static class GameResult
                                            IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
     {
         int count = 0;
-        for (int i = 0; i < players.Count; i++)
+        for (int otherIndex = 0; otherIndex < players.Count; otherIndex++)
         {
-            if (Beats(players[i], player))
+            if (Beats(players[otherIndex], player))
             {
                 count++;
             }
@@ -114,9 +114,10 @@ public static class GameResult
         return winners;
     }
 
-    private static bool Beats((int Id, int VictoryPoints, int Coins) a, (int Id, int VictoryPoints, int Coins) b)
+    private static bool Beats((int Id, int VictoryPoints, int Coins) player,
+                              (int Id, int VictoryPoints, int Coins) other)
     {
-        return a.VictoryPoints > b.VictoryPoints
-            || (a.VictoryPoints == b.VictoryPoints && a.Coins > b.Coins);
+        return player.VictoryPoints > other.VictoryPoints
+            || (player.VictoryPoints == other.VictoryPoints && player.Coins > other.Coins);
     }
 }

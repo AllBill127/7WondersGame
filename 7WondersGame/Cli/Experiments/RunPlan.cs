@@ -111,13 +111,13 @@ public sealed class RunPlan
 
         int perStep = Games * Rotations;
         int step = index / perStep;
-        int rest = index % perStep;
+        int positionInStep = index % perStep;
         double? value = null;
         if (Sweep != null)
         {
             value = Sweep.ValueAt(step);
         }
-        return new GameSlot(index, step, rest / Rotations, rest % Rotations, value);
+        return new GameSlot(index, step, positionInStep / Rotations, positionInStep % Rotations, value);
     }
 
     /// <summary>
@@ -224,20 +224,20 @@ public sealed class RunPlan
 
             var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string? description = null;
-            foreach (JsonProperty p in doc.RootElement.EnumerateObject())
+            foreach (JsonProperty property in doc.RootElement.EnumerateObject())
             {
-                string key = FileKeyFor(p.Name, path);
+                string key = FileKeyFor(property.Name, path);
                 bool isRepeated = options.ContainsKey(key) || (key == "description" && description != null);
                 if (isRepeated)
                 {
                     throw new UsageException($"{path}: '{key}' is given more than once.", "run");
                 }
-                if (p.Value.ValueKind == JsonValueKind.Null)
+                if (property.Value.ValueKind == JsonValueKind.Null)
                 {
                     continue;
                 }
 
-                string value = OptionText(p.Value, key, path);
+                string value = OptionText(property.Value, key, path);
                 if (key == "description")
                 {
                     description = value;
@@ -264,9 +264,9 @@ public sealed class RunPlan
         {
             return JsonDocument.Parse(File.ReadAllText(path), jsonOptions);
         }
-        catch (JsonException ex)
+        catch (JsonException exception)
         {
-            throw new UsageException($"{path} is not valid JSON: {ex.Message}", "run");
+            throw new UsageException($"{path} is not valid JSON: {exception.Message}", "run");
         }
     }
 

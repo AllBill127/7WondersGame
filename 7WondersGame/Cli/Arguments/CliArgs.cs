@@ -53,25 +53,25 @@ public sealed class CliArgs
 
         var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         bool help = false;
-        for (int i = 1; i < args.Count; i++)
+        for (int argumentIndex = 1; argumentIndex < args.Count; argumentIndex++)
         {
-            string arg = args[i];
-            if (IsHelpFlag(arg))
+            string argument = args[argumentIndex];
+            if (IsHelpFlag(argument))
             {
                 help = true;
                 continue;
             }
-            if (!arg.StartsWith("--"))
+            if (!argument.StartsWith("--"))
             {
-                if (command == "help" && i == 1)
+                if (command == "help" && argumentIndex == 1)
                 {
-                    options["topic"] = arg;
+                    options["topic"] = argument;
                     continue;
                 }
-                throw new UsageException($"Unexpected '{arg}'. Options are written as --name value.", command);
+                throw new UsageException($"Unexpected '{argument}'. Options are written as --name value.", command);
             }
 
-            KeyValuePair<string, string> option = ReadOption(args, ref i, command);
+            KeyValuePair<string, string> option = ReadOption(args, ref argumentIndex, command);
             if (!options.TryAdd(option.Key, option.Value))
             {
                 throw new UsageException($"--{option.Key} is given more than once.", command);
@@ -87,18 +87,18 @@ public sealed class CliArgs
     private static KeyValuePair<string, string> ReadOption(IReadOnlyList<string> args, ref int optionIndex,
                                                            string command)
     {
-        string arg = args[optionIndex];
-        int equalsSignIndex = arg.IndexOf('=');
+        string argument = args[optionIndex];
+        int equalsSignIndex = argument.IndexOf('=');
         if (equalsSignIndex > 0)
         {
             int nameLength = equalsSignIndex - OptionNameStart;
             int valueStart = equalsSignIndex + 1;
-            string nameBeforeEqualsSign = arg.Substring(OptionNameStart, nameLength);
-            string valueAfterEqualsSign = arg.Substring(valueStart);
+            string nameBeforeEqualsSign = argument.Substring(OptionNameStart, nameLength);
+            string valueAfterEqualsSign = argument.Substring(valueStart);
             return new KeyValuePair<string, string>(nameBeforeEqualsSign, valueAfterEqualsSign);
         }
 
-        string name = arg.Substring(OptionNameStart);
+        string name = argument.Substring(OptionNameStart);
         int valueIndex = optionIndex + 1;
         if (!HasValueAt(args, valueIndex))
         {
@@ -113,9 +113,9 @@ public sealed class CliArgs
         return command == "-h" || command == "--help" || command == "/?";
     }
 
-    private static bool IsHelpFlag(string arg)
+    private static bool IsHelpFlag(string argument)
     {
-        return arg == "-h" || arg == "--help";
+        return argument == "-h" || argument == "--help";
     }
 
     /// <summary>

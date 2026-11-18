@@ -66,39 +66,39 @@ public sealed class ResultsCsvWriter : IDisposable
     /// <summary>Appends one row per seat of a finished game, all at once, and flushes them.</summary>
     public void WriteGame(string runId, long gameIndex, long dealIndex, ulong seed, IEnumerable<SeatResult> seats)
     {
-        var sb = new StringBuilder();
-        foreach (SeatResult s in seats)
+        var rows = new StringBuilder();
+        foreach (SeatResult seatResult in seats)
         {
-            sb.Append(FormatRow(runId, gameIndex, dealIndex, seed, s)).Append('\n');
+            rows.Append(FormatRow(runId, gameIndex, dealIndex, seed, seatResult)).Append('\n');
         }
 
         lock (_lock)
         {
-            _writer.Write(sb.ToString());
+            _writer.Write(rows.ToString());
             _writer.Flush();
         }
     }
 
     /// <summary>One seat's row, its fields quoted where needed (no line break at the end).</summary>
-    public static string FormatRow(string runId, long gameIndex, long dealIndex, ulong seed, SeatResult s)
+    public static string FormatRow(string runId, long gameIndex, long dealIndex, ulong seed, SeatResult seatResult)
     {
-        var inv = CultureInfo.InvariantCulture;
+        var invariantCulture = CultureInfo.InvariantCulture;
         string[] fields =
         {
             runId,
-            gameIndex.ToString(inv),
-            dealIndex.ToString(inv),
-            seed.ToString(inv),
-            s.Seat.ToString(inv),
-            s.Agent,
-            s.ConfigJson,
-            s.Wonder,
-            s.Side,
-            s.VictoryPoints.ToString(inv),
-            s.Coins.ToString(inv),
-            s.Rank.ToString(inv),
-            s.WinShare.ToString("0.######", inv),
-            s.StatsJson,
+            gameIndex.ToString(invariantCulture),
+            dealIndex.ToString(invariantCulture),
+            seed.ToString(invariantCulture),
+            seatResult.Seat.ToString(invariantCulture),
+            seatResult.Agent,
+            seatResult.ConfigJson,
+            seatResult.Wonder,
+            seatResult.Side,
+            seatResult.VictoryPoints.ToString(invariantCulture),
+            seatResult.Coins.ToString(invariantCulture),
+            seatResult.Rank.ToString(invariantCulture),
+            seatResult.WinShare.ToString("0.######", invariantCulture),
+            seatResult.StatsJson,
         };
         return string.Join(",", fields.Select(Escape));
     }
@@ -136,9 +136,9 @@ public sealed class ResultsCsvWriter : IDisposable
                 continue;
             }
             var row = new Dictionary<string, string>(StringComparer.Ordinal);
-            for (int i = 0; i < header.Length && i < fields.Count; i++)
+            for (int column = 0; column < header.Length && column < fields.Count; column++)
             {
-                row[header[i]] = fields[i];
+                row[header[column]] = fields[column];
             }
             yield return row;
         }
@@ -148,44 +148,44 @@ public sealed class ResultsCsvWriter : IDisposable
     public static List<string> SplitRow(string line)
     {
         var fields = new List<string>();
-        var sb = new StringBuilder();
+        var field = new StringBuilder();
         bool quoted = false;
-        for (int i = 0; i < line.Length; i++)
+        for (int position = 0; position < line.Length; position++)
         {
-            char ch = line[i];
+            char character = line[position];
             if (quoted)
             {
-                int nextIndex = i + 1;
-                if (ch == '"' && IsQuoteAt(line, nextIndex))
+                int nextIndex = position + 1;
+                if (character == '"' && IsQuoteAt(line, nextIndex))
                 {
                     // a doubled quote inside a quoted field is one quote
-                    sb.Append('"');
-                    i = nextIndex;
+                    field.Append('"');
+                    position = nextIndex;
                 }
-                else if (ch == '"')
+                else if (character == '"')
                 {
                     quoted = false;
                 }
                 else
                 {
-                    sb.Append(ch);
+                    field.Append(character);
                 }
             }
-            else if (ch == '"')
+            else if (character == '"')
             {
                 quoted = true;
             }
-            else if (ch == ',')
+            else if (character == ',')
             {
-                fields.Add(sb.ToString());
-                sb.Clear();
+                fields.Add(field.ToString());
+                field.Clear();
             }
             else
             {
-                sb.Append(ch);
+                field.Append(character);
             }
         }
-        fields.Add(sb.ToString());
+        fields.Add(field.ToString());
         return fields;
     }
 

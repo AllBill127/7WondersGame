@@ -8,7 +8,8 @@ public sealed class GroupStats
 {
     /// <summary>A group's results with these values.</summary>
     public GroupStats(int number, string label, string key, int games, double wins, double winRate,
-                      double winLow, double winHigh, double fairShare, double meanVp, double vpSe, double meanRank)
+                      double winLow, double winHigh, double fairShare, double meanVictoryPoints,
+                      double victoryPointsStandardError, double meanRank)
     {
         Number = number;
         Label = label;
@@ -19,8 +20,8 @@ public sealed class GroupStats
         WinLow = winLow;
         WinHigh = winHigh;
         FairShare = fairShare;
-        MeanVp = meanVp;
-        VpSe = vpSe;
+        MeanVp = meanVictoryPoints;
+        VpSe = victoryPointsStandardError;
         MeanRank = meanRank;
     }
 

@@ -32,9 +32,9 @@ public static class Commands
     /// <summary>Exit code: the command line was wrong.</summary>
     public const int BadUsage = 2;
 
-    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+    private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
-    private static string ProgramDir
+    private static string ProgramDirectory
     {
         get
         {
@@ -42,11 +42,11 @@ public static class Commands
         }
     }
 
-    private static string ResultsDir
+    private static string ResultsDirectory
     {
         get
         {
-            return Path.Combine(ProgramDir, "results");
+            return Path.Combine(ProgramDirectory, "results");
         }
     }
 
@@ -70,9 +70,9 @@ public static class Commands
         string csvPath = Path.GetFullPath(OutputPath(plan.Out));
         DateTime started = DateTime.UtcNow;
         string runId = RunManifest.NewRunId(started, plan.Seed);
-        string runDir = Path.GetDirectoryName(csvPath)!;
-        string manifestPath = Path.Combine(runDir, $"{runId}.run.json");
-        string? experimentCopy = CopyExperimentFile(plan, runDir, runId);
+        string runDirectory = Path.GetDirectoryName(csvPath)!;
+        string manifestPath = Path.Combine(runDirectory, $"{runId}.run.json");
+        string? experimentCopy = CopyExperimentFile(plan, runDirectory, runId);
 
         var manifest = new RunManifest
         {
@@ -113,14 +113,14 @@ public static class Commands
     /// Copies the experiment file (if the plan came from one) next to the results, so the run can be repeated
     /// from them. Returns the copy's path.
     /// </summary>
-    private static string? CopyExperimentFile(RunPlan plan, string runDir, string runId)
+    private static string? CopyExperimentFile(RunPlan plan, string runDirectory, string runId)
     {
         if (plan.Experiment == null)
         {
             return null;
         }
-        Directory.CreateDirectory(runDir);
-        string experimentCopy = Path.Combine(runDir, $"{runId}.experiment.json");
+        Directory.CreateDirectory(runDirectory);
+        string experimentCopy = Path.Combine(runDirectory, $"{runId}.experiment.json");
         File.Copy(plan.Experiment, experimentCopy, overwrite: true);
         return experimentCopy;
     }
@@ -134,14 +134,14 @@ public static class Commands
         {
             ["command"] = "run",
             ["players"] = string.Join(",", plan.Players),
-            ["games"] = plan.Games.ToString(Inv),
+            ["games"] = plan.Games.ToString(InvariantCulture),
             ["steps"] = "",
             ["sweep"] = "",
             ["rotate"] = "no",
             // for 'analyze': which row of a game is the swept agent (listed position, moved on by the rotation)
-            ["rotations"] = plan.Rotations.ToString(Inv),
+            ["rotations"] = plan.Rotations.ToString(InvariantCulture),
             ["sweepSeat"] = "",
-            ["parallel"] = plan.Parallel.ToString(Inv),
+            ["parallel"] = plan.Parallel.ToString(InvariantCulture),
             ["dataset"] = "",
             ["experiment"] = "",
             ["experimentCopy"] = "",
@@ -153,9 +153,9 @@ public static class Commands
         Sweep? sweep = plan.Sweep;
         if (sweep != null)
         {
-            settings["steps"] = sweep.Steps.ToString(Inv);
+            settings["steps"] = sweep.Steps.ToString(InvariantCulture);
             settings["sweep"] = SweepDescription(sweep, plan.Players);
-            settings["sweepSeat"] = sweep.Seat.ToString(Inv);
+            settings["sweepSeat"] = sweep.Seat.ToString(InvariantCulture);
         }
         if (plan.Rotate)
         {
@@ -163,7 +163,7 @@ public static class Commands
         }
         if (plan.Dataset != null)
         {
-            settings["dataset"] = ResolveInput(plan.Dataset, ProgramDir);
+            settings["dataset"] = ResolveInput(plan.Dataset, ProgramDirectory);
         }
         if (plan.Experiment != null)
         {
@@ -186,8 +186,8 @@ public static class Commands
     private static string SweepDescription(Sweep sweep, List<AgentSpec> specs)
     {
         int listedNumber = sweep.Seat + 1;
-        string from = sweep.From.ToString(Inv);
-        string to = sweep.To.ToString(Inv);
+        string from = sweep.From.ToString(InvariantCulture);
+        string to = sweep.To.ToString(InvariantCulture);
         return $"{sweep.Setting} of {specs[sweep.Seat]} (listed {listedNumber}.) from {from} to {to}";
     }
 
@@ -234,9 +234,9 @@ public static class Commands
     }
 
     /// <summary>A duration as h:mm:ss.</summary>
-    internal static string Clock(TimeSpan t)
+    internal static string Clock(TimeSpan duration)
     {
-        return $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}";
+        return $"{(int)duration.TotalHours}:{duration.Minutes:00}:{duration.Seconds:00}";
     }
 
     /// <summary>
@@ -301,7 +301,7 @@ public static class Commands
         ReplaySetup setup;
         if (cli.Has("from"))
         {
-            string csv = ResolveInput(cli.Require("from"), ResultsDir);
+            string csv = ResolveInput(cli.Require("from"), ResultsDirectory);
             setup = ReplaySetup.FromResults(cli, csv, datasetName, deal);
         }
         else
@@ -320,10 +320,11 @@ public static class Commands
             setup.GameSeed.ToString("x16"), DealNote(setup), string.Join(", ", setup.Specs));
         game.Loop(record: true);
 
-        foreach (SeatResult s in game.Results!)
+        foreach (SeatResult seatResult in game.Results!)
         {
             Log.Information("Seat {Seat} {Agent} {Wonder}{Side}: {VP} VP, {Coins} coins, rank {Rank}",
-                s.Seat, s.Agent, s.Wonder, s.Side, s.VictoryPoints, s.Coins, s.Rank);
+                seatResult.Seat, seatResult.Agent, seatResult.Wonder, seatResult.Side, seatResult.VictoryPoints,
+                seatResult.Coins, seatResult.Rank);
         }
         if (setup.Recorded != null)
         {
@@ -403,8 +404,8 @@ public static class Commands
 
     private static bool SameSeatResult(Dictionary<string, string> row, SeatResult result)
     {
-        return row["vp"] == result.VictoryPoints.ToString(Inv)
-            && row["coins"] == result.Coins.ToString(Inv)
+        return row["vp"] == result.VictoryPoints.ToString(InvariantCulture)
+            && row["coins"] == result.Coins.ToString(InvariantCulture)
             && row["wonder"] == result.Wonder
             && row["side"] == result.Side;
     }
@@ -420,7 +421,7 @@ public static class Commands
         cli.AllowOnly("from", "run", "by", "vs", "out", "log");
         Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
 
-        string csv = ResolveInput(cli.Require("from"), ResultsDir);
+        string csv = ResolveInput(cli.Require("from"), ResultsDirectory);
         if (!File.Exists(csv))
         {
             throw new UsageException($"Results file not found: {csv}", "analyze");
@@ -447,10 +448,10 @@ public static class Commands
         }
 
         PrintAnalysis(csv, rows, runs, by, groups, pairs, allPairs);
-        string? outName = cli.Get("out");
-        if (outName != null)
+        string? outputName = cli.Get("out");
+        if (outputName != null)
         {
-            WriteAnalysis(outName, csv, groups, pairs);
+            WriteAnalysis(outputName, csv, groups, pairs);
         }
         return Ok;
     }
@@ -548,23 +549,23 @@ public static class Commands
     }
 
     /// <summary>
-    /// Writes the group table to <paramref name="outName"/> (a relative name goes next to the results CSV) and the
+    /// Writes the group table to <paramref name="outputName"/> (a relative name goes next to the results CSV) and the
     /// pairs next to it, as <c>&lt;name&gt;.pairs.csv</c>.
     /// </summary>
-    private static void WriteAnalysis(string outName, string csv, List<GroupStats> groups, List<PairStats> pairs)
+    private static void WriteAnalysis(string outputName, string csv, List<GroupStats> groups, List<PairStats> pairs)
     {
-        string outPath = outName;
-        if (!Path.IsPathRooted(outName))
+        string outputPath = outputName;
+        if (!Path.IsPathRooted(outputName))
         {
-            outPath = Path.Combine(Path.GetDirectoryName(csv)!, outName);
+            outputPath = Path.Combine(Path.GetDirectoryName(csv)!, outputName);
         }
-        string outDir = Path.GetDirectoryName(outPath)!;
-        string pairsPath = Path.Combine(outDir, Path.GetFileNameWithoutExtension(outPath) + ".pairs.csv");
+        string outputDirectory = Path.GetDirectoryName(outputPath)!;
+        string pairsPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(outputPath) + ".pairs.csv");
 
-        Directory.CreateDirectory(outDir);
-        File.WriteAllLines(outPath, Analysis.GroupsCsv(groups));
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllLines(outputPath, Analysis.GroupsCsv(groups));
         File.WriteAllLines(pairsPath, Analysis.PairsCsv(pairs));
-        Console.WriteLine($"Wrote {outPath} and {pairsPath}");
+        Console.WriteLine($"Wrote {outputPath} and {pairsPath}");
     }
 
     // ============ dataset ============
@@ -578,17 +579,18 @@ public static class Commands
         ulong seed = ParseRunSeed(cli.Require("seed"));
         Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
 
-        string outName = cli.GetOrDefault("out", $"gameDataset_{seats}p_{games}g.txt");
-        string outPath = Path.GetFullPath(Path.Combine(ProgramDir, outName));
+        string outputName = cli.GetOrDefault("out", $"gameDataset_{seats}p_{games}g.txt");
+        string outputPath = Path.GetFullPath(Path.Combine(ProgramDirectory, outputName));
 
         var gameDatasets = new List<List<int>[]>();
-        for (int i = 0; i < games; i++)
+        for (int dealIndex = 0; dealIndex < games; dealIndex++)
         {
-            gameDatasets.Add(DealOf(seed, i, seats));
+            gameDatasets.Add(DealOf(seed, dealIndex, seats));
         }
 
-        await Filer.WriteGameDatasetToFile(outPath, seats, gameDatasets);
-        Log.Information("Wrote {Games} deals for {Seats} players (seed {Seed}) to {File}", games, seats, seed, outPath);
+        await Filer.WriteGameDatasetToFile(outputPath, seats, gameDatasets);
+        Log.Information("Wrote {Games} deals for {Seats} players (seed {Seed}) to {File}",
+                        games, seats, seed, outputPath);
         return Ok;
     }
 
@@ -640,20 +642,20 @@ public static class Commands
     /// <summary>The agents, each with its settings, their types and defaults.</summary>
     public static string AgentsText()
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("Agents (use in --players as Name[:setting=value...]):");
-        sb.AppendLine();
+        var text = new StringBuilder();
+        text.AppendLine("Agents (use in --players as Name[:setting=value...]):");
+        text.AppendLine();
         foreach (AgentCatalogEntry entry in AgentCatalog.Entries)
         {
-            sb.AppendLine($"  {entry.Name,-32} {entry.Description}");
+            text.AppendLine($"  {entry.Name,-32} {entry.Description}");
             foreach (var (name, type, value) in AgentCatalog.SettingsOf(entry))
             {
-                sb.AppendLine($"      {SettingLabel(name),-36} {type.Name,-8} default {ShownValue(value)}");
+                text.AppendLine($"      {SettingLabel(name),-36} {type.Name,-8} default {ShownValue(value)}");
             }
         }
-        sb.AppendLine();
-        sb.AppendLine("Agents without settings listed have none. Setting names are not case-sensitive.");
-        return sb.ToString();
+        text.AppendLine();
+        text.AppendLine("Agents without settings listed have none. Setting names are not case-sensitive.");
+        return text.ToString();
     }
 
     /// <summary>The setting's name, after its alias if it has one: "n (Iterations)".</summary>
@@ -671,7 +673,7 @@ public static class Commands
 
     private static string ShownValue(object? value)
     {
-        string? shown = Convert.ToString(value, Inv);
+        string? shown = Convert.ToString(value, InvariantCulture);
         if (shown == null)
         {
             return "";
@@ -704,25 +706,25 @@ public static class Commands
         {
             return name;
         }
-        return Path.Combine(ResultsDir, name);
+        return Path.Combine(ResultsDirectory, name);
     }
 
     /// <summary>
-    /// An input file: as given if it exists from the current folder, otherwise in <paramref name="fallbackDir"/>.
+    /// An input file: as given if it exists from the current folder, otherwise in <paramref name="fallbackDirectory"/>.
     /// </summary>
-    private static string ResolveInput(string name, string fallbackDir)
+    private static string ResolveInput(string name, string fallbackDirectory)
     {
         if (Path.IsPathRooted(name) || File.Exists(name))
         {
             return Path.GetFullPath(name);
         }
-        return Path.Combine(fallbackDir, name);
+        return Path.Combine(fallbackDirectory, name);
     }
 
     /// <summary>The deals of a dataset file, checked against the line-up.</summary>
     private static async Task<List<List<int>[]>> LoadDataset(string name, int seats, int dealsNeeded)
     {
-        string path = ResolveInput(name, ProgramDir);
+        string path = ResolveInput(name, ProgramDirectory);
         if (!File.Exists(path))
         {
             throw new UsageException($"Dataset file not found: {path}");
@@ -733,9 +735,9 @@ public static class Commands
         {
             (players, deals) = await Filer.ReadGameDatasetFromFile(path);
         }
-        catch (InvalidDataException ex)
+        catch (InvalidDataException exception)
         {
-            throw new UsageException(ex.Message);
+            throw new UsageException(exception.Message);
         }
         if (players != seats)
         {

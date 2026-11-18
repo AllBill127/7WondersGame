@@ -8,16 +8,17 @@
 public sealed class PairStats
 {
     /// <summary>A compared with B over <paramref name="deals"/> shared deals.</summary>
-    public PairStats(GroupStats a, GroupStats b, int deals, double vpDiff, double vpDiffSe,
-                     double winDiff, double winDiffSe)
+    public PairStats(GroupStats groupA, GroupStats groupB, int deals, double victoryPointDifference,
+                     double victoryPointDifferenceStandardError, double winDifference,
+                     double winDifferenceStandardError)
     {
-        A = a;
-        B = b;
+        A = groupA;
+        B = groupB;
         Deals = deals;
-        VpDiff = vpDiff;
-        VpDiffSe = vpDiffSe;
-        WinDiff = winDiff;
-        WinDiffSe = winDiffSe;
+        VpDiff = victoryPointDifference;
+        VpDiffSe = victoryPointDifferenceStandardError;
+        WinDiff = winDifference;
+        WinDiffSe = winDifferenceStandardError;
     }
 
     /// <summary>The 97.5% point of the standard normal distribution: a 95% interval is mean +- this many Se.</summary>

@@ -120,11 +120,11 @@ public static class AgentCatalog
     {
         string wanted = FullSettingName(key);
         var fields = AgentSettings.Of(agentType).ToList();
-        foreach (var f in fields)
+        foreach (var field in fields)
         {
-            if (f.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
+            if (field.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
             {
-                return f;
+                return field;
             }
         }
         throw new UsageException($"{agentType.Name} has no setting '{key}' ({KnownSettingsText(fields)}).");
@@ -200,12 +200,12 @@ public static class AgentCatalog
             if (type == typeof(int) || type == typeof(long) || type == typeof(short))
             {
                 // whole-number settings accept "2000" and also sweep values like "2000.0"
-                double d = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
-                return Convert.ChangeType(Math.Round(d), type, CultureInfo.InvariantCulture);
+                double roundedFrom = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+                return Convert.ChangeType(Math.Round(roundedFrom), type, CultureInfo.InvariantCulture);
             }
             return Convert.ChangeType(text, type, CultureInfo.InvariantCulture);
         }
-        catch (Exception ex) when (IsBadValueError(ex))
+        catch (Exception exception) when (IsBadValueError(exception))
         {
             throw new UsageException($"{where}: '{text}' is not a valid {type.Name}.");
         }
@@ -270,9 +270,9 @@ public static class AgentCatalog
         var settings = new List<KeyValuePair<string, string>>();
         using (JsonDocument doc = JsonDocument.Parse(configJson))
         {
-            foreach (JsonProperty p in doc.RootElement.EnumerateObject())
+            foreach (JsonProperty property in doc.RootElement.EnumerateObject())
             {
-                settings.Add(new KeyValuePair<string, string>(p.Name, SettingValueText(p.Value)));
+                settings.Add(new KeyValuePair<string, string>(property.Name, SettingValueText(property.Value)));
             }
         }
         return new AgentSpec(agent, settings);

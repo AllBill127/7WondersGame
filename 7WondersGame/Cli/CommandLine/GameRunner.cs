@@ -17,7 +17,7 @@ namespace _7WondersGame.Cli.CommandLine;
 /// </summary>
 internal sealed class GameRunner
 {
-    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+    private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     private readonly RunPlan _plan;
     private readonly string _runId;
@@ -72,25 +72,25 @@ internal sealed class GameRunner
     /// Plays game <paramref name="i"/>. It always gets the same deal, seating, seed and sweep value, whatever the
     /// thread timing; every sweep value and every seating plays the same deals.
     /// </summary>
-    private void PlayGame(int i)
+    private void PlayGame(int gameIndex)
     {
-        GameSlot slot = _plan.At(i);
+        GameSlot slot = _plan.At(gameIndex);
         List<AgentSpec> seats = _plan.SeatsFor(slot.Rotation);
-        ILogger log = Logging.ForGame(i);
+        ILogger log = Logging.ForGame(gameIndex);
         Game game = SetUpGame(slot, seats, log);
 
         var watch = Stopwatch.StartNew();
         try
         {
             game.Loop(record: true);
-            _writer.WriteGame(_runId, i, slot.Deal, game.Seed, game.Results!);
+            _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, game.Results!);
             int done = Interlocked.Increment(ref _completed);
             LogGameDone(log, slot, game.Results!, done, watch.Elapsed);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             Interlocked.Increment(ref _failed);
-            log.Error(ex, "Game failed (seed 0x{Seed}). To replay it: {Replay}", game.Seed.ToString("x16"),
+            log.Error(exception, "Game failed (seed 0x{Seed}). To replay it: {Replay}", game.Seed.ToString("x16"),
                 ReplayCommand(game, slot, seats));
         }
     }
@@ -135,7 +135,7 @@ internal sealed class GameRunner
         {
             return "";
         }
-        return $" ({sweep.Setting}={value!.Value.ToString("0.####", Inv)})";
+        return $" ({sweep.Setting}={value!.Value.ToString("0.####", InvariantCulture)})";
     }
 
     private static string Summary(IEnumerable<SeatResult> seats)
@@ -172,7 +172,8 @@ internal sealed class GameRunner
         {
             if (value != null && Sweep.TryParseRange(setting.Value, out _, out _))
             {
-                settings.Add(new KeyValuePair<string, string>(setting.Key, value.Value.ToString("R", Inv)));
+                string valueText = value.Value.ToString("R", InvariantCulture);
+                settings.Add(new KeyValuePair<string, string>(setting.Key, valueText));
             }
             else
             {

@@ -9,7 +9,7 @@ public sealed class ResultRow
 {
     /// <summary>A row with these column values.</summary>
     public ResultRow(string runId, long gameIndex, string seed, int seat, string agent, string configJson,
-                     string wonder, int vp, int rank, double winShare, int players, bool swept = false)
+                     string wonder, int victoryPoints, int rank, double winShare, int players, bool swept = false)
     {
         RunId = runId;
         GameIndex = gameIndex;
@@ -18,7 +18,7 @@ public sealed class ResultRow
         Agent = agent;
         ConfigJson = configJson;
         Wonder = wonder;
-        Vp = vp;
+        Vp = victoryPoints;
         Rank = rank;
         WinShare = winShare;
         Players = players;
