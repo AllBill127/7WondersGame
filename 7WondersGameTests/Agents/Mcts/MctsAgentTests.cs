@@ -26,7 +26,7 @@ public class MctsAgentTests
     /// </summary>
     internal static MctsAgent Mcts(string settings = "")
     {
-        return (MctsAgent)AgentCatalog.Create(AgentSpec.Parse("MctsAgent" + settings));
+        return (MctsAgent)AgentCatalog.Create(AgentSpecification.Parse("MctsAgent" + settings));
     }
 
     private static Game NewGame(ulong seed, params IAgent[] agents)
@@ -176,7 +176,7 @@ public class MctsAgentTests
         StringAssert.Contains(json, "\"ExplorationConstant\":1.2");
         Assert.IsFalse(json.Contains("Searches") || json.Contains("_"), json);
 
-        AgentSpec fromRow = AgentCatalog.FromResultRow("MctsAgent", json);
+        AgentSpecification fromRow = AgentCatalog.FromResultRow("MctsAgent", json);
         Assert.AreEqual(json, AgentCatalog.Create(fromRow).ConfigurationJson());
         // every MctsConfiguration property is a setting, so equal settings JSON means an equal configuration
         Assert.AreEqual(((IAgent)new MctsAgent()).ConfigurationJson(), ((IAgent)Mcts()).ConfigurationJson(),

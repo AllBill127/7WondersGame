@@ -29,7 +29,7 @@ public sealed class RunPlan
     private const string DefaultOutput = "results.csv";
 
     /// <summary>The line-up as listed: the agent in each seat when not rotated.</summary>
-    public List<AgentSpec> Players { get; init; } = new();
+    public List<AgentSpecification> Players { get; init; } = new();
 
     /// <summary>Number of deals (per sweep value).</summary>
     public int Games { get; init; }
@@ -124,9 +124,9 @@ public sealed class RunPlan
     /// The agent in each seat for a rotation: the line-up moved <paramref name="rotation"/> seats on, so the first
     /// listed agent sits in seat <paramref name="rotation"/>.
     /// </summary>
-    public List<AgentSpec> SeatsFor(int rotation)
+    public List<AgentSpecification> SeatsFor(int rotation)
     {
-        var seats = new List<AgentSpec>(Players.Count);
+        var seats = new List<AgentSpecification>(Players.Count);
         for (int seat = 0; seat < Players.Count; seat++)
         {
             int listedPosition = ListedPositionInSeat(seat, rotation);
@@ -156,7 +156,7 @@ public sealed class RunPlan
             cli = cli.WithDefaults(fileOptions);
         }
 
-        List<AgentSpec> players = ParsePlayers(cli.Require("players"), "run");
+        List<AgentSpecification> players = ParsePlayers(cli.Require("players"), "run");
         int? steps = cli.GetInt("steps", 2);
         return new RunPlan
         {
@@ -192,14 +192,15 @@ public sealed class RunPlan
     }
 
     /// <summary>The line-up of <c>--players</c>: 3 to 7 agents.</summary>
-    public static List<AgentSpec> ParsePlayers(string text, string command)
+    public static List<AgentSpecification> ParsePlayers(string text, string command)
     {
-        List<AgentSpec> specs = AgentSpec.ParseList(text);
-        if (specs.Count < 3 || specs.Count > 7)
+        List<AgentSpecification> specifications = AgentSpecification.ParseList(text);
+        if (specifications.Count < 3 || specifications.Count > 7)
         {
-            throw new UsageException($"--players lists {specs.Count} agents; a game has 3 to 7 players.", command);
+            throw new UsageException($"--players lists {specifications.Count} agents; a game has 3 to 7 players.",
+                                     command);
         }
-        return specs;
+        return specifications;
     }
 
     /// <summary>
@@ -310,7 +311,7 @@ public sealed class RunPlan
     /// <summary>A players list of the file as one comma-separated line-up.</summary>
     private static string PlayersText(JsonElement players, string path)
     {
-        var specs = new List<string>();
+        var specificationTexts = new List<string>();
         foreach (JsonElement player in players.EnumerateArray())
         {
             if (player.ValueKind != JsonValueKind.String)
@@ -320,9 +321,9 @@ public sealed class RunPlan
                     "\"MctsAgent:ExplorationConstant=1.2\".",
                     "run");
             }
-            specs.Add(player.GetString()!);
+            specificationTexts.Add(player.GetString()!);
         }
-        return string.Join(",", specs);
+        return string.Join(",", specificationTexts);
     }
 
     /// <summary>A relative dataset name that is a file next to the experiment file, as a full path.</summary>

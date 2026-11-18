@@ -20,7 +20,7 @@ namespace _7WondersGameTests.Engine.Games;
 public class GoldenMasterTests
 {
     /// <summary>The environment variable that, set to 1, records the golden master instead of checking it.</summary>
-    public const string RecordEnvVar = "GOLDEN_MASTER_RECORD";
+    public const string RecordEnvironmentVariable = "GOLDEN_MASTER_RECORD";
     private const ulong RunSeed = 0x60_1D_E4_3A_57E2;
     private const int GamesPerPlayerCount = 40;
 
@@ -38,14 +38,15 @@ public class GoldenMasterTests
         List<string> actual = PlayAll();
         string path = MasterPath();
 
-        if (Environment.GetEnvironmentVariable(RecordEnvVar) == "1")
+        if (Environment.GetEnvironmentVariable(RecordEnvironmentVariable) == "1")
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, string.Join("\n", actual) + "\n");
-            Assert.Inconclusive($"Recorded {actual.Count} lines to {path}. Unset {RecordEnvVar} and commit the file.");
+            Assert.Inconclusive($"Recorded {actual.Count} lines to {path}. " +
+                                $"Unset {RecordEnvironmentVariable} and commit the file.");
         }
 
-        Assert.IsTrue(File.Exists(path), $"No golden master at {path}. Record it with {RecordEnvVar}=1.");
+        Assert.IsTrue(File.Exists(path), $"No golden master at {path}. Record it with {RecordEnvironmentVariable}=1.");
         string[] expected = File.ReadAllLines(path).Where(line => line.Length > 0).ToArray();
 
         for (int lineIndex = 0; lineIndex < Math.Min(expected.Length, actual.Count); lineIndex++)

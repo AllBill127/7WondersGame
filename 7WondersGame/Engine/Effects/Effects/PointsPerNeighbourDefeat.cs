@@ -11,15 +11,15 @@ public sealed class PointsPerNeighbourDefeat : IEffect
     /// <summary>An effect worth <paramref name="victoryPoints"/> per defeat token of the neighbours.</summary>
     public PointsPerNeighbourDefeat(int victoryPoints)
     {
-        Vp = victoryPoints;
+        VictoryPoints = victoryPoints;
     }
 
     /// <summary>The victory points per defeat token.</summary>
-    public int Vp { get; }
+    public int VictoryPoints { get; }
 
     /// <inheritdoc/>
     public int EndGameVictoryPoints(PlayerState owner)
     {
-        return Vp * Cities.CountDefeatTokens(owner, Who.Neighbours);
+        return VictoryPoints * Cities.CountDefeatTokens(owner, Who.Neighbours);
     }
 }

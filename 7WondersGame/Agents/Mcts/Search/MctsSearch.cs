@@ -98,7 +98,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Time the threads spent waiting for the shared tree's lock, summed (Tree only).</summary>
-    public double LockWaitMs
+    public double LockWaitMilliseconds
     {
         get
         {
@@ -484,7 +484,9 @@ internal sealed class MctsSearch
         }
     }
 
-    /// <summary>Takes the tree's lock, adding the time spent waiting for it to <see cref="LockWaitMs"/>.</summary>
+    /// <summary>
+    /// Takes the tree's lock, adding the time spent waiting for it to <see cref="LockWaitMilliseconds"/>.
+    /// </summary>
     private void EnterTree()
     {
         long start = Stopwatch.GetTimestamp();

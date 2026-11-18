@@ -126,24 +126,25 @@ public class HeuristicAgentTests
     [TestMethod]
     public void Weights_AreSettings_LoggedAndReadBack()
     {
-        AgentSpec spec = AgentSpec.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2:NextPlayerDenialWeight=0");
-        var agent = (HeuristicAgent)AgentCatalog.Create(spec);
+        AgentSpecification specification =
+            AgentSpecification.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2:NextPlayerDenialWeight=0");
+        var agent = (HeuristicAgent)AgentCatalog.Create(specification);
 
         Assert.AreEqual(0.2, agent.Weights.CoinValueInVictoryPoints);
         Assert.AreEqual(0.0, agent.Weights.NextPlayerDenialWeight);
         StringAssert.Contains(((IAgent)agent).ConfigurationJson(), "\"CoinValueInVictoryPoints\":0.2");
 
         // a results row rebuilds the same agent
-        AgentSpec fromRow = AgentCatalog.FromResultRow("HeuristicAgent", ((IAgent)agent).ConfigurationJson());
+        AgentSpecification fromRow = AgentCatalog.FromResultRow("HeuristicAgent", ((IAgent)agent).ConfigurationJson());
         Assert.AreEqual(((IAgent)agent).ConfigurationJson(), AgentCatalog.Create(fromRow).ConfigurationJson());
     }
 
     [TestMethod]
     public void SettingOneAgentsWeights_LeavesTheDefaultsAlone()
     {
-        AgentCatalog.Create(AgentSpec.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2"));
+        AgentCatalog.Create(AgentSpecification.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2"));
 
-        var fresh = (HeuristicAgent)AgentCatalog.Create(AgentSpec.Parse("HeuristicAgent"));
+        var fresh = (HeuristicAgent)AgentCatalog.Create(AgentSpecification.Parse("HeuristicAgent"));
         // every weight is a setting, so equal settings JSON means equal weights
         Assert.AreEqual(((IAgent)new HeuristicAgent()).ConfigurationJson(), ((IAgent)fresh).ConfigurationJson());
         Assert.AreNotEqual(0.2, fresh.Weights.CoinValueInVictoryPoints);

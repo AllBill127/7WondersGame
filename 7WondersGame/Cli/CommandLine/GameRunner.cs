@@ -75,7 +75,7 @@ internal sealed class GameRunner
     private void PlayGame(int gameIndex)
     {
         GameSlot slot = _plan.At(gameIndex);
-        List<AgentSpec> seats = _plan.SeatsFor(slot.Rotation);
+        List<AgentSpecification> seats = _plan.SeatsFor(slot.Rotation);
         ILogger log = Logging.ForGame(gameIndex);
         Game game = SetUpGame(slot, seats, log);
 
@@ -95,12 +95,12 @@ internal sealed class GameRunner
         }
     }
 
-    private Game SetUpGame(GameSlot slot, List<AgentSpec> seats, ILogger log)
+    private Game SetUpGame(GameSlot slot, List<AgentSpecification> seats, ILogger log)
     {
         lock (_setupLock)
         {
             var agents = new List<IAgent>(seats.Count);
-            foreach (AgentSpec seat in seats)
+            foreach (AgentSpecification seat in seats)
             {
                 agents.Add(AgentCatalog.Create(seat, slot.Value));
             }
@@ -149,10 +149,10 @@ internal sealed class GameRunner
     }
 
     /// <summary>The command that plays a failed game again, step by step.</summary>
-    private string ReplayCommand(Game game, GameSlot slot, List<AgentSpec> seats)
+    private string ReplayCommand(Game game, GameSlot slot, List<AgentSpecification> seats)
     {
         var players = new List<string>(seats.Count);
-        foreach (AgentSpec seat in seats)
+        foreach (AgentSpecification seat in seats)
         {
             players.Add(WithValue(seat, slot.Value));
         }
@@ -164,11 +164,11 @@ internal sealed class GameRunner
         return replay;
     }
 
-    /// <summary>The spec with its range (if any) replaced by the value this game used.</summary>
-    private static string WithValue(AgentSpec spec, double? value)
+    /// <summary>The specification with its range (if any) replaced by the value this game used.</summary>
+    private static string WithValue(AgentSpecification specification, double? value)
     {
-        var settings = new List<KeyValuePair<string, string>>(spec.Settings.Count);
-        foreach (KeyValuePair<string, string> setting in spec.Settings)
+        var settings = new List<KeyValuePair<string, string>>(specification.Settings.Count);
+        foreach (KeyValuePair<string, string> setting in specification.Settings)
         {
             if (value != null && Sweep.TryParseRange(setting.Value, out _, out _))
             {
@@ -180,6 +180,6 @@ internal sealed class GameRunner
                 settings.Add(setting);
             }
         }
-        return new AgentSpec(spec.Name, settings).ToString();
+        return new AgentSpecification(specification.Name, settings).ToString();
     }
 }

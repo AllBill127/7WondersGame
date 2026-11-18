@@ -27,7 +27,7 @@ public sealed class RunManifest
     public string GitCommit { get; init; } = GetGitCommit();
 
     /// <summary>Where it ran: search times (and anything with a time budget) depend on it.</summary>
-    public MachineInfo Machine { get; init; } = MachineInfo.Current();
+    public MachineInformation Machine { get; init; } = MachineInformation.Current();
 
     /// <summary>The results CSV (full path).</summary>
     public string ResultsCsv { get; init; } = "";

@@ -161,10 +161,10 @@ public class AnalysisTests
 
         for (int gameIndex = 0; gameIndex < plan.Total; gameIndex++)
         {
-            List<AgentSpec> seats = plan.SeatsFor(plan.At(gameIndex).Rotation);
+            List<AgentSpecification> seats = plan.SeatsFor(plan.At(gameIndex).Rotation);
             int seat = swept.SeatIn(gameIndex, seats.Count);
             Assert.AreEqual("SettingsTestAgent", seats[seat].Name, $"game {gameIndex}");
-            Assert.AreEqual(1, seats.Count(agentSpec => agentSpec.Name == "SettingsTestAgent"));
+            Assert.AreEqual(1, seats.Count(specification => specification.Name == "SettingsTestAgent"));
         }
     }
 

@@ -14,10 +14,10 @@ internal sealed class ReplaySetup
 {
     private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
-    private ReplaySetup(List<AgentSpec> specs, ulong gameSeed, string? datasetName, int? deal,
+    private ReplaySetup(List<AgentSpecification> specifications, ulong gameSeed, string? datasetName, int? deal,
                         List<Dictionary<string, string>>? recorded)
     {
-        Specs = specs;
+        Specifications = specifications;
         GameSeed = gameSeed;
         DatasetName = datasetName;
         Deal = deal;
@@ -25,7 +25,7 @@ internal sealed class ReplaySetup
     }
 
     /// <summary>The agent in each seat.</summary>
-    public List<AgentSpec> Specs { get; }
+    public List<AgentSpecification> Specifications { get; }
 
     /// <summary>The game's seed.</summary>
     public ulong GameSeed { get; }
@@ -59,9 +59,9 @@ internal sealed class ReplaySetup
         int gameIndex = cli.RequireInt("game", 0);
 
         List<Dictionary<string, string>> recorded = RecordedRows(csv, runId, gameIndex);
-        List<AgentSpec> specs = recorded.Select(RecordedSpec).ToList();
+        List<AgentSpecification> specifications = recorded.Select(RecordedSpecification).ToList();
         ulong gameSeed = ulong.Parse(recorded[0]["seed"], InvariantCulture);
-        var setup = new ReplaySetup(specs, gameSeed, datasetName, deal, recorded);
+        var setup = new ReplaySetup(specifications, gameSeed, datasetName, deal, recorded);
         setup.UseRunDataset(csv, runId, recorded);
         return setup;
     }
@@ -69,8 +69,8 @@ internal sealed class ReplaySetup
     /// <summary>The line-up of <c>--players</c> and the seed of <c>--game-seed</c>.</summary>
     public static ReplaySetup FromSeed(CliArguments cli, string? datasetName, int? deal)
     {
-        List<AgentSpec> specs = RunPlan.ParsePlayers(cli.Require("players"), "replay");
-        if (specs.Any(HasRange))
+        List<AgentSpecification> specifications = RunPlan.ParsePlayers(cli.Require("players"), "replay");
+        if (specifications.Any(HasRange))
         {
             throw new UsageException("replay takes single setting values, not ranges a..b.", "replay");
         }
@@ -81,7 +81,7 @@ internal sealed class ReplaySetup
                 "Give --game-seed (the seed column of the results CSV), or --from with --run and --game.",
                 "replay");
         }
-        return new ReplaySetup(specs, gameSeed.Value, datasetName, deal, null);
+        return new ReplaySetup(specifications, gameSeed.Value, datasetName, deal, null);
     }
 
     /// <summary>The rows of one game in a results CSV, in seat order, or a usage error if there are none.</summary>
@@ -104,14 +104,14 @@ internal sealed class ReplaySetup
         return int.Parse(row["seat"], InvariantCulture);
     }
 
-    private static AgentSpec RecordedSpec(Dictionary<string, string> row)
+    private static AgentSpecification RecordedSpecification(Dictionary<string, string> row)
     {
         return AgentCatalog.FromResultRow(row["agent"], row["configurationJson"]);
     }
 
-    private static bool HasRange(AgentSpec spec)
+    private static bool HasRange(AgentSpecification specification)
     {
-        foreach (KeyValuePair<string, string> setting in spec.Settings)
+        foreach (KeyValuePair<string, string> setting in specification.Settings)
         {
             if (Sweep.TryParseRange(setting.Value, out _, out _))
             {

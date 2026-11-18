@@ -9,15 +9,15 @@ public sealed class Points : IEffect
     /// <summary>An effect worth <paramref name="victoryPoints"/> victory points at the end.</summary>
     public Points(int victoryPoints)
     {
-        Vp = victoryPoints;
+        VictoryPoints = victoryPoints;
     }
 
     /// <summary>The victory points.</summary>
-    public int Vp { get; }
+    public int VictoryPoints { get; }
 
     /// <inheritdoc/>
     public int EndGameVictoryPoints(PlayerState owner)
     {
-        return Vp;
+        return VictoryPoints;
     }
 }

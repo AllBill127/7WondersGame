@@ -69,7 +69,7 @@ public class ResultsLoggingTests
     }
 
     [TestMethod]
-    public void ConfigJson_ListsTheAgentsOwnSettings()
+    public void ConfigurationJson_ListsTheAgentsOwnSettings()
     {
         Assert.AreEqual("{}", new RandomAgent().ConfigurationJson());
         var agent = new SettingsTestAgent { Weight = 2.5 };

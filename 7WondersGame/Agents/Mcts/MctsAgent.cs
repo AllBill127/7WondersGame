@@ -55,7 +55,7 @@ public sealed class MctsAgent : IAgent
         _statistics.SearchMilliseconds += milliseconds;
         _statistics.LongestSearchMilliseconds = Math.Max(_statistics.LongestSearchMilliseconds, milliseconds);
         _statistics.AllocatedBytes += allocatedOnThisThread + search.OtherThreadBytes;
-        _statistics.LockWaitMilliseconds += search.LockWaitMs;
+        _statistics.LockWaitMilliseconds += search.LockWaitMilliseconds;
         // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
         _statistics.LastNote = string.Create(CultureInfo.InvariantCulture,
             $"{search.Iterations} iterations in {milliseconds:0} ms; {search.TopMoves(3)}");

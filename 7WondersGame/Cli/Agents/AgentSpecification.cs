@@ -6,10 +6,10 @@ namespace _7WondersGame.Cli.Agents;
 /// One seat's agent as written on the command line: <c>Name[:setting=value...]</c>,
 /// e.g. <c>Agent:Weight=1.5:iterations=2000</c>. A value may be a range <c>a..b</c> (see <see cref="Sweep"/>).
 /// </summary>
-public sealed class AgentSpec
+public sealed class AgentSpecification
 {
     /// <summary>The agent <paramref name="name"/> with <paramref name="settings"/>, in the order written.</summary>
-    public AgentSpec(string name, IReadOnlyList<KeyValuePair<string, string>> settings)
+    public AgentSpecification(string name, IReadOnlyList<KeyValuePair<string, string>> settings)
     {
         Name = name;
         Settings = settings;
@@ -21,21 +21,23 @@ public sealed class AgentSpec
     /// <summary>The settings written after the name, as setting/value pairs in the order written.</summary>
     public IReadOnlyList<KeyValuePair<string, string>> Settings { get; }
 
-    /// <summary>Comma-separated specs, one per seat in seat order.</summary>
-    public static List<AgentSpec> ParseList(string text)
+    /// <summary>Comma-separated specifications, one per seat in seat order.</summary>
+    public static List<AgentSpecification> ParseList(string text)
     {
-        var specs = text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        var specifications = text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(Parse)
             .ToList();
-        if (specs.Count == 0)
+        if (specifications.Count == 0)
         {
             throw new UsageException("--players is empty.");
         }
-        return specs;
+        return specifications;
     }
 
-    /// <summary>One spec: the agent's name, then <c>setting=value</c> pairs, all separated by colons.</summary>
-    public static AgentSpec Parse(string text)
+    /// <summary>
+    /// One specification: the agent's name, then <c>setting=value</c> pairs, all separated by colons.
+    /// </summary>
+    public static AgentSpecification Parse(string text)
     {
         string[] parts = text.Split(':', StringSplitOptions.TrimEntries);
         var settings = new List<KeyValuePair<string, string>>();
@@ -43,7 +45,7 @@ public sealed class AgentSpec
         {
             settings.Add(ParseSetting(part, text));
         }
-        return new AgentSpec(parts[0], settings);
+        return new AgentSpecification(parts[0], settings);
     }
 
     /// <summary>One <c>setting=value</c> part of <paramref name="specText"/>.</summary>
@@ -62,7 +64,7 @@ public sealed class AgentSpec
         return new KeyValuePair<string, string>(setting, value);
     }
 
-    /// <summary>The spec as written on the command line.</summary>
+    /// <summary>The specification as written on the command line.</summary>
     public override string ToString()
     {
         return Name + string.Concat(Settings.Select(setting => $":{setting.Key}={setting.Value}"));

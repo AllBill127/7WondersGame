@@ -13,7 +13,7 @@ namespace _7WondersGame.Cli.ResultsAnalysis;
 public static class Analysis
 {
     /// <summary>Without --compare-with, 'analyze' lists every pair only up to this many groups.</summary>
-    public const int MaxAllPairsGroups = 8;
+    public const int MostGroupsForAllPairs = 8;
 
     /// <summary>The columns of the group table's CSV.</summary>
     public static readonly string[] GroupColumns =

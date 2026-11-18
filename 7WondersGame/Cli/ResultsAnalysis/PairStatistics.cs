@@ -3,7 +3,7 @@
 /// <summary>
 /// A paired comparison of groups A and B on the deals both played (the seed column: same seed, same deal).
 /// Per deal, each group's VP and win share are averaged over its rows; the differences A - B are then averaged
-/// over the deals. Se is the standard error of that mean, and the 95% interval is mean +- 1.96 Se.
+/// over the deals. The standard error is that of the mean, and the 95% interval is mean +- 1.96 standard errors.
 /// </summary>
 public sealed class PairStatistics
 {
@@ -21,7 +21,9 @@ public sealed class PairStatistics
         WinRateDifferenceStandardError = winRateDifferenceStandardError;
     }
 
-    /// <summary>The 97.5% point of the standard normal distribution: a 95% interval is mean +- this many Se.</summary>
+    /// <summary>
+    /// The 97.5% point of the standard normal distribution: a 95% interval is mean +- this many standard errors.
+    /// </summary>
     public const double ZScore95 = 1.959964;
 
     /// <summary>The first group.</summary>

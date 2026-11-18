@@ -184,12 +184,12 @@ public static class Commands
     /// The range setting, whose it is and its ends, e.g.
     /// "ExplorationConstant of MctsAgent:ExplorationConstant=0.3..2 (listed 1.) from 0.3 to 2".
     /// </summary>
-    private static string SweepDescription(Sweep sweep, List<AgentSpec> specs)
+    private static string SweepDescription(Sweep sweep, List<AgentSpecification> specifications)
     {
         int listedNumber = sweep.Seat + 1;
         string from = sweep.From.ToString(InvariantCulture);
         string to = sweep.To.ToString(InvariantCulture);
-        return $"{sweep.Setting} of {specs[sweep.Seat]} (listed {listedNumber}.) from {from} to {to}";
+        return $"{sweep.Setting} of {specifications[sweep.Seat]} (listed {listedNumber}.) from {from} to {to}";
     }
 
     private static void LogRunStart(RunPlan plan, RunManifest manifest, string csvPath, LogEventLevel level,
@@ -244,9 +244,9 @@ public static class Commands
     /// A time budget makes the results depend on the machine; games run side by side also slow each other down,
     /// so a searcher gets fewer iterations than it would alone.
     /// </summary>
-    private static void WarnIfClockBudget(List<AgentSpec> specs, Sweep? sweep, int parallel)
+    private static void WarnIfClockBudget(List<AgentSpecification> specifications, Sweep? sweep, int parallel)
     {
-        List<string> timed = TimedAgents(specs, sweep);
+        List<string> timed = TimedAgents(specifications, sweep);
         if (timed.Count == 0)
         {
             return;
@@ -266,21 +266,21 @@ public static class Commands
     }
 
     /// <summary>The agents of the line-up that search for a time, each listed once.</summary>
-    private static List<string> TimedAgents(List<AgentSpec> specs, Sweep? sweep)
+    private static List<string> TimedAgents(List<AgentSpecification> specifications, Sweep? sweep)
     {
         var timed = new List<string>();
-        for (int seat = 0; seat < specs.Count; seat++)
+        for (int seat = 0; seat < specifications.Count; seat++)
         {
             double? value = null;
             if (sweep != null && sweep.Seat == seat)
             {
                 value = sweep.ValueAt(0);
             }
-            IAgent agent = AgentCatalog.Create(specs[seat], value);
-            string spec = specs[seat].ToString();
-            if (agent.UsesClock && !timed.Contains(spec))
+            IAgent agent = AgentCatalog.Create(specifications[seat], value);
+            string specificationText = specifications[seat].ToString();
+            if (agent.UsesClock && !timed.Contains(specificationText))
             {
-                timed.Add(spec);
+                timed.Add(specificationText);
             }
         }
         return timed;
@@ -314,11 +314,11 @@ public static class Commands
         {
             throw new UsageException("--dataset and --deal go together.", "replay");
         }
-        AgentCatalog.Validate(setup.Specs, null);
+        AgentCatalog.Validate(setup.Specifications, null);
 
         Game game = await NewReplayGame(setup);
         Log.Information("Replaying game seed {Seed} (0x{SeedHex}){Deal} with {Players}", setup.GameSeed,
-            setup.GameSeed.ToString("x16"), DealNote(setup), string.Join(", ", setup.Specs));
+            setup.GameSeed.ToString("x16"), DealNote(setup), string.Join(", ", setup.Specifications));
         game.Loop(record: true);
 
         foreach (SeatResult seatResult in game.Results!)
@@ -340,12 +340,12 @@ public static class Commands
         if (setup.DatasetName != null)
         {
             int dealsNeeded = setup.Deal!.Value + 1;
-            deals = await LoadDataset(setup.DatasetName, setup.Specs.Count, dealsNeeded);
+            deals = await LoadDataset(setup.DatasetName, setup.Specifications.Count, dealsNeeded);
         }
 
         var game = new Game(setup.GameSeed)
         {
-            Agents = setup.Specs.Select(spec => AgentCatalog.Create(spec)).ToList(),
+            Agents = setup.Specifications.Select(specification => AgentCatalog.Create(specification)).ToList(),
             Trace = Log.Logger,
         };
         if (deals != null)
@@ -441,7 +441,7 @@ public static class Commands
         List<GroupStatistics> groups = Analysis.Groups(rows, grouping);
         int? comparedGroup = cli.GetInt("compare-with", 1, groups.Count);
         // all pairs of many groups (e.g. 14 wonders: 91 pairs) is a long list where some differ by chance alone
-        bool allPairs = comparedGroup != null || groups.Count <= Analysis.MaxAllPairsGroups;
+        bool allPairs = comparedGroup != null || groups.Count <= Analysis.MostGroupsForAllPairs;
         var pairs = new List<PairStatistics>();
         if (allPairs)
         {

@@ -6,10 +6,10 @@ using Microsoft.Win32;
 namespace _7WondersGame.Cli.Results;
 
 /// <summary>The machine and runtime a run used: timings from different machines or settings don't compare.</summary>
-public sealed class MachineInfo
+public sealed class MachineInformation
 {
     private const string WindowsCpuKey = @"HARDWARE\DESCRIPTION\System\CentralProcessor\0";
-    private const string LinuxCpuInfo = "/proc/cpuinfo";
+    private const string LinuxCpuInformationFile = "/proc/cpuinfo";
 
     /// <summary>The processor's name.</summary>
     public string Cpu { get; init; } = "";
@@ -27,9 +27,9 @@ public sealed class MachineInfo
     public string GarbageCollector { get; init; } = "";
 
     /// <summary>This machine.</summary>
-    public static MachineInfo Current()
+    public static MachineInformation Current()
     {
-        return new MachineInfo
+        return new MachineInformation
         {
             Cpu = CpuName(),
             LogicalCores = Environment.ProcessorCount,
@@ -62,7 +62,7 @@ public sealed class MachineInfo
             {
                 name = WindowsCpuName();
             }
-            else if (File.Exists(LinuxCpuInfo))
+            else if (File.Exists(LinuxCpuInformationFile))
             {
                 name = LinuxCpuName();
             }
@@ -99,7 +99,8 @@ public sealed class MachineInfo
 
     private static string? LinuxCpuName()
     {
-        string? line = File.ReadLines(LinuxCpuInfo).FirstOrDefault(cpuInfoLine => cpuInfoLine.StartsWith("model name"));
+        string? line = File.ReadLines(LinuxCpuInformationFile)
+            .FirstOrDefault(cpuInformationLine => cpuInformationLine.StartsWith("model name"));
         if (line == null)
         {
             return null;

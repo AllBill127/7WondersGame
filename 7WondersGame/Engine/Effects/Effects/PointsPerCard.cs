@@ -15,13 +15,13 @@ public sealed class PointsPerCard : IEffect
     /// </summary>
     public PointsPerCard(int victoryPoints, Who who, params CardType[] types)
     {
-        Vp = victoryPoints;
+        VictoryPoints = victoryPoints;
         Who = who;
         Types = types;
     }
 
     /// <summary>The victory points per card.</summary>
-    public int Vp { get; }
+    public int VictoryPoints { get; }
 
     /// <summary>Whose cities are counted.</summary>
     public Who Who { get; }
@@ -37,6 +37,6 @@ public sealed class PointsPerCard : IEffect
         {
             cardCount += Cities.CountCards(owner, Who, type);
         }
-        return Vp * cardCount;
+        return VictoryPoints * cardCount;
     }
 }

@@ -995,10 +995,10 @@ public class Game
         Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players", Seed, Seed.ToString("x16"), Players.Count);
         foreach (PlayerState player in Players)
         {
-            Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}",
+            Trace.Debug("Seat {Seat}: {Agent} {Configuration} on {Wonder}",
                 player.Seat,
                 AgentName(player.Seat),
-                AgentConfigJson(player.Seat),
+                AgentConfigurationJson(player.Seat),
                 player.Wonder.Id);
         }
         for (int era = 0; era < Decks.Length; era++)
@@ -1008,7 +1008,7 @@ public class Game
         Trace.Debug("=== Era 1 ===");
     }
 
-    private string AgentConfigJson(int seat)
+    private string AgentConfigurationJson(int seat)
     {
         if (seat < Agents.Count)
         {

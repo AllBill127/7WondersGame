@@ -133,13 +133,13 @@ public static class AgentCatalog
 
     /// <summary>
     /// Creates the agent and applies its settings. <paramref name="sweepValue"/> replaces the value of the
-    /// setting that is a range (it must be given when the spec has one).
+    /// setting that is a range (it must be given when the specification has one).
     /// </summary>
-    public static IAgent Create(AgentSpec spec, double? sweepValue = null)
+    public static IAgent Create(AgentSpecification specification, double? sweepValue = null)
     {
-        AgentCatalogEntry entry = Find(spec.Name);
+        AgentCatalogEntry entry = Find(specification.Name);
         IAgent agent = entry.Create();
-        foreach (var (key, value) in spec.Settings)
+        foreach (var (key, value) in specification.Settings)
         {
             AgentSetting setting = ResolveSetting(agent.GetType(), key);
             string text = value;
@@ -147,7 +147,7 @@ public static class AgentCatalog
             {
                 text = SweepValueText(sweepValue);
             }
-            setting.SetValue(agent, ConvertValue(text, setting.Type, $"{spec.Name}:{key}"));
+            setting.SetValue(agent, ConvertValue(text, setting.Type, $"{specification.Name}:{key}"));
         }
         return agent;
     }
@@ -205,12 +205,12 @@ public static class AgentCatalog
     /// Checks a line-up before any game starts: every agent and setting exists, values parse, and at most one
     /// setting is a range. Returns that range, if any.
     /// </summary>
-    public static Sweep? Validate(IReadOnlyList<AgentSpec> specs, int? steps)
+    public static Sweep? Validate(IReadOnlyList<AgentSpecification> specifications, int? steps)
     {
         Sweep? sweep = null;
-        for (int seat = 0; seat < specs.Count; seat++)
+        for (int seat = 0; seat < specifications.Count; seat++)
         {
-            foreach (var (key, value) in specs[seat].Settings)
+            foreach (var (key, value) in specifications[seat].Settings)
             {
                 if (!Sweep.TryParseRange(value, out double from, out double to))
                 {
@@ -222,7 +222,7 @@ public static class AgentCatalog
                 }
                 if (steps == null || steps.Value < 2)
                 {
-                    throw new UsageException($"{specs[seat]} has a range; give --steps (2 or more values).");
+                    throw new UsageException($"{specifications[seat]} has a range; give --steps (2 or more values).");
                 }
                 sweep = new Sweep(seat, key, from, to, steps.Value);
             }
@@ -238,15 +238,15 @@ public static class AgentCatalog
         {
             firstSweepValue = sweep.From;
         }
-        foreach (AgentSpec spec in specs)
+        foreach (AgentSpecification specification in specifications)
         {
-            Create(spec, firstSweepValue);
+            Create(specification, firstSweepValue);
         }
         return sweep;
     }
 
-    /// <summary>The spec that rebuilds an agent from a results row (agent name + configurationJson).</summary>
-    public static AgentSpec FromResultRow(string agent, string configurationJson)
+    /// <summary>The specification that rebuilds an agent from a results row (agent name + configurationJson).</summary>
+    public static AgentSpecification FromResultRow(string agent, string configurationJson)
     {
         var settings = new List<KeyValuePair<string, string>>();
         using (JsonDocument doc = JsonDocument.Parse(configurationJson))
@@ -256,7 +256,7 @@ public static class AgentCatalog
                 settings.Add(new KeyValuePair<string, string>(property.Name, SettingValueText(property.Value)));
             }
         }
-        return new AgentSpec(agent, settings);
+        return new AgentSpecification(agent, settings);
     }
 
     /// <summary>
