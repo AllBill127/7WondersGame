@@ -20,21 +20,29 @@ namespace _7WondersGame.Agents.RandomChoice;
 /// </summary>
 public class RandomChoiceAI : IAgent
 {
+    /// <summary>A random move for the view's seat (see the class summary).</summary>
     public Command Choose(GameView view)
     {
         if (view.Phase == Phase.DiscardBuild)
-            return Move(ActionType.Build, ChooseCard(view, view.PlayableCards));
+        {
+            Card? discardPileCard = ChooseCard(view, view.PlayableCards);
+            return MoveOrSkip(ActionType.Build, discardPileCard);
+        }
 
         PlayerState me = view.Me;
         ActionType action = ChooseAction(view);
         Card? card;
         if (action == ActionType.Build)
+        {
             card = ChooseCard(view, view.PlayableCards);
+        }
         else if (action == ActionType.BuildFreeOnce)
         {
             List<Card> free = me.GetPlayableCards(me.HandCards, playAllFree: true);
             if (free.Count > 0)
+            {
                 card = ChooseCard(view, free);
+            }
             else
             {
                 action = ActionType.Discard;
@@ -42,28 +50,57 @@ public class RandomChoiceAI : IAgent
             }
         }
         else
+        {
             card = ChooseCard(view, me.HandCards);
+        }
 
-        return Move(action, card);
+        return MoveOrSkip(action, card);
     }
 
-    private static Command Move(ActionType action, Card? card) =>
-        card == null ? new Command(ActionType.Skip, null) : new Command(action, card);
+    /// <summary>The move with the card, or Skip when there is no card.</summary>
+    private static Command MoveOrSkip(ActionType action, Card? card)
+    {
+        if (card == null)
+        {
+            return new Command(ActionType.Skip, null);
+        }
+        return new Command(action, card);
+    }
 
     /// <summary>Build, BuildFreeOnce (only while Olympia A's free card is unused), BuildWonder or Discard.</summary>
     private static ActionType ChooseAction(GameView view)
     {
-        var options = new List<ActionType> { ActionType.Build, ActionType.BuildFreeOnce, ActionType.BuildWonder, ActionType.Discard };
+        var options = new List<ActionType>
+        {
+            ActionType.Build,
+            ActionType.BuildFreeOnce,
+            ActionType.BuildWonder,
+            ActionType.Discard,
+        };
         if (view.PlayableCards.Count == 0)
+        {
             options.Remove(ActionType.Build);
+        }
         if (!view.CanBuildWonder)
+        {
             options.Remove(ActionType.BuildWonder);
+        }
         if (!view.Me.FreeCardOnce)
+        {
             options.Remove(ActionType.BuildFreeOnce);
-        return options[view.Random.Next(options.Count)];
+        }
+        int optionIndex = view.Random.Next(options.Count);
+        return options[optionIndex];
     }
 
     /// <summary>One of the cards, or null to skip when the list is empty.</summary>
-    private static Card? ChooseCard(GameView view, List<Card> cards) =>
-        cards.Count == 0 ? null : cards[view.Random.Next(cards.Count)];
+    private static Card? ChooseCard(GameView view, List<Card> cards)
+    {
+        if (cards.Count == 0)
+        {
+            return null;
+        }
+        int cardIndex = view.Random.Next(cards.Count);
+        return cards[cardIndex];
+    }
 }

@@ -17,7 +17,8 @@ namespace _7WondersGame.Engine.Rules.Services;
 /// </summary>
 public static partial class Rules
 {
-    private const int CoinsForDiscard = 3;
+    /// <summary>The coins a discarded card gives.</summary>
+    public const int CoinsForDiscard = 3;
 
     // =========== Wonder ===========
     /// <summary>Is there a next wonder stage, and can the player pay for it?</summary>

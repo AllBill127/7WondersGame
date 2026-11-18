@@ -3,9 +3,9 @@
 namespace _7WondersGame.Agents.Heuristic;
 
 /// <summary>
-/// Every number <see cref="HeuristicAI"/> uses (G; R10 and Q5 in the critique). Values are in victory points
-/// unless a comment says otherwise. The defaults were tuned by sweeping one weight at a time in 3-player games
-/// (1000 to 2000 deals per value; docs/10-ai-players.md has the numbers).
+/// Every number <see cref="HeuristicAI"/> uses. Values are in victory points unless a comment says otherwise.
+/// The defaults were tuned by sweeping one weight at a time in 3-player games (1000 to 2000 deals per value;
+/// docs/10-ai-players.md has the numbers).
 /// Each one is an agent setting, e.g. <c>--players HeuristicAI:CoinValue=0.5,...</c>, and is logged in the results.
 /// </summary>
 [SettingsGroup]
@@ -32,6 +32,8 @@ public sealed class HeuristicWeights
     /// can produce, by era. Era 3 has no resource cards.
     /// </summary>
     public double WonderResourceEra1 { get; set; } = 6;
+
+    /// <summary>The same in era 2.</summary>
     public double WonderResourceEra2 { get; set; } = 9;
 
     /// <summary>On top of the above, for an either/or card: per choice that the wonder uses.</summary>
@@ -60,7 +62,12 @@ public sealed class HeuristicWeights
     /// <summary>On top, per card of that kind the neighbours have.</summary>
     public double TradeDiscountPerCard { get; set; } = 1;
 
+    /// <summary>
+    /// The most raw material cards (the board counted) a player can have and still gain from a trading post.
+    /// </summary>
     public int FewOwnRaw { get; set; } = 2;
+
+    /// <summary>The most good cards (the board counted) a player can have and still gain from the Marketplace.</summary>
     public int FewOwnGoods { get; set; } = 1;
 
     // ---------- card types ----------
@@ -73,6 +80,8 @@ public sealed class HeuristicWeights
     /// science card tuned best).
     /// </summary>
     public double FirstScienceEra1 { get; set; } = 4;
+
+    /// <summary>The same in era 2.</summary>
     public double FirstScienceEra2 { get; set; } = 2.3;
 
     /// <summary>Era 1: a civilian (blue) card.</summary>

@@ -6,13 +6,23 @@ namespace _7WondersGame.Agents.Heuristic;
 /// <summary>The best move so far (none: Skip): the first one with the highest value.</summary>
 internal struct BestMove
 {
-    public ActionType Action;
-    public Card? Card;
     private double _value;
 
-    public BestMove() : this(default, null) { }
-    private BestMove(ActionType action, Card? card) => (Action, Card, _value) = (action, card, double.NegativeInfinity);
+    /// <summary>No move yet: every move considered is better.</summary>
+    public BestMove()
+    {
+        Action = default;
+        Card = null;
+        _value = double.NegativeInfinity;
+    }
 
+    /// <summary>The best move's action.</summary>
+    public ActionType Action { get; private set; }
+
+    /// <summary>The best move's card; null while no move was considered.</summary>
+    public Card? Card { get; private set; }
+
+    /// <summary>Takes the move if it is worth more than the best so far (a tie keeps the earlier one).</summary>
     public void Consider(ActionType action, Card card, double value)
     {
         if (value > _value)

@@ -10,17 +10,18 @@ using _7WondersGame.Engine.Rules.Services;
 namespace _7WondersGame.Agents.Common.Entities;
 
 /// <summary>
-/// What an agent sees when it must decide (E5): a copy of the table taken when it is asked, so changing it
-/// changes nothing in the game. Every agent asked in the same step gets a view of the same state, so none sees
-/// another's choice (M2).
+/// What an agent sees when it must decide: a copy of the table taken when it is asked, so changing it changes
+/// nothing in the game. Every agent asked in the same step gets a view of the same state, so none sees another's
+/// choice.
 /// The view still shows everything, including the other hands (<see cref="Players"/>, <see cref="CopyGame"/>). An
-/// agent that plays fair uses only the public state, its own hand and <see cref="Known"/> (M1); the MCTS agent
-/// does this through <see cref="Determinization"/>.
+/// agent that plays fair uses only the public state, its own hand and <see cref="Known"/>; the MCTS agent does
+/// this through <see cref="Determinization"/>.
 /// </summary>
 public sealed class GameView
 {
     private readonly Game _game;
 
+    /// <summary>The view of <paramref name="game"/> as it is now, for <paramref name="seat"/>.</summary>
     public GameView(Game game, int seat)
     {
         _game = game;
@@ -29,20 +30,23 @@ public sealed class GameView
         Era = game.Era;
         Turn = game.Turn;
         Players = PlayerState.CloneTable(game.Players);
-        DiscardPile = game.DiscardedCards.ToList();
+        DiscardPile = new List<Card>(game.DiscardedCards);
         Me = Players[seat];
-        PlayableCards = Phase == Phase.DiscardBuild
-            // the discard-pile build is free, so only the no-duplicates rule limits it
-            ? Me.GetPlayableCards(DiscardPile, playAllFree: true)
-            : Me.GetPlayableCards(Me.HandCards);
+        PlayableCards = PlayableCardsNow();
         CanBuildWonder = Me.CanBuildWonder();
         Known = game.KnowledgeOf(seat);
     }
 
     /// <summary>The seat deciding.</summary>
     public int Seat { get; }
+
+    /// <summary>What the seat must decide now.</summary>
     public Phase Phase { get; }
+
+    /// <summary>The era being played, 1 to 3.</summary>
     public int Era { get; }
+
+    /// <summary>The turn, 0 to 20 (see <see cref="Game.Turn"/>).</summary>
     public int Turn { get; }
 
     /// <summary>Every player, by seat (a copy).</summary>
@@ -51,6 +55,7 @@ public sealed class GameView
     /// <summary>The deciding player (a copy).</summary>
     public PlayerState Me { get; }
 
+    /// <summary>The discarded cards (a copy of the list).</summary>
     public List<Card> DiscardPile { get; }
 
     /// <summary>
@@ -62,11 +67,14 @@ public sealed class GameView
     /// <summary>Whether the player can pay for its next wonder stage.</summary>
     public bool CanBuildWonder { get; }
 
-    /// <summary>This seat's random stream: every random choice of the agent comes from it (B1).</summary>
-    public Random Random => _game.AgentRandom(Seat);
-
-    /// <summary>Every move the rules allow the seat now (see <see cref="Game.LegalMoves"/>).</summary>
-    public List<Command> LegalMoves() => _game.LegalMoves(Seat);
+    /// <summary>This seat's random stream: every random choice of the agent comes from it.</summary>
+    public Random Random
+    {
+        get
+        {
+            return _game.AgentRandom(Seat);
+        }
+    }
 
     /// <summary>
     /// What the seat knows about the cards it can't see (taken when the view was made); null if the game doesn't
@@ -74,9 +82,28 @@ public sealed class GameView
     /// </summary>
     public SeatKnowledge? Known { get; }
 
+    /// <summary>Every move the rules allow the seat now (see <see cref="Game.LegalMoves"/>).</summary>
+    public List<Command> LegalMoves()
+    {
+        return _game.LegalMoves(Seat);
+    }
+
     /// <summary>
     /// A copy of the whole game to search in. It holds everything, hidden cards included: a fair search
     /// re-deals what the seat can't know (<see cref="Determinization.Sample"/>) before using it.
     /// </summary>
-    public Game CopyGame() => _game.DeepCopy();
+    public Game CopyGame()
+    {
+        return _game.DeepCopy();
+    }
+
+    private List<Card> PlayableCardsNow()
+    {
+        if (Phase == Phase.DiscardBuild)
+        {
+            // the discard-pile build is free, so only the no-duplicates rule limits it
+            return Me.GetPlayableCards(DiscardPile, playAllFree: true);
+        }
+        return Me.GetPlayableCards(Me.HandCards);
+    }
 }
