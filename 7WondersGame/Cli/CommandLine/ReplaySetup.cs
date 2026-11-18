@@ -43,7 +43,7 @@ internal sealed class ReplaySetup
     /// Game <c>--game</c> of run <c>--run</c> in the results CSV <paramref name="csv"/>: its agents, settings and
     /// seed come from its rows, and its dataset, if any, from the run's manifest.
     /// </summary>
-    public static ReplaySetup FromResults(CliArgs cli, string csv, string? datasetName, int? deal)
+    public static ReplaySetup FromResults(CliArguments cli, string csv, string? datasetName, int? deal)
     {
         if (cli.Has("players") || cli.Has("game-seed"))
         {
@@ -67,7 +67,7 @@ internal sealed class ReplaySetup
     }
 
     /// <summary>The line-up of <c>--players</c> and the seed of <c>--game-seed</c>.</summary>
-    public static ReplaySetup FromSeed(CliArgs cli, string? datasetName, int? deal)
+    public static ReplaySetup FromSeed(CliArguments cli, string? datasetName, int? deal)
     {
         List<AgentSpec> specs = RunPlan.ParsePlayers(cli.Require("players"), "replay");
         if (specs.Any(HasRange))

@@ -11,7 +11,7 @@ namespace _7WondersGameTests.Cli.Experiments;
 public class ExperimentTests
 {
     private const string ThreeRandom =
-        "\"players\": \"RandomChoiceAI,RandomChoiceAI,RandomChoiceAI\", \"games\": 1, \"seed\": 1";
+        "\"players\": \"RandomAgent,RandomAgent,RandomAgent\", \"games\": 1, \"seed\": 1";
 
     private string _directory = "";
 
@@ -46,14 +46,14 @@ public class ExperimentTests
 
     private static RunPlan Plan(params string[] args)
     {
-        return RunPlan.FromCli(CliArgs.Parse(args.Prepend("run").ToArray()));
+        return RunPlan.FromCli(CliArguments.Parse(args.Prepend("run").ToArray()));
     }
 
     [TestMethod]
     public void Rotation_PlaysEveryDealInEverySeating()
     {
         RunPlan plan = Plan(
-            "--players", "RandomChoiceAI,HeuristicAI,MctsAgent",
+            "--players", "RandomAgent,HeuristicAgent,MctsAgent",
             "--games", "2",
             "--seed", "1",
             "--rotate", "yes");
@@ -63,19 +63,19 @@ public class ExperimentTests
         int[] rotations = Enumerable.Range(0, 6).Select(gameIndex => plan.At(gameIndex).Rotation).ToArray();
         CollectionAssert.AreEqual(new[] { 0, 0, 0, 1, 1, 1 }, deals);
         CollectionAssert.AreEqual(new[] { 0, 1, 2, 0, 1, 2 }, rotations);
-        Assert.AreEqual("RandomChoiceAI,HeuristicAI,MctsAgent", string.Join(",", plan.SeatsFor(0)));
+        Assert.AreEqual("RandomAgent,HeuristicAgent,MctsAgent", string.Join(",", plan.SeatsFor(0)));
         Assert.AreEqual(
-            "MctsAgent,RandomChoiceAI,HeuristicAI",
+            "MctsAgent,RandomAgent,HeuristicAgent",
             string.Join(",", plan.SeatsFor(1)),
             "the first listed agent moves to seat 1");
-        Assert.AreEqual("HeuristicAI,MctsAgent,RandomChoiceAI", string.Join(",", plan.SeatsFor(2)));
+        Assert.AreEqual("HeuristicAgent,MctsAgent,RandomAgent", string.Join(",", plan.SeatsFor(2)));
     }
 
     [TestMethod]
     public void WithoutRotation_GamesAreNumberedAsBefore()
     {
         RunPlan plan = Plan(
-            "--players", "SettingsTestAgent:c=0..1,RandomChoiceAI,RandomChoiceAI",
+            "--players", "SettingsTestAgent:Weight=0..1,RandomAgent,RandomAgent",
             "--steps", "3",
             "--games", "4",
             "--seed", "1");
@@ -93,7 +93,7 @@ public class ExperimentTests
     public void RotationAndASweep_Together()
     {
         RunPlan plan = Plan(
-            "--players", "SettingsTestAgent:c=0..1,RandomChoiceAI,RandomChoiceAI,RandomChoiceAI",
+            "--players", "SettingsTestAgent:Weight=0..1,RandomAgent,RandomAgent,RandomAgent",
             "--steps", "2",
             "--games", "3",
             "--seed", "1",
@@ -111,7 +111,7 @@ public class ExperimentTests
         string file = Write("exp.json", @"{
                 // comments and trailing commas are fine
                 ""description"": ""C sweep"",
-                ""Players"": [""SettingsTestAgent:c=0.3..2"", ""RandomChoiceAI"", ""RandomChoiceAI""],
+                ""Players"": [""SettingsTestAgent:Weight=0.3..2"", ""RandomAgent"", ""RandomAgent""],
                 ""games"": 50,
                 ""seed"": ""0x10"",
                 ""steps"": 6,
@@ -122,7 +122,7 @@ public class ExperimentTests
 
         RunPlan fromFile = Plan("--experiment", file, "--parallel", "8");
         RunPlan fromCli = Plan(
-            "--players", "SettingsTestAgent:c=0.3..2,RandomChoiceAI,RandomChoiceAI",
+            "--players", "SettingsTestAgent:Weight=0.3..2,RandomAgent,RandomAgent",
             "--games", "50",
             "--seed", "16",
             "--steps", "6",
@@ -152,7 +152,7 @@ public class ExperimentTests
         string notYesOrNo = Write("e.json", "{ " + ThreeRandom + ", \"rotate\": \"maybe\" }");
         string playerNotText = Write(
             "f.json",
-            "{ \"players\": [\"RandomChoiceAI\", 2, \"RandomChoiceAI\"], \"games\": 1, \"seed\": 1 }");
+            "{ \"players\": [\"RandomAgent\", 2, \"RandomAgent\"], \"games\": 1, \"seed\": 1 }");
 
         Assert.ThrowsException<UsageException>(
             () => Plan("--experiment", ok, "--games", "5"),
@@ -171,11 +171,11 @@ public class ExperimentTests
     {
         string file = Write(
             "exp.json",
-            "{ \"players\": [\"HeuristicAI\", \"RandomChoiceAI\", \"MctsAgent:Iterations=10\"], " +
-            "\"games\": 2, \"seed\": 9, \"rotate\": true, \"log\": \"warning\" }");
+            "{ \"players\": [\"HeuristicAgent\", \"RandomAgent\", \"MctsAgent:IterationBudget=10\"], " +
+            "\"games\": 2, \"seed\": 9, \"rotate\": true, \"log-level\": \"warning\" }");
         string csv = Path.Combine(_directory, "out", "results.csv");
 
-        CliArgs cli = CliArgs.Parse(new[] { "run", "--experiment", file, "--out", csv });
+        CliArguments cli = CliArguments.Parse(new[] { "run", "--experiment", file, "--output", csv });
         int exit = await Commands.Run(cli, Array.Empty<string>());
 
         Assert.AreEqual(Commands.Ok, exit);

@@ -24,7 +24,8 @@ namespace _7WondersGame.Agents.Mcts.Search;
 /// guess at the hidden cards, unless the search may see them), walks down the tree from the root choosing moves
 /// by the tree policy, adds one new node, plays a rollout from there and adds its reward to every move on the way.
 /// The tree is keyed by moves only, so the guesses share it (single-observer ISMCTS).
-/// With <see cref="MctsConfig.Parallel"/> the iterations run on several threads (see <see cref="MctsParallel"/>).
+/// With <see cref="MctsConfiguration.Parallelisation"/> the iterations run on several threads (see <see
+/// cref="MctsParallelisation"/>).
 /// </summary>
 /// <remarks>
 /// Selection, expansion, rollout and backup run thousands of times per decision: no LINQ, lambdas or extra
@@ -34,7 +35,7 @@ internal sealed class MctsSearch
 {
     private static readonly Move Skip = new(MoveAction.Skip, null);
 
-    private readonly MctsConfig _configuration;
+    private readonly MctsConfiguration _configuration;
     private readonly int _searchingSeat;
     private readonly int _playerCount;
     private readonly Game _rootGame;
@@ -42,7 +43,7 @@ internal sealed class MctsSearch
     private readonly Random _random;
     private readonly Stopwatch _clock;
     // only reads the state and keeps nothing between calls, so every thread can use it
-    private readonly HeuristicAI _policy = new();
+    private readonly HeuristicAgent _policy = new();
     private Node _tree = new();
     private readonly int _budget;
 
@@ -64,17 +65,17 @@ internal sealed class MctsSearch
     /// <param name="searchingSeat">The searching player's seat.</param>
     /// <param name="rootGame">A copy of the game, which the search doesn't change.</param>
     /// <param name="knowledge">
-    /// What the player knows about the hidden cards (for <see cref="MctsInformation.Determinized"/>).
+    /// What the player knows about the hidden cards (for <see cref="MctsHiddenInformation.Determinized"/>).
     /// </param>
     /// <param name="random">The searching player's random stream.</param>
     /// <param name="clock">Started when the decision began; a time budget counts from it.</param>
-    public MctsSearch(MctsConfig configuration, int searchingSeat, Game rootGame, SeatKnowledge? knowledge,
+    public MctsSearch(MctsConfiguration configuration, int searchingSeat, Game rootGame, SeatKnowledge? knowledge,
                       Random random, Stopwatch clock)
-        : this(configuration, searchingSeat, rootGame, knowledge, random, clock, configuration.Iterations)
+        : this(configuration, searchingSeat, rootGame, knowledge, random, clock, configuration.IterationBudget)
     {
     }
 
-    private MctsSearch(MctsConfig configuration, int searchingSeat, Game rootGame, SeatKnowledge? knowledge,
+    private MctsSearch(MctsConfiguration configuration, int searchingSeat, Game rootGame, SeatKnowledge? knowledge,
                        Random random, Stopwatch clock, int budget)
     {
         _configuration = configuration;
@@ -118,7 +119,7 @@ internal sealed class MctsSearch
     {
         get
         {
-            return _configuration.Parallel != MctsParallel.None && _configuration.Workers > 1;
+            return _configuration.Parallelisation != MctsParallelisation.None && _configuration.ParallelWorkerCount > 1;
         }
     }
 
@@ -129,11 +130,11 @@ internal sealed class MctsSearch
         {
             RunSerial();
         }
-        else if (_configuration.Parallel == MctsParallel.Root)
+        else if (_configuration.Parallelisation == MctsParallelisation.Root)
         {
             RunRoot();
         }
-        else if (_configuration.Parallel == MctsParallel.Leaf)
+        else if (_configuration.Parallelisation == MctsParallelisation.Leaf)
         {
             RunLeaf();
         }
@@ -147,11 +148,11 @@ internal sealed class MctsSearch
     /// <summary>Whether the budget allows another iteration.</summary>
     private bool More()
     {
-        if (_configuration.Budget == MctsBudget.Iterations)
+        if (_configuration.BudgetKind == MctsBudgetKind.Iterations)
         {
             return _iterations < _budget;
         }
-        return _clock.ElapsedMilliseconds < _configuration.TimeMs;
+        return _clock.ElapsedMilliseconds < _configuration.TimeBudgetMilliseconds;
     }
 
     // =========== the plain search ===========
@@ -177,7 +178,7 @@ internal sealed class MctsSearch
     /// <summary>A copy of the game to search: a guess at the hidden cards, unless the search may see them.</summary>
     private Game Sample(Game rootGame, Random random)
     {
-        if (_configuration.Information == MctsInformation.PerfectInformation)
+        if (_configuration.HiddenInformation == MctsHiddenInformation.PerfectInformation)
         {
             return rootGame.DeepCopy();
         }
@@ -223,7 +224,7 @@ internal sealed class MctsSearch
         {
             foreach (var seatAndMove in moves)
             {
-                MoveStats moveStatistics = node.Stats[seatAndMove];
+                MoveStatistics moveStatistics = node.Statistics[seatAndMove];
                 moveStatistics.Visits++;
                 for (int seat = 0; seat < _playerCount; seat++)
                 {
@@ -246,8 +247,8 @@ internal sealed class MctsSearch
     }
 
     /// <summary>
-    /// Runs work(0..count-1) on <see cref="MctsConfig.Threads"/> threads (one after another for 1), and counts the
-    /// memory the other threads allocate.
+    /// Runs work(0..count-1) on <see cref="MctsConfiguration.ThreadLimit"/> threads (one after another for 1), and
+    /// counts the memory the other threads allocate.
     /// </summary>
     private void RunWorkers(int count, Action<int> work)
     {
@@ -268,20 +269,20 @@ internal sealed class MctsSearch
     /// <summary>The threads to run this many workers on: the configured number, at most one per worker.</summary>
     private int ThreadsFor(int workerCount)
     {
-        if (_configuration.Threads > 0)
+        if (_configuration.ThreadLimit > 0)
         {
-            return Math.Min(_configuration.Threads, workerCount);
+            return Math.Min(_configuration.ThreadLimit, workerCount);
         }
         return workerCount;
     }
 
     /// <summary>
-    /// Root parallelisation: Workers separate searches, each with its own copy of the root, random stream, tree and
-    /// share of the iterations; then their root statistics are added up, and the move is chosen from the sum.
+    /// Root parallelisation: ParallelWorkerCount separate searches, each with its own copy of the root, random stream,
+    /// tree and share of the iterations; then their root statistics are added up, and the move is chosen from the sum.
     /// </summary>
     private void RunRoot()
     {
-        int workerCount = _configuration.Workers;
+        int workerCount = _configuration.ParallelWorkerCount;
         // made here, one after another, so each worker gets the same copy and stream whatever the thread timing
         _rootWorkers = new MctsSearch[workerCount];
         for (int worker = 0; worker < workerCount; worker++)
@@ -329,11 +330,11 @@ internal sealed class MctsSearch
     {
         foreach (var key in workerRoot.Order)
         {
-            MoveStats workerMoveStatistics = workerRoot.Stats[key];
-            if (!merged.Stats.TryGetValue(key, out MoveStats? sum))
+            MoveStatistics workerMoveStatistics = workerRoot.Statistics[key];
+            if (!merged.Statistics.TryGetValue(key, out MoveStatistics? sum))
             {
-                sum = new MoveStats(_playerCount);
-                merged.Stats[key] = sum;
+                sum = new MoveStatistics(_playerCount);
+                merged.Statistics[key] = sum;
                 merged.Order.Add(key);
             }
             sum.Visits += workerMoveStatistics.Visits;
@@ -347,12 +348,12 @@ internal sealed class MctsSearch
     }
 
     /// <summary>
-    /// Leaf parallelisation: one tree; each iteration walks down and expands as usual, then plays Workers rollouts
-    /// from the new node at once (each on its own copy and stream) and backs up every one of them.
+    /// Leaf parallelisation: one tree; each iteration walks down and expands as usual, then plays ParallelWorkerCount
+    /// rollouts from the new node at once (each on its own copy and stream) and backs up every one of them.
     /// </summary>
     private void RunLeaf()
     {
-        int workerCount = _configuration.Workers;
+        int workerCount = _configuration.ParallelWorkerCount;
         _workerGames = new Game[workerCount];
         _workerStreams = new Random[workerCount];
         _leafResults = new (double[] Reward, double MyWin)[workerCount];
@@ -390,13 +391,14 @@ internal sealed class MctsSearch
     }
 
     /// <summary>
-    /// Tree parallelisation: Workers threads share one tree. Walking down (and expanding) and backing up are done
-    /// holding one lock; the rollout, which takes most of the time, outside it. With
-    /// <see cref="MctsConfig.VirtualLoss"/>, a thread's path counts as lost until its rollout is backed up.
+    /// Tree parallelisation: ParallelWorkerCount threads share one tree. Walking down (and expanding) and backing up
+    /// are done holding one lock; the rollout, which takes most of the time, outside it. With
+    /// <see cref="MctsConfiguration.VirtualLossVisits"/>, a thread's path counts as lost until its rollout is backed
+    /// up.
     /// </summary>
     private void RunTree()
     {
-        int workerCount = _configuration.Workers;
+        int workerCount = _configuration.ParallelWorkerCount;
         _workerGames = new Game[workerCount];
         _workerStreams = new Random[workerCount];
         for (int worker = 0; worker < workerCount; worker++)
@@ -430,12 +432,12 @@ internal sealed class MctsSearch
     /// </summary>
     private bool MayStartTreeIteration(int worker, bool first)
     {
-        if (_configuration.Budget == MctsBudget.Iterations)
+        if (_configuration.BudgetKind == MctsBudgetKind.Iterations)
         {
             int started = Interlocked.Increment(ref _treeIterationsStarted);
             return started <= Math.Max(1, _budget);
         }
-        if (_clock.ElapsedMilliseconds < _configuration.TimeMs)
+        if (_clock.ElapsedMilliseconds < _configuration.TimeBudgetMilliseconds)
         {
             return true;
         }
@@ -457,7 +459,7 @@ internal sealed class MctsSearch
         try
         {
             var path = Descend(searchGame, random);
-            AddVirtualLoss(path, _configuration.VirtualLoss);
+            AddVirtualLoss(path, _configuration.VirtualLossVisits);
             return path;
         }
         finally
@@ -472,7 +474,7 @@ internal sealed class MctsSearch
         EnterTree();
         try
         {
-            AddVirtualLoss(path, -_configuration.VirtualLoss);
+            AddVirtualLoss(path, -_configuration.VirtualLossVisits);
             Backup(path, result);
             _iterations++;
         }
@@ -502,7 +504,7 @@ internal sealed class MctsSearch
         {
             foreach (var seatAndMove in moves)
             {
-                node.Stats[seatAndMove].Visits += count;
+                node.Statistics[seatAndMove].Visits += count;
             }
         }
     }
@@ -512,7 +514,7 @@ internal sealed class MctsSearch
     /// <summary>The moves made at a node: one player's (sequential tree) or every pending player's (DUCT).</summary>
     private List<(int Seat, Move Move)> ChooseMoves(Node node, Game searchGame, Random random)
     {
-        if (_configuration.Tree == MctsTree.Sequential)
+        if (_configuration.TreeShape == MctsTreeShape.Sequential)
         {
             return ChooseSequential(node, searchGame, random);
         }
@@ -569,7 +571,7 @@ internal sealed class MctsSearch
     /// <summary>The moves the tree considers for the seat (all legal moves, or the pruned ones).</summary>
     private List<Move> LegalMovesFor(Game searchGame, int seat)
     {
-        if (_configuration.Pruning == MctsPruning.RandomCard)
+        if (_configuration.MovePruning == MctsMovePruning.RandomCard)
         {
             return searchGame.LegalMovesPruned(seat);
         }
@@ -584,7 +586,7 @@ internal sealed class MctsSearch
         var untried = new List<Move>();
         foreach (Move move in legal)
         {
-            if (node.Stats.TryGetValue((seat, move), out MoveStats? moveStatistics))
+            if (node.Statistics.TryGetValue((seat, move), out MoveStatistics? moveStatistics))
             {
                 moveStatistics.Available++;
             }
@@ -601,7 +603,7 @@ internal sealed class MctsSearch
     {
         int untriedIndex = random.Next(untried.Count);
         Move move = untried[untriedIndex];
-        node.Stats[(seat, move)] = new MoveStats(_playerCount) { Available = 1 };
+        node.Statistics[(seat, move)] = new MoveStatistics(_playerCount) { Available = 1 };
         node.Order.Add((seat, move));
         return move;
     }
@@ -613,7 +615,7 @@ internal sealed class MctsSearch
         double bestValue = double.NegativeInfinity;
         foreach (Move move in legal)
         {
-            double treeValue = TreeValue(node.Stats[(seat, move)], seat);
+            double treeValue = TreeValue(node.Statistics[(seat, move)], seat);
             if (treeValue > bestValue)
             {
                 best = move;
@@ -624,7 +626,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>The move's value to the deciding seat: its reward so far plus the exploration bonus.</summary>
-    private double TreeValue(MoveStats moveStatistics, int seat)
+    private double TreeValue(MoveStatistics moveStatistics, int seat)
     {
         if (moveStatistics.Visits == 0)
         {
@@ -633,27 +635,29 @@ internal sealed class MctsSearch
         double total = TotalRewardFor(moveStatistics, seat);
         double visits = moveStatistics.Visits;
         int timesAvailable = moveStatistics.Available;
-        switch (_configuration.Exploration)
+        switch (_configuration.ExplorationFormula)
         {
-            case MctsExploration.Smoothed:
+            case MctsExplorationFormula.Smoothed:
                 return total / (visits + 1)
-                    + _configuration.C * Math.Sqrt(Math.Log(timesAvailable + 1) / (visits + 1));
-            case MctsExploration.Diminishing:
+                    + _configuration.ExplorationConstant * Math.Sqrt(Math.Log(timesAvailable + 1) / (visits + 1));
+            case MctsExplorationFormula.Diminishing:
                 return total / visits
-                    + _configuration.C / (1 + Math.Log(1 + visits)) * Math.Sqrt(Math.Log(timesAvailable) / visits);
+                    + _configuration.ExplorationConstant / (1 + Math.Log(1 + visits))
+                    * Math.Sqrt(Math.Log(timesAvailable) / visits);
             default:
-                return total / visits + _configuration.C * Math.Sqrt(Math.Log(timesAvailable) / visits);
+                return total / visits
+                    + _configuration.ExplorationConstant * Math.Sqrt(Math.Log(timesAvailable) / visits);
         }
     }
 
     /// <summary>The summed reward the deciding seat maximises, by the backup rule.</summary>
-    private double TotalRewardFor(MoveStats moveStatistics, int seat)
+    private double TotalRewardFor(MoveStatistics moveStatistics, int seat)
     {
-        switch (_configuration.Backup)
+        switch (_configuration.BackpropagationRule)
         {
-            case MctsBackup.MaxN:
+            case MctsBackpropagationRule.MaxN:
                 return moveStatistics.Total[seat];
-            case MctsBackup.Paranoid:
+            case MctsBackpropagationRule.Paranoid:
                 if (seat == _searchingSeat)
                 {
                     return moveStatistics.Total[_searchingSeat];
@@ -675,7 +679,7 @@ internal sealed class MctsSearch
             {
                 continue;
             }
-            double finalValue = FinalMoveValue(_tree.Stats[key]);
+            double finalValue = FinalMoveValue(_tree.Statistics[key]);
             if (best == null || finalValue > bestValue)
             {
                 best = key.Move;
@@ -690,13 +694,13 @@ internal sealed class MctsSearch
     }
 
     /// <summary>What the final move maximises: visits, total reward or wins.</summary>
-    private double FinalMoveValue(MoveStats moveStatistics)
+    private double FinalMoveValue(MoveStatistics moveStatistics)
     {
-        switch (_configuration.FinalMove)
+        switch (_configuration.FinalMoveRule)
         {
-            case MctsFinalMove.HighestReward:
+            case MctsFinalMoveRule.HighestReward:
                 return moveStatistics.Total[_searchingSeat];
-            case MctsFinalMove.MostWins:
+            case MctsFinalMoveRule.MostWins:
                 return moveStatistics.Wins;
             default:
                 return moveStatistics.Visits;
@@ -724,7 +728,7 @@ internal sealed class MctsSearch
 
     private int VisitsOf((int Seat, Move Move) key)
     {
-        return _tree.Stats[key].Visits;
+        return _tree.Statistics[key].Visits;
     }
 
     /// <summary>
@@ -732,7 +736,7 @@ internal sealed class MctsSearch
     /// </summary>
     private string DescribeRootMove((int Seat, Move Move) key)
     {
-        MoveStats moveStatistics = _tree.Stats[key];
+        MoveStatistics moveStatistics = _tree.Statistics[key];
         double averageReward = Average(moveStatistics.Total[_searchingSeat], moveStatistics.Visits);
         double averageWins = Average(moveStatistics.Wins, moveStatistics.Visits);
         return string.Create(CultureInfo.InvariantCulture,
@@ -797,19 +801,19 @@ internal sealed class MctsSearch
     /// <summary>Whether this rollout move is a random one (always, never, or with probability ε).</summary>
     private bool IsRandomRolloutMove(Random random)
     {
-        if (_configuration.Rollout == MctsRollout.Random)
+        if (_configuration.RolloutPolicy == MctsRolloutPolicy.Random)
         {
             return true;
         }
-        if (_configuration.Rollout == MctsRollout.EpsilonHeuristic)
+        if (_configuration.RolloutPolicy == MctsRolloutPolicy.HeuristicWithRandomMoves)
         {
-            return random.NextDouble() < _configuration.Epsilon;
+            return random.NextDouble() < _configuration.RandomRolloutMoveProbability;
         }
         return false;
     }
 
     /// <summary>
-    /// A random action the player can take, then a random card for it (as <see cref="RandomChoiceAI"/>).
+    /// A random action the player can take, then a random card for it (as <see cref="RandomAgent"/>).
     /// </summary>
     private static Move RandomMove(Game searchGame, PlayerState player, Random random)
     {
@@ -915,11 +919,11 @@ internal sealed class MctsSearch
     private double RewardFor(int seat, List<PlayerState> players, List<PlayerStanding> standings)
     {
         int victoryPoints = players[seat].VictoryPoints;
-        switch (_configuration.Reward)
+        switch (_configuration.RewardKind)
         {
-            case MctsReward.VpMargin:
+            case MctsRewardKind.VictoryPointMargin:
                 return victoryPoints - BestOpponentVictoryPoints(players, seat);
-            case MctsReward.RawVp:
+            case MctsRewardKind.RawVictoryPoints:
                 return victoryPoints;
             default:
                 return standings[seat].WinShare;

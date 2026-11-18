@@ -24,7 +24,7 @@ namespace _7WondersGameTests.Engine.Games;
 [TestClass]
 public class TurnStateMachineTests
 {
-    // the line-ups are made of these agents: 0 is HeuristicAI, 1 RandomChoiceAI
+    // the line-ups are made of these agents: 0 is HeuristicAgent, 1 RandomAgent
     private const int HeuristicAndRandom = 2;
     private const int HeuristicOnly = 1;
 
@@ -289,9 +289,9 @@ public class TurnStateMachineTests
         switch (agentKind)
         {
             case 0:
-                return new HeuristicAI();
+                return new HeuristicAgent();
             case 1:
-                return new RandomChoiceAI();
+                return new RandomAgent();
             default:
                 throw new ArgumentOutOfRangeException(nameof(agentKind));
         }
@@ -368,7 +368,7 @@ public class TurnStateMachineTests
     [TestMethod]
     public void SteppingThroughCopies_MatchesLoop()
     {
-        // HeuristicAI makes no random draws, so its choices don't depend on the copy's seed
+        // HeuristicAgent makes no random draws, so its choices don't depend on the copy's seed
         var phasesSeen = new HashSet<Phase>();
         for (int players = 3; players <= 7; players++)
         {

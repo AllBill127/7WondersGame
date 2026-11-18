@@ -30,7 +30,7 @@ public interface IAgent
     /// What the agent measured over its game (e.g. search time and iterations), as JSON for the results'
     /// agentStats column. An agent is made for one game. "{}" for none.
     /// </summary>
-    string StatsJson()
+    string StatisticsJson()
     {
         return "{}";
     }

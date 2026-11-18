@@ -45,7 +45,7 @@ public class ChooseMoveTests
         MoveAction expectedAction = MoveAction.Discard;
 
         // Test
-        Move move = new RandomChoiceAI().Choose(new GameView(testGame, 1));
+        Move move = new RandomAgent().Choose(new GameView(testGame, 1));
 
         // Evaluate
         Assert.AreEqual(expectedAction, move.Action);
@@ -79,7 +79,7 @@ public class ChooseMoveTests
         MoveAction expectedAction = MoveAction.BuildWithOlympiaFreeBuild;
 
         // Test
-        Move move = new HeuristicAI().Choose(new GameView(testGame, 1));
+        Move move = new HeuristicAgent().Choose(new GameView(testGame, 1));
 
         // Evaluate
         Assert.AreEqual(expectedAction, move.Action);

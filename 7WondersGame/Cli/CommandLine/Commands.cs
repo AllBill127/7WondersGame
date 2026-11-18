@@ -55,10 +55,10 @@ public static class Commands
     /// <summary>
     /// 'run': plays the games of the plan and appends their rows to the results CSV, with a manifest next to it.
     /// </summary>
-    public static async Task<int> Run(CliArgs cli, string[] args)
+    public static async Task<int> Run(CliArguments cli, string[] args)
     {
         RunPlan plan = RunPlan.FromCli(cli);
-        var (level, levelSource) = Logging.Resolve(plan.Log);
+        var (level, levelSource) = Logging.Resolve(plan.LogLevel);
         Logging.Configure(level);
 
         List<List<int>[]>? deals = null;
@@ -67,7 +67,7 @@ public static class Commands
             deals = await LoadDataset(plan.Dataset, plan.Players.Count, plan.Games);
         }
 
-        string csvPath = Path.GetFullPath(OutputPath(plan.Out));
+        string csvPath = Path.GetFullPath(OutputPath(plan.Output));
         DateTime started = DateTime.UtcNow;
         string runId = RunManifest.NewRunId(started, plan.Seed);
         string runDirectory = Path.GetDirectoryName(csvPath)!;
@@ -146,7 +146,7 @@ public static class Commands
             ["experiment"] = "",
             ["experimentCopy"] = "",
             ["description"] = "",
-            ["log"] = logText,
+            ["log-level"] = logText,
         };
 
         // setting a key again keeps its place in the order
@@ -181,7 +181,8 @@ public static class Commands
     }
 
     /// <summary>
-    /// The range setting, whose it is and its ends, e.g. "C of MctsAgent:C=0.3..2 (listed 1.) from 0.3 to 2".
+    /// The range setting, whose it is and its ends, e.g.
+    /// "ExplorationConstant of MctsAgent:ExplorationConstant=0.3..2 (listed 1.) from 0.3 to 2".
     /// </summary>
     private static string SweepDescription(Sweep sweep, List<AgentSpec> specs)
     {
@@ -290,10 +291,10 @@ public static class Commands
     /// <summary>
     /// 'replay': plays one game again with the step-by-step trace, from a results CSV or from a seed.
     /// </summary>
-    public static async Task<int> Replay(CliArgs cli)
+    public static async Task<int> Replay(CliArguments cli)
     {
-        cli.AllowOnly("from", "run", "game", "players", "game-seed", "dataset", "deal", "log");
-        var (level, _) = Logging.Resolve(cli.Get("log"), LogEventLevel.Debug);
+        cli.AllowOnly("from", "run", "game", "players", "game-seed", "dataset", "deal", "log-level");
+        var (level, _) = Logging.Resolve(cli.Get("log-level"), LogEventLevel.Debug);
         Logging.Configure(level);
 
         string? datasetName = cli.Get("dataset");
@@ -414,12 +415,12 @@ public static class Commands
 
     /// <summary>
     /// 'analyze': prints each group's win rate and mean VP, and the paired differences between groups, from a
-    /// results CSV; with --out also writes them as CSV.
+    /// results CSV; with --output also writes them as CSV.
     /// </summary>
-    public static int Analyze(CliArgs cli)
+    public static int Analyze(CliArguments cli)
     {
-        cli.AllowOnly("from", "run", "by", "vs", "out", "log");
-        Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
+        cli.AllowOnly("from", "run", "group-by", "compare-with", "output", "log-level");
+        Logging.Configure(Logging.Resolve(cli.Get("log-level")).Level);
 
         string csv = ResolveInput(cli.Require("from"), ResultsDirectory);
         if (!File.Exists(csv))
@@ -436,19 +437,19 @@ public static class Commands
         // the swept agent is its own group even where a value equals an opponent's settings
         rows = Analysis.MarkSwept(rows, SweptSeats(runs, csv));
 
-        GroupBy by = ParseGroupBy(cli.GetOrDefault("by", "player"));
-        List<GroupStats> groups = Analysis.Groups(rows, by);
-        int? vs = cli.GetInt("vs", 1, groups.Count);
+        GroupBy grouping = ParseGroupBy(cli.GetOrDefault("group-by", "player"));
+        List<GroupStats> groups = Analysis.Groups(rows, grouping);
+        int? comparedGroup = cli.GetInt("compare-with", 1, groups.Count);
         // all pairs of many groups (e.g. 14 wonders: 91 pairs) is a long list where some differ by chance alone
-        bool allPairs = vs != null || groups.Count <= Analysis.MaxAllPairsGroups;
+        bool allPairs = comparedGroup != null || groups.Count <= Analysis.MaxAllPairsGroups;
         var pairs = new List<PairStats>();
         if (allPairs)
         {
-            pairs = Analysis.Pairs(rows, by, groups, vs);
+            pairs = Analysis.Pairs(rows, grouping, groups, comparedGroup);
         }
 
-        PrintAnalysis(csv, rows, runs, by, groups, pairs, allPairs);
-        string? outputName = cli.Get("out");
+        PrintAnalysis(csv, rows, runs, grouping, groups, pairs, allPairs);
+        string? outputName = cli.Get("output");
         if (outputName != null)
         {
             WriteAnalysis(outputName, csv, groups, pairs);
@@ -506,22 +507,23 @@ public static class Commands
         return sweeps;
     }
 
-    private static GroupBy ParseGroupBy(string byText)
+    private static GroupBy ParseGroupBy(string groupingText)
     {
-        if (!Enum.TryParse(byText, ignoreCase: true, out GroupBy by) || !Enum.IsDefined(by))
+        if (!Enum.TryParse(groupingText, ignoreCase: true, out GroupBy grouping) || !Enum.IsDefined(grouping))
         {
-            throw new UsageException($"--by must be player, agent, seat or wonder, not '{byText}'.", "analyze");
+            throw new UsageException($"--group-by must be player, agent, seat or wonder, not '{groupingText}'.",
+                                     "analyze");
         }
-        return by;
+        return grouping;
     }
 
-    private static void PrintAnalysis(string csv, List<ResultRow> rows, List<string> runs, GroupBy by,
+    private static void PrintAnalysis(string csv, List<ResultRow> rows, List<string> runs, GroupBy grouping,
                                       List<GroupStats> groups, List<PairStats> pairs, bool allPairs)
     {
         int games = rows.Select(row => (row.RunId, row.GameIndex)).Distinct().Count();
         int deals = rows.Select(row => row.Seed).Distinct().Count();
         Console.WriteLine($"{csv}: {games} games on {deals} deals, {RunOrRuns(runs.Count)} " +
-                          $"{string.Join(", ", runs)}, grouped by {by.ToString().ToLowerInvariant()}");
+                          $"{string.Join(", ", runs)}, grouped by {grouping.ToString().ToLowerInvariant()}");
         Console.WriteLine();
         Console.WriteLine(Analysis.GroupsTable(groups));
         if (pairs.Count > 0)
@@ -531,7 +533,8 @@ public static class Commands
         }
         else if (!allPairs)
         {
-            Console.WriteLine($"{groups.Count} groups: give --vs <n> for paired differences against group n.");
+            Console.WriteLine($"{groups.Count} groups: " +
+                              "give --compare-with <n> for paired differences against group n.");
         }
         else if (groups.Count > 1)
         {
@@ -571,15 +574,15 @@ public static class Commands
     // ============ dataset ============
 
     /// <summary>'dataset': writes the deals of a seed (decks and wonders) to a file for 'run --dataset'.</summary>
-    public static async Task<int> Dataset(CliArgs cli)
+    public static async Task<int> Dataset(CliArguments cli)
     {
-        cli.AllowOnly("seats", "games", "seed", "out", "log");
+        cli.AllowOnly("seats", "games", "seed", "output", "log-level");
         int seats = cli.RequireInt("seats", 3, 7);
         int games = cli.RequireInt("games", 1);
         ulong seed = ParseRunSeed(cli.Require("seed"));
-        Logging.Configure(Logging.Resolve(cli.Get("log")).Level);
+        Logging.Configure(Logging.Resolve(cli.Get("log-level")).Level);
 
-        string outputName = cli.GetOrDefault("out", $"gameDataset_{seats}p_{games}g.txt");
+        string outputName = cli.GetOrDefault("output", $"gameDataset_{seats}p_{games}g.txt");
         string outputPath = Path.GetFullPath(Path.Combine(ProgramDirectory, outputName));
 
         var gameDatasets = new List<List<int>[]>();
@@ -603,7 +606,7 @@ public static class Commands
         var agents = new List<IAgent>(seats);
         for (int seat = 0; seat < seats; seat++)
         {
-            agents.Add(new RandomChoiceAI());
+            agents.Add(new RandomAgent());
         }
         var game = new Game(Seeding.GameSeed(seed, gameIndex)) { Agents = agents };
         game.SetUpRandomGame();
@@ -632,7 +635,7 @@ public static class Commands
     // ============ agents ============
 
     /// <summary>'agents': lists the agents and their settings.</summary>
-    public static int Agents(CliArgs cli)
+    public static int Agents(CliArguments cli)
     {
         cli.AllowOnly();
         Console.WriteLine(AgentsText());
@@ -650,25 +653,12 @@ public static class Commands
             text.AppendLine($"  {entry.Name,-32} {entry.Description}");
             foreach (var (name, type, value) in AgentCatalog.SettingsOf(entry))
             {
-                text.AppendLine($"      {SettingLabel(name),-36} {type.Name,-8} default {ShownValue(value)}");
+                text.AppendLine($"      {name,-40} {type.Name,-8} default {ShownValue(value)}");
             }
         }
         text.AppendLine();
         text.AppendLine("Agents without settings listed have none. Setting names are not case-sensitive.");
         return text.ToString();
-    }
-
-    /// <summary>The setting's name, after its alias if it has one: "n (Iterations)".</summary>
-    private static string SettingLabel(string name)
-    {
-        foreach (KeyValuePair<string, string> alias in AgentCatalog.Aliases)
-        {
-            if (alias.Value == name)
-            {
-                return $"{alias.Key} ({name})";
-            }
-        }
-        return name;
     }
 
     private static string ShownValue(object? value)
@@ -690,7 +680,7 @@ public static class Commands
         {
             return BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(8));
         }
-        if (!CliArgs.TryParseSeed(text, out ulong seed))
+        if (!CliArguments.TryParseSeed(text, out ulong seed))
         {
             throw new UsageException($"--seed must be a number (decimal or 0x hex) or 'random', not '{text}'.");
         }

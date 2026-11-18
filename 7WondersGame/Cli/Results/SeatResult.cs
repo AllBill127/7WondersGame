@@ -5,7 +5,7 @@ namespace _7WondersGame.Cli.Results;
 /// <summary>
 /// What one seat got in a finished game. One CSV row per seat.
 /// Wonder is the board name without the side (e.g. "Gizah"); Side is "A" or "B".
-/// StatsJson is what the agent measured (<see cref="IAgent.StatsJson"/>).
+/// StatsJson is what the agent measured (<see cref="IAgent.StatisticsJson"/>).
 /// Two results are equal when every value is equal (a traced game must end the same as a silent one).
 /// </summary>
 public sealed class SeatResult : IEquatable<SeatResult>
@@ -53,7 +53,7 @@ public sealed class SeatResult : IEquatable<SeatResult>
     /// <summary>1/k for each of the k players tied for first place, otherwise 0.</summary>
     public double WinShare { get; }
 
-    /// <summary>What the agent measured (see <see cref="IAgent.StatsJson"/>).</summary>
+    /// <summary>What the agent measured (see <see cref="IAgent.StatisticsJson"/>).</summary>
     public string StatsJson { get; }
 
     /// <inheritdoc/>

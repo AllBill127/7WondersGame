@@ -24,7 +24,7 @@ public class GoldenMasterTests
     private const ulong RunSeed = 0x60_1D_E4_3A_57E2;
     private const int GamesPerPlayerCount = 40;
 
-    // the agents the line-ups are made of: HeuristicAI and RandomChoiceAI
+    // the agents the line-ups are made of: HeuristicAgent and RandomAgent
     private const int AgentKindCount = 2;
 
     private static string MasterPath([CallerFilePath] string thisFile = "")
@@ -117,9 +117,9 @@ public class GoldenMasterTests
         switch (agentKind)
         {
             case 0:
-                return new HeuristicAI();
+                return new HeuristicAgent();
             case 1:
-                return new RandomChoiceAI();
+                return new RandomAgent();
             default:
                 throw new ArgumentOutOfRangeException(nameof(agentKind));
         }

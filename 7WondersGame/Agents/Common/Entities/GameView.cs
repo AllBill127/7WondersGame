@@ -14,7 +14,7 @@ namespace _7WondersGame.Agents.Common.Entities;
 /// nothing in the game. Every agent asked in the same step gets a view of the same state, so none sees another's
 /// choice.
 /// The view still shows everything, including the other hands (<see cref="Players"/>, <see cref="CopyGame"/>). An
-/// agent that plays fair uses only the public state, its own hand and <see cref="Known"/>; the MCTS agent does
+/// agent that plays fair uses only the public state, its own hand and <see cref="Knowledge"/>; the MCTS agent does
 /// this through <see cref="Determinization"/>.
 /// </summary>
 public sealed class GameView
@@ -31,10 +31,10 @@ public sealed class GameView
         Turn = game.Turn;
         Players = PlayerState.CloneTable(game.Players);
         DiscardPile = new List<Card>(game.DiscardPile);
-        Me = Players[seat];
-        PlayableCards = PlayableCardsNow();
-        CanBuildWonder = Me.CanBuildWonder();
-        Known = game.KnowledgeOf(seat);
+        DecidingPlayer = Players[seat];
+        BuildableCards = BuildableCardsNow();
+        CanBuildWonder = DecidingPlayer.CanBuildWonder();
+        Knowledge = game.KnowledgeOf(seat);
     }
 
     /// <summary>The seat deciding.</summary>
@@ -53,7 +53,7 @@ public sealed class GameView
     public IReadOnlyList<PlayerState> Players { get; }
 
     /// <summary>The deciding player (a copy).</summary>
-    public PlayerState Me { get; }
+    public PlayerState DecidingPlayer { get; }
 
     /// <summary>The discarded cards (a copy of the list).</summary>
     public List<Card> DiscardPile { get; }
@@ -62,7 +62,7 @@ public sealed class GameView
     /// The cards the player may build now: hand cards it can pay for or chain, or in
     /// <see cref="Phase.DiscardPileBuild"/> the discard-pile cards it hasn't built yet.
     /// </summary>
-    public List<Card> PlayableCards { get; }
+    public List<Card> BuildableCards { get; }
 
     /// <summary>Whether the player can pay for its next wonder stage.</summary>
     public bool CanBuildWonder { get; }
@@ -80,7 +80,7 @@ public sealed class GameView
     /// What the seat knows about the cards it can't see (taken when the view was made); null if the game doesn't
     /// keep track (a search copy).
     /// </summary>
-    public SeatKnowledge? Known { get; }
+    public SeatKnowledge? Knowledge { get; }
 
     /// <summary>Every move the rules allow the seat now (see <see cref="Game.LegalMoves"/>).</summary>
     public List<Move> LegalMoves()
@@ -97,13 +97,13 @@ public sealed class GameView
         return _game.DeepCopy();
     }
 
-    private List<Card> PlayableCardsNow()
+    private List<Card> BuildableCardsNow()
     {
         if (Phase == Phase.DiscardPileBuild)
         {
             // the discard-pile build is free, so only the no-duplicates rule limits it
-            return Me.BuildableCards(DiscardPile, everyCardFree: true);
+            return DecidingPlayer.BuildableCards(DiscardPile, everyCardFree: true);
         }
-        return Me.BuildableCards(Me.Hand);
+        return DecidingPlayer.BuildableCards(DecidingPlayer.Hand);
     }
 }

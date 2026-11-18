@@ -1,10 +1,10 @@
 ﻿namespace _7WondersGame.Agents.Mcts.Tree;
 
 /// <summary>One decision of one player at a node: its statistics.</summary>
-internal sealed class MoveStats
+internal sealed class MoveStatistics
 {
     /// <summary>New statistics, with a reward total for each of the <paramref name="players"/> seats.</summary>
-    public MoveStats(int players)
+    public MoveStatistics(int players)
     {
         Total = new double[players];
     }

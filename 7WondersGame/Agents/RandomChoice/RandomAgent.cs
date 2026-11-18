@@ -18,23 +18,23 @@ namespace _7WondersGame.Agents.RandomChoice;
 /// <item>Halikarnassos' discard-pile build: a playable discard-pile card, or Skip when there is none.</item>
 /// </list>
 /// </summary>
-public class RandomChoiceAI : IAgent
+public class RandomAgent : IAgent
 {
     /// <summary>A random move for the view's seat (see the class summary).</summary>
     public Move Choose(GameView view)
     {
         if (view.Phase == Phase.DiscardPileBuild)
         {
-            Card? discardPileCard = ChooseCard(view, view.PlayableCards);
+            Card? discardPileCard = ChooseCard(view, view.BuildableCards);
             return MoveOrSkip(MoveAction.Build, discardPileCard);
         }
 
-        PlayerState player = view.Me;
+        PlayerState player = view.DecidingPlayer;
         MoveAction action = ChooseAction(view);
         Card? card;
         if (action == MoveAction.Build)
         {
-            card = ChooseCard(view, view.PlayableCards);
+            card = ChooseCard(view, view.BuildableCards);
         }
         else if (action == MoveAction.BuildWithOlympiaFreeBuild)
         {
@@ -78,7 +78,7 @@ public class RandomChoiceAI : IAgent
             MoveAction.BuildWonderStage,
             MoveAction.Discard,
         };
-        if (view.PlayableCards.Count == 0)
+        if (view.BuildableCards.Count == 0)
         {
             options.Remove(MoveAction.Build);
         }
@@ -86,7 +86,7 @@ public class RandomChoiceAI : IAgent
         {
             options.Remove(MoveAction.BuildWonderStage);
         }
-        if (!view.Me.OlympiaFreeBuildAvailable)
+        if (!view.DecidingPlayer.OlympiaFreeBuildAvailable)
         {
             options.Remove(MoveAction.BuildWithOlympiaFreeBuild);
         }

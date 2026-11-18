@@ -4,7 +4,7 @@ namespace _7WondersGame.Cli.Agents;
 
 /// <summary>
 /// One seat's agent as written on the command line: <c>Name[:setting=value...]</c>,
-/// e.g. <c>Agent:c=1.5:iterations=2000</c>. A value may be a range <c>a..b</c> (see <see cref="Sweep"/>).
+/// e.g. <c>Agent:Weight=1.5:iterations=2000</c>. A value may be a range <c>a..b</c> (see <see cref="Sweep"/>).
 /// </summary>
 public sealed class AgentSpec
 {

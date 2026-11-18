@@ -164,7 +164,7 @@ public class CardDataTests
         var game = new Game(1);
         for (int seat = 0; seat < players; seat++)
         {
-            game.Agents.Add(new RandomChoiceAI());
+            game.Agents.Add(new RandomAgent());
         }
 
         game.SetUpRandomGame();

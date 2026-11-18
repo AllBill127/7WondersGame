@@ -11,7 +11,7 @@ public static class AgentSettings
     /// The agent's settings as JSON, logged with every result row: its settings (see <see cref="Of"/>), sorted by
     /// name.
     /// </summary>
-    public static string ConfigJson(this IAgent agent)
+    public static string ConfigurationJson(this IAgent agent)
     {
         var settingValues = new SortedDictionary<string, object?>(StringComparer.Ordinal);
         foreach (AgentSetting setting in Of(agent.GetType()))

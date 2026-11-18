@@ -22,8 +22,8 @@ namespace _7WondersGame.Agents.Heuristic;
 /// <item>a discard: what the 3 coins add to the score, minus a penalty.</item>
 /// </list>
 /// Every move takes one card out of the hand, which keeps it from the next player: that is worth
-/// <see cref="HeuristicWeights.Denial"/> per point it would give them. For a wonder stage or a discard the card is
-/// the one worth least to this player (it may come round again) and most to the next player.
+/// <see cref="HeuristicWeights.NextPlayerDenialWeight"/> per point it would give them. For a wonder stage or a discard
+/// the card is the one worth least to this player (it may come round again) and most to the next player.
 /// Ties go to the earlier card in the hand, and to build, free build, wonder, discard in that order.
 /// It only reads the state.
 /// </summary>
@@ -31,7 +31,7 @@ namespace _7WondersGame.Agents.Heuristic;
 /// <see cref="Choose(PlayerState, Phase, int, List{Card})"/> runs in every step of a search's rollouts: it and
 /// everything it calls use no LINQ, no delegates and no allocations beyond the values object.
 /// </remarks>
-public sealed class HeuristicAI : IAgent
+public sealed class HeuristicAgent : IAgent
 {
     private static readonly Move Skip = new(MoveAction.Skip, null);
 
@@ -41,7 +41,7 @@ public sealed class HeuristicAI : IAgent
     /// <summary>The best move for the view's seat (see the class summary).</summary>
     public Move Choose(GameView view)
     {
-        return Choose(view.Me, view.Phase, view.Era, view.DiscardPile);
+        return Choose(view.DecidingPlayer, view.Phase, view.Era, view.DiscardPile);
     }
 
     /// <summary>
@@ -96,13 +96,13 @@ public sealed class HeuristicAI : IAgent
     /// <summary>What taking each hand card keeps from the next player, by hand position (left at 0 if off).</summary>
     private void FillDeniedValues(Span<double> denied, List<Card> hand, HeuristicValues values)
     {
-        if (Weights.Denial == 0)
+        if (Weights.NextPlayerDenialWeight == 0)
         {
             return;
         }
         for (int cardIndex = 0; cardIndex < hand.Count; cardIndex++)
         {
-            denied[cardIndex] = Weights.Denial * values.NextPlayerGain(hand[cardIndex]);
+            denied[cardIndex] = Weights.NextPlayerDenialWeight * values.NextPlayerGain(hand[cardIndex]);
         }
     }
 
@@ -118,7 +118,9 @@ public sealed class HeuristicAI : IAgent
             {
                 continue;
             }
-            double value = values.Gain(hand[cardIndex]) - Weights.CoinValue * price.Value + denied[cardIndex];
+            double value = values.Gain(hand[cardIndex])
+                           - Weights.CoinValueInVictoryPoints * price.Value
+                           + denied[cardIndex];
             best.Consider(MoveAction.Build, hand[cardIndex], value);
         }
     }
@@ -131,7 +133,7 @@ public sealed class HeuristicAI : IAgent
         Span<double> denied)
     {
         List<Card> hand = player.Hand;
-        double keep = FreeBuildKeepValue(hand);
+        double keep = KeepOlympiaFreeBuildValue(hand);
         foreach (Card card in player.BuildableCards(hand, everyCardFree: true))
         {
             int handIndex = hand.IndexOf(card);
@@ -144,13 +146,13 @@ public sealed class HeuristicAI : IAgent
     /// What keeping Olympia A's charge is worth: the charge is lost at the era end, so on the era's last choice
     /// (2 cards left) it is worth nothing.
     /// </summary>
-    private double FreeBuildKeepValue(List<Card> hand)
+    private double KeepOlympiaFreeBuildValue(List<Card> hand)
     {
         if (hand.Count <= 2)
         {
             return 0;
         }
-        return Weights.FreeBuildKeep;
+        return Weights.KeepOlympiaFreeBuildValue;
     }
 
     /// <summary>
@@ -188,7 +190,10 @@ public sealed class HeuristicAI : IAgent
         {
             return;
         }
-        double value = values.WonderGain() + Weights.WonderStage - Weights.CoinValue * stagePrice.Value + giveUpDenied;
+        double value = values.WonderGain()
+                       + Weights.WonderStageBonus
+                       - Weights.CoinValueInVictoryPoints * stagePrice.Value
+                       + giveUpDenied;
         best.Consider(MoveAction.BuildWonderStage, giveUpCard, value);
     }
 

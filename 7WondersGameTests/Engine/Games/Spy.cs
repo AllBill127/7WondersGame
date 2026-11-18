@@ -13,7 +13,7 @@ namespace _7WondersGameTests.Engine.Games;
 /// </summary>
 internal sealed class Spy : IAgent
 {
-    private readonly RandomChoiceAI _random = new();
+    private readonly RandomAgent _random = new();
 
     /// <summary>The live game the spy plays in, to compare its views with.</summary>
     public Game? Game { get; set; }

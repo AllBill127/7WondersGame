@@ -6,7 +6,7 @@ namespace _7WondersGame.Cli.Arguments;
 /// Parsed command line: <c>&lt;command&gt; [--name value | --name=value]...</c>.
 /// Option names are case-insensitive; each option may be given once.
 /// </summary>
-public sealed class CliArgs
+public sealed class CliArguments
 {
     /// <summary>Where an option's name starts, after its two dashes.</summary>
     private const int OptionNameStart = 2;
@@ -15,7 +15,7 @@ public sealed class CliArgs
 
     private readonly Dictionary<string, string> _options;
 
-    private CliArgs(string command, Dictionary<string, string> options, bool help)
+    private CliArguments(string command, Dictionary<string, string> options, bool help)
     {
         Command = command;
         _options = options;
@@ -38,14 +38,14 @@ public sealed class CliArgs
     }
 
     /// <summary>Reads the command and its options, or throws a usage error.</summary>
-    public static CliArgs Parse(IReadOnlyList<string> args)
+    public static CliArguments Parse(IReadOnlyList<string> arguments)
     {
-        if (args.Count == 0)
+        if (arguments.Count == 0)
         {
-            return new CliArgs("help", new Dictionary<string, string>(), false);
+            return new CliArguments("help", new Dictionary<string, string>(), false);
         }
 
-        string command = args[0].ToLowerInvariant();
+        string command = arguments[0].ToLowerInvariant();
         if (IsHelpCommand(command))
         {
             command = "help";
@@ -53,9 +53,9 @@ public sealed class CliArgs
 
         var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         bool help = false;
-        for (int argumentIndex = 1; argumentIndex < args.Count; argumentIndex++)
+        for (int argumentIndex = 1; argumentIndex < arguments.Count; argumentIndex++)
         {
-            string argument = args[argumentIndex];
+            string argument = arguments[argumentIndex];
             if (IsHelpFlag(argument))
             {
                 help = true;
@@ -71,13 +71,13 @@ public sealed class CliArgs
                 throw new UsageException($"Unexpected '{argument}'. Options are written as --name value.", command);
             }
 
-            KeyValuePair<string, string> option = ReadOption(args, ref argumentIndex, command);
+            KeyValuePair<string, string> option = ReadOption(arguments, ref argumentIndex, command);
             if (!options.TryAdd(option.Key, option.Value))
             {
                 throw new UsageException($"--{option.Key} is given more than once.", command);
             }
         }
-        return new CliArgs(command, options, help);
+        return new CliArguments(command, options, help);
     }
 
     /// <summary>
@@ -148,14 +148,14 @@ public sealed class CliArgs
     /// <summary>
     /// These options plus <paramref name="defaults"/> (e.g. from an experiment file); an option given here wins.
     /// </summary>
-    public CliArgs WithDefaults(IReadOnlyDictionary<string, string> defaults)
+    public CliArguments WithDefaults(IReadOnlyDictionary<string, string> defaults)
     {
         var merged = new Dictionary<string, string>(defaults, StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in _options)
         {
             merged[name] = value;
         }
-        return new CliArgs(Command, merged, HelpRequested);
+        return new CliArguments(Command, merged, HelpRequested);
     }
 
     /// <summary>yes/no (or true/false), or null if not given.</summary>

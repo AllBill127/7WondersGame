@@ -13,27 +13,19 @@ namespace _7WondersGame.Cli.Agents;
 /// <summary>The agents the command line can create, and how their settings are set.</summary>
 public static class AgentCatalog
 {
-    /// <summary>Short names for settings (the full names work too, in any case).</summary>
-    public static readonly IReadOnlyDictionary<string, string> Aliases =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "n", nameof(MctsConfig.Iterations) },
-            { "eps", nameof(MctsConfig.Epsilon) },
-        };
-
     private static readonly List<AgentCatalogEntry> BuiltIn = new()
     {
         new AgentCatalogEntry(
             "MctsAgent",
             typeof(MctsAgent),
-            "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAI rollouts); 3-4 players"),
+            "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAgent rollouts); 3-4 players"),
         new AgentCatalogEntry(
-            "HeuristicAI",
-            typeof(HeuristicAI),
+            "HeuristicAgent",
+            typeof(HeuristicAgent),
             "values every move (card worth, price, wonder, denial); settings are its weights"),
         new AgentCatalogEntry(
-            "RandomChoiceAI",
-            typeof(RandomChoiceAI),
+            "RandomAgent",
+            typeof(RandomAgent),
             "random legal move"),
     };
 
@@ -115,29 +107,18 @@ public static class AgentCatalog
             .ToList();
     }
 
-    /// <summary>The setting a key names (an alias or a field name, any case), or a usage error.</summary>
+    /// <summary>The setting a key names (its name, in any case), or a usage error.</summary>
     public static AgentSetting ResolveSetting(Type agentType, string key)
     {
-        string wanted = FullSettingName(key);
         var fields = AgentSettings.Of(agentType).ToList();
         foreach (var field in fields)
         {
-            if (field.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
+            if (field.Name.Equals(key, StringComparison.OrdinalIgnoreCase))
             {
                 return field;
             }
         }
         throw new UsageException($"{agentType.Name} has no setting '{key}' ({KnownSettingsText(fields)}).");
-    }
-
-    /// <summary>The setting name an alias stands for, or the key itself.</summary>
-    private static string FullSettingName(string key)
-    {
-        if (Aliases.TryGetValue(key, out string? fullName))
-        {
-            return fullName;
-        }
-        return key;
     }
 
     /// <summary>The settings an agent has, for an error message.</summary>

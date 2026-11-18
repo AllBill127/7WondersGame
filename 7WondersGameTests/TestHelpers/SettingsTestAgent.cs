@@ -5,16 +5,16 @@ namespace _7WondersGameTests.TestHelpers;
 
 /// <summary>
 /// An agent with plain field settings, for the command-line tests (cheap to play, unlike MctsAgent).
-/// It plays like <see cref="RandomChoiceAI"/>.
+/// It plays like <see cref="RandomAgent"/>.
 /// </summary>
 /// <remarks>
 /// Its settings are public fields on purpose: the catalog reads an agent's non-readonly primitive fields as its
 /// settings, and these tests check exactly that.
 /// </remarks>
-internal class SettingsTestAgent : RandomChoiceAI
+internal class SettingsTestAgent : RandomAgent
 {
-    /// <summary>A decimal setting (named like MCTS's exploration constant).</summary>
-    public double C = 1.0;
+    /// <summary>A decimal setting.</summary>
+    public double Weight = 1.0;
 
     /// <summary>A whole-number setting.</summary>
     public int Iterations = 100;

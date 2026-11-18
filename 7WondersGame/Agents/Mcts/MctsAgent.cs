@@ -12,8 +12,8 @@ namespace _7WondersGame.Agents.Mcts;
 
 /// <summary>
 /// The one configurable MCTS agent, which replaces the old v1-v12 and JM agents. Every choice the old versions made
-/// differently is a setting in <see cref="Config"/>, logged with every result row. By default it doesn't see hidden
-/// cards: each iteration searches a new guess at them (SO-ISMCTS). A decision with only one legal move is made
+/// differently is a setting in <see cref="Configuration"/>, logged with every result row. By default it doesn't see
+/// hidden cards: each iteration searches a new guess at them (SO-ISMCTS). A decision with only one legal move is made
 /// without a search.
 /// </summary>
 public sealed class MctsAgent : IAgent
@@ -24,7 +24,7 @@ public sealed class MctsAgent : IAgent
     private readonly SearchStatistics _statistics = new();
 
     /// <summary>Its settings.</summary>
-    public MctsConfig Config { get; } = new();
+    public MctsConfiguration Configuration { get; } = new();
 
     /// <summary>The move a search of the view's game finds, or the only legal move without a search.</summary>
     public Move Choose(GameView view)
@@ -38,7 +38,7 @@ public sealed class MctsAgent : IAgent
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var clock = Stopwatch.StartNew();
-        var search = new MctsSearch(Config, view.Seat, view.CopyGame(), view.Known, view.Random, clock);
+        var search = new MctsSearch(Configuration, view.Seat, view.CopyGame(), view.Knowledge, view.Random, clock);
         Move move = search.Run();
         double milliseconds = clock.Elapsed.TotalMilliseconds;
 
@@ -52,10 +52,10 @@ public sealed class MctsAgent : IAgent
     {
         _statistics.Searches++;
         _statistics.Iterations += search.Iterations;
-        _statistics.SearchMs += milliseconds;
-        _statistics.LongestMs = Math.Max(_statistics.LongestMs, milliseconds);
+        _statistics.SearchMilliseconds += milliseconds;
+        _statistics.LongestSearchMilliseconds = Math.Max(_statistics.LongestSearchMilliseconds, milliseconds);
         _statistics.AllocatedBytes += allocatedOnThisThread + search.OtherThreadBytes;
-        _statistics.LockWaitMs += search.LockWaitMs;
+        _statistics.LockWaitMilliseconds += search.LockWaitMs;
         // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
         _statistics.LastNote = string.Create(CultureInfo.InvariantCulture,
             $"{search.Iterations} iterations in {milliseconds:0} ms; {search.TopMoves(3)}");
@@ -73,7 +73,7 @@ public sealed class MctsAgent : IAgent
     {
         get
         {
-            return Config.Budget == MctsBudget.Time;
+            return Configuration.BudgetKind == MctsBudgetKind.Time;
         }
     }
 
@@ -82,30 +82,30 @@ public sealed class MctsAgent : IAgent
     /// searches allocated in MB (the garbage collector's work grows with it).
     /// </summary>
     /// <remarks>
-    /// A parallel search (<see cref="MctsConfig.Parallel"/>) also gives its workers and the time its threads waited
-    /// for the shared tree's lock, summed.
+    /// A parallel search (<see cref="MctsConfiguration.Parallelisation"/>) also gives its workers and the time its
+    /// threads waited for the shared tree's lock, summed.
     /// </remarks>
-    public string StatsJson()
+    public string StatisticsJson()
     {
         var statistics = new Dictionary<string, object>
         {
             ["searches"] = _statistics.Searches,
             ["iterations"] = _statistics.Iterations,
-            ["searchMs"] = Math.Round(_statistics.SearchMs),
-            ["longestSearchMs"] = Math.Round(_statistics.LongestMs),
+            ["searchMs"] = Math.Round(_statistics.SearchMilliseconds),
+            ["longestSearchMs"] = Math.Round(_statistics.LongestSearchMilliseconds),
             ["allocatedMb"] = Math.Round(_statistics.AllocatedBytes / BytesPerMegabyte),
         };
         if (IsParallel())
         {
-            statistics["parallel"] = Config.Parallel.ToString();
-            statistics["workers"] = Config.Workers;
-            statistics["lockWaitMs"] = Math.Round(_statistics.LockWaitMs);
+            statistics["parallel"] = Configuration.Parallelisation.ToString();
+            statistics["workers"] = Configuration.ParallelWorkerCount;
+            statistics["lockWaitMs"] = Math.Round(_statistics.LockWaitMilliseconds);
         }
         return JsonSerializer.Serialize(statistics);
     }
 
     private bool IsParallel()
     {
-        return Config.Parallel != MctsParallel.None && Config.Workers > 1;
+        return Configuration.Parallelisation != MctsParallelisation.None && Configuration.ParallelWorkerCount > 1;
     }
 }

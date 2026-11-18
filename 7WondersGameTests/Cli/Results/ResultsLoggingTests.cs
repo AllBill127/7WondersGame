@@ -53,8 +53,8 @@ public class ResultsLoggingTests
             Assert.IsTrue(seatResult.Side == "A" || seatResult.Side == "B");
         }
 
-        Assert.AreEqual("RandomChoiceAI", results[0].Agent);
-        Assert.AreEqual("HeuristicAI", results[1].Agent);
+        Assert.AreEqual("RandomAgent", results[0].Agent);
+        Assert.AreEqual("HeuristicAgent", results[1].Agent);
         Assert.AreEqual(1.0, results.Sum(result => result.WinShare), 1e-9, "win shares add up to 1");
         Assert.IsTrue(results.Any(result => result.Rank == 1));
     }
@@ -71,8 +71,9 @@ public class ResultsLoggingTests
     [TestMethod]
     public void ConfigJson_ListsTheAgentsOwnSettings()
     {
-        Assert.AreEqual("{}", new RandomChoiceAI().ConfigJson());
-        Assert.AreEqual("{\"C\":2.5,\"Iterations\":100}", new SettingsTestAgent { C = 2.5 }.ConfigJson());
+        Assert.AreEqual("{}", new RandomAgent().ConfigurationJson());
+        var agent = new SettingsTestAgent { Weight = 2.5 };
+        Assert.AreEqual("{\"Iterations\":100,\"Weight\":2.5}", agent.ConfigurationJson());
     }
 
     [TestMethod]
@@ -159,9 +160,9 @@ public class ResultsLoggingTests
     private static Game NewGame(ulong seed)
     {
         Game game = new Game(seed);
-        game.Agents.Add(new RandomChoiceAI());
-        game.Agents.Add(new HeuristicAI());
-        game.Agents.Add(new RandomChoiceAI());
+        game.Agents.Add(new RandomAgent());
+        game.Agents.Add(new HeuristicAgent());
+        game.Agents.Add(new RandomAgent());
         return game;
     }
 
@@ -180,7 +181,7 @@ public class ResultsLoggingTests
                 winShare = 1;
             }
 
-            seats[seat] = new SeatResult(seat, "RandomChoiceAI", "{}", "Rhodos", "A", victoryPoints, 3, rank, winShare);
+            seats[seat] = new SeatResult(seat, "RandomAgent", "{}", "Rhodos", "A", victoryPoints, 3, rank, winShare);
         }
 
         return seats;

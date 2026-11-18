@@ -20,9 +20,9 @@ namespace _7WondersGameTests.Agents.Heuristic;
 
 /// <summary>The heuristic agent and its weights, and the mistakes the old heuristic made.</summary>
 [TestClass]
-public class HeuristicAITests
+public class HeuristicAgentTests
 {
-    private static Card C(CardId id)
+    private static Card CardOf(CardId id)
     {
         return CardsDataset.GameCards[id];
     }
@@ -49,14 +49,15 @@ public class HeuristicAITests
     /// <summary>
     /// Weights without denial and the era 1 civilian penalty, so a card's worth is just its points and bonuses.
     /// </summary>
-    private static HeuristicAI Plain()
+    private static HeuristicAgent Plain()
     {
-        return new HeuristicAI { Weights = new HeuristicWeights { Denial = 0, CivilianEra1 = 0 } };
+        var weights = new HeuristicWeights { NextPlayerDenialWeight = 0, CivilianCardBonusEra1 = 0 };
+        return new HeuristicAgent { Weights = weights };
     }
 
-    private static Move ChooseEra1(HeuristicAI agent, PlayerState player, params CardId[] hand)
+    private static Move ChooseEra1(HeuristicAgent agent, PlayerState player, params CardId[] hand)
     {
-        player.Hand.AddRange(hand.Select(C));
+        player.Hand.AddRange(hand.Select(CardOf));
         return agent.Choose(player, Phase.ChooseMoves, 1, new List<Card>());
     }
 
@@ -74,7 +75,7 @@ public class HeuristicAITests
             var game = new Game(Seeding.GameSeed(77, players * 10 + gameIndex));
             for (int seat = 0; seat < players; seat++)
             {
-                game.Agents.Add(new HeuristicAI());
+                game.Agents.Add(new HeuristicAgent());
             }
 
             game.SetUpRandomGame();
@@ -85,7 +86,7 @@ public class HeuristicAITests
                 foreach (int seat in game.PendingPlayers())
                 {
                     string before = Snapshot(game);
-                    var agent = (HeuristicAI)game.Agents[seat];
+                    var agent = (HeuristicAgent)game.Agents[seat];
                     Move fromView = agent.Choose(new GameView(game, seat));
                     // the same choice made on the game's own state must not change it
                     Move fromState = agent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardPile);
@@ -125,26 +126,27 @@ public class HeuristicAITests
     [TestMethod]
     public void Weights_AreSettings_LoggedAndReadBack()
     {
-        var agent = (HeuristicAI)AgentCatalog.Create(AgentSpec.Parse("HeuristicAI:CoinValue=0.2:denial=0"));
+        AgentSpec spec = AgentSpec.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2:NextPlayerDenialWeight=0");
+        var agent = (HeuristicAgent)AgentCatalog.Create(spec);
 
-        Assert.AreEqual(0.2, agent.Weights.CoinValue);
-        Assert.AreEqual(0.0, agent.Weights.Denial);
-        StringAssert.Contains(((IAgent)agent).ConfigJson(), "\"CoinValue\":0.2");
+        Assert.AreEqual(0.2, agent.Weights.CoinValueInVictoryPoints);
+        Assert.AreEqual(0.0, agent.Weights.NextPlayerDenialWeight);
+        StringAssert.Contains(((IAgent)agent).ConfigurationJson(), "\"CoinValueInVictoryPoints\":0.2");
 
         // a results row rebuilds the same agent
-        AgentSpec fromRow = AgentCatalog.FromResultRow("HeuristicAI", ((IAgent)agent).ConfigJson());
-        Assert.AreEqual(((IAgent)agent).ConfigJson(), AgentCatalog.Create(fromRow).ConfigJson());
+        AgentSpec fromRow = AgentCatalog.FromResultRow("HeuristicAgent", ((IAgent)agent).ConfigurationJson());
+        Assert.AreEqual(((IAgent)agent).ConfigurationJson(), AgentCatalog.Create(fromRow).ConfigurationJson());
     }
 
     [TestMethod]
     public void SettingOneAgentsWeights_LeavesTheDefaultsAlone()
     {
-        AgentCatalog.Create(AgentSpec.Parse("HeuristicAI:CoinValue=0.2"));
+        AgentCatalog.Create(AgentSpec.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2"));
 
-        var fresh = (HeuristicAI)AgentCatalog.Create(AgentSpec.Parse("HeuristicAI"));
+        var fresh = (HeuristicAgent)AgentCatalog.Create(AgentSpec.Parse("HeuristicAgent"));
         // every weight is a setting, so equal settings JSON means equal weights
-        Assert.AreEqual(((IAgent)new HeuristicAI()).ConfigJson(), ((IAgent)fresh).ConfigJson());
-        Assert.AreNotEqual(0.2, fresh.Weights.CoinValue);
+        Assert.AreEqual(((IAgent)new HeuristicAgent()).ConfigurationJson(), ((IAgent)fresh).ConfigurationJson());
+        Assert.AreNotEqual(0.2, fresh.Weights.CoinValueInVictoryPoints);
     }
 
     // =========== the old heuristic's mistakes ===========
@@ -157,10 +159,10 @@ public class HeuristicAITests
         PlayerState player = Table(WonderId.GizahA, WonderId.AlexandriaA, WonderId.HalikarnassosA)[0];
         PlayerState rawNeighbours = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.OlympiaA)[0];
 
-        double withGoods = new HeuristicValues(player, 1, weights).Gain(C(CardId.Marketplace));
-        double withoutGoods = new HeuristicValues(rawNeighbours, 1, weights).Gain(C(CardId.Marketplace));
+        double withGoods = new HeuristicValues(player, 1, weights).Gain(CardOf(CardId.Marketplace));
+        double withoutGoods = new HeuristicValues(rawNeighbours, 1, weights).Gain(CardOf(CardId.Marketplace));
 
-        Assert.AreEqual(weights.TradeDiscount + 2 * weights.TradeDiscountPerCard, withGoods);
+        Assert.AreEqual(weights.TradingDiscountBonus + 2 * weights.TradingDiscountBonusPerNeighbourCard, withGoods);
         Assert.AreEqual(0, withoutGoods);
     }
 
@@ -172,7 +174,7 @@ public class HeuristicAITests
 
         Move move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Pawnshop);
 
-        Assert.AreEqual(new Move(MoveAction.Build, C(CardId.Pawnshop)), move);
+        Assert.AreEqual(new Move(MoveAction.Build, CardOf(CardId.Pawnshop)), move);
     }
 
     [TestMethod]
@@ -185,7 +187,7 @@ public class HeuristicAITests
         // Baths 3 points, Altar 2, Clay Pool nothing (Gizah A needs no clay)
         Move move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Altar, CardId.ClayPool);
 
-        Assert.AreEqual(new Move(MoveAction.BuildWonderStage, C(CardId.ClayPool)), move);
+        Assert.AreEqual(new Move(MoveAction.BuildWonderStage, CardOf(CardId.ClayPool)), move);
     }
 
     [TestMethod]
@@ -196,7 +198,7 @@ public class HeuristicAITests
         // Baths needs stone, which nobody here makes: only the free card could build it
         Move move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths, CardId.Theater);
 
-        Assert.AreEqual(new Move(MoveAction.Build, C(CardId.Altar)), move);
+        Assert.AreEqual(new Move(MoveAction.Build, CardOf(CardId.Altar)), move);
     }
 
     [TestMethod]
@@ -206,7 +208,7 @@ public class HeuristicAITests
 
         Move move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths);
 
-        Assert.AreEqual(new Move(MoveAction.BuildWithOlympiaFreeBuild, C(CardId.Baths)), move);
+        Assert.AreEqual(new Move(MoveAction.BuildWithOlympiaFreeBuild, CardOf(CardId.Baths)), move);
     }
 
     private static PlayerState OlympiaWithFreeCard()
@@ -222,10 +224,10 @@ public class HeuristicAITests
     {
         // the board doesn't matter for the choice; Gizah A needs no clay, so Clay Pool is worth nothing
         PlayerState player = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
-        var pile = new List<Card> { C(CardId.Altar), C(CardId.Pawnshop), C(CardId.ClayPool) };
+        var pile = new List<Card> { CardOf(CardId.Altar), CardOf(CardId.Pawnshop), CardOf(CardId.ClayPool) };
 
         Move move = Plain().Choose(player, Phase.DiscardPileBuild, 1, pile);
 
-        Assert.AreEqual(new Move(MoveAction.Build, C(CardId.Pawnshop)), move);
+        Assert.AreEqual(new Move(MoveAction.Build, CardOf(CardId.Pawnshop)), move);
     }
 }

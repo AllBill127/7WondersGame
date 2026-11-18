@@ -76,14 +76,14 @@ public static class GameResult
         return new SeatResult(
             player.Seat,
             agent.Name,
-            agent.ConfigJson(),
+            agent.ConfigurationJson(),
             wonder,
             side,
             player.VictoryPoints,
             player.Resources[Resource.Coins],
             standing.Rank,
             standing.WinShare,
-            agent.StatsJson());
+            agent.StatisticsJson());
     }
 
     /// <summary>How many of <paramref name="players"/> beat <paramref name="player"/>.</summary>

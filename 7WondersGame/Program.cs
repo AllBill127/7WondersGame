@@ -13,10 +13,10 @@ internal static class Program
     /// </summary>
     static async Task<int> Main(string[] args)
     {
-        CliArgs? cli = null;
+        CliArguments? cli = null;
         try
         {
-            cli = CliArgs.Parse(args);
+            cli = CliArguments.Parse(args);
             if (args.Length == 0)
             {
                 Console.WriteLine(HelpText.General);
@@ -42,7 +42,7 @@ internal static class Program
     }
 
     /// <summary>What help to print: the topic after 'help', or the command given with -h.</summary>
-    private static string? HelpTopic(CliArgs cli)
+    private static string? HelpTopic(CliArguments cli)
     {
         if (cli.Command == "help")
         {
@@ -51,7 +51,7 @@ internal static class Program
         return cli.Command;
     }
 
-    private static async Task<int> RunCommand(CliArgs cli, string[] args)
+    private static async Task<int> RunCommand(CliArguments cli, string[] args)
     {
         switch (cli.Command)
         {
@@ -71,7 +71,7 @@ internal static class Program
     }
 
     /// <summary>Prints the mistake and where its help is: the command's own if it has one.</summary>
-    private static void PrintUsageError(UsageException exception, CliArgs? cli)
+    private static void PrintUsageError(UsageException exception, CliArguments? cli)
     {
         string? command = exception.Command;
         if (command == null && cli != null)

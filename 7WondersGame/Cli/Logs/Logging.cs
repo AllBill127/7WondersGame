@@ -11,8 +11,8 @@ namespace _7WondersGame.Cli.Logs;
 /// </summary>
 public static class Logging
 {
-    /// <summary>The environment variable that sets the log level when <c>--log</c> doesn't.</summary>
-    public const string EnvVar = "SEVENWONDERS_LOG";
+    /// <summary>The environment variable that sets the log level when <c>--log-level</c> doesn't.</summary>
+    public const string EnvironmentVariable = "SEVENWONDERS_LOG";
 
     /// <summary>The level names, for help and error messages.</summary>
     public const string Levels = "error, warning, info, debug, verbose";
@@ -21,23 +21,24 @@ public static class Logging
         "[{Timestamp:HH:mm:ss} {Level:u3}] {GamePrefix}{Message:lj}{NewLine}{Exception}";
 
     /// <summary>
-    /// The level to use, and where it came from: <c>--log</c>, then the command's own default (replay traces),
-    /// then the <see cref="EnvVar"/> environment variable, then the build (Debug builds: debug, Release: info).
+    /// The level to use, and where it came from: <c>--log-level</c>, then the command's own default (replay traces),
+    /// then the <see cref="EnvironmentVariable"/> environment variable, then the build (Debug builds: debug, Release:
+    /// info).
     /// </summary>
     public static (LogEventLevel Level, string Source) Resolve(string? option, LogEventLevel? commandDefault = null)
     {
         if (option != null)
         {
-            return (Parse(option, "--log"), "--log");
+            return (Parse(option, "--log-level"), "--log-level");
         }
         if (commandDefault != null)
         {
             return (commandDefault.Value, "command default");
         }
-        string? env = Environment.GetEnvironmentVariable(EnvVar);
+        string? env = Environment.GetEnvironmentVariable(EnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(env))
         {
-            return (Parse(env, EnvVar), EnvVar);
+            return (Parse(env, EnvironmentVariable), EnvironmentVariable);
         }
 #if DEBUG
         return (LogEventLevel.Debug, "Debug build");

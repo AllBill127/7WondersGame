@@ -19,11 +19,11 @@ public class PlayerCopyTests
     /// <summary>A game played some way into era 2 by heuristic players.</summary>
     private static Game MidGame()
     {
-        var heuristicAgent = new HeuristicAI();
+        var heuristicAgent = new HeuristicAgent();
         var game = new Game(Seeding.GameSeed(77, 0));
         for (int seat = 0; seat < 4; seat++)
         {
-            game.Agents.Add(new HeuristicAI());
+            game.Agents.Add(new HeuristicAgent());
         }
 
         game.SetUpRandomGame();

@@ -30,11 +30,11 @@ public class KnowledgeTests
         {
             if (seat % 2 == 0)
             {
-                game.Agents.Add(new HeuristicAI());
+                game.Agents.Add(new HeuristicAgent());
             }
             else
             {
-                game.Agents.Add(new RandomChoiceAI());
+                game.Agents.Add(new RandomAgent());
             }
         }
 
@@ -289,7 +289,7 @@ public class KnowledgeTests
         {
             foreach (int seat in game.PendingPlayers())
             {
-                game.Submit(seat, new HeuristicAI().Choose(new GameView(game, seat)));
+                game.Submit(seat, new HeuristicAgent().Choose(new GameView(game, seat)));
             }
         }
 
@@ -336,7 +336,7 @@ public class KnowledgeTests
             List<IAgent> heuristicAgents = new List<IAgent>();
             for (int seat = 0; seat < players; seat++)
             {
-                heuristicAgents.Add(new HeuristicAI());
+                heuristicAgents.Add(new HeuristicAgent());
             }
 
             sample.Agents = heuristicAgents;

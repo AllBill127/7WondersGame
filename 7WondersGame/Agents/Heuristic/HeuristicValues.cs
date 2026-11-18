@@ -9,7 +9,7 @@ using static _7WondersGame.Engine.Rules.Services.Rules;
 namespace _7WondersGame.Agents.Heuristic;
 
 /// <summary>
-/// What cards and wonder stages are worth to one player, for <see cref="HeuristicAI"/>, in victory points: how
+/// What cards and wonder stages are worth to one player, for <see cref="HeuristicAgent"/>, in victory points: how
 /// much the player's score would go up if the move were made now and the era then ended (a battle; Olympia B
 /// copies a guild), plus the bonuses in <see cref="HeuristicWeights"/> for what that score can't see yet
 /// (resources a wonder stage lacks, trading discounts, a first science card...).
@@ -179,12 +179,12 @@ public sealed class HeuristicValues
         }
         if (card.Type == CardType.Civilian && _era == 1)
         {
-            bonus += _weights.CivilianEra1;
+            bonus += _weights.CivilianCardBonusEra1;
         }
         // in era 1 everyone starts poor, so this starts in era 2
-        if (_era >= 2 && coinsGained > 0 && _player.Resources[Resource.Coins] <= _weights.PoorCoins)
+        if (_era >= 2 && coinsGained > 0 && _player.Resources[Resource.Coins] <= _weights.PoorCoinThreshold)
         {
-            bonus += _weights.PoorCoinBonus * coinsGained;
+            bonus += _weights.PoorPlayerCoinGainBonus * coinsGained;
         }
         return bonus;
     }
@@ -209,13 +209,13 @@ public sealed class HeuristicValues
         bool hasRawMaterials = _player.CountBuiltCardsOfType(CardType.Materials) >= 2;
         if (!isFirstScience || !hasRawMaterials)
         {
-            return _weights.ScienceEarly;
+            return _weights.EarlyScienceCardBonus;
         }
         if (_era == 1)
         {
-            return _weights.FirstScienceEra1;
+            return _weights.FirstScienceCardBonusEra1;
         }
-        return _weights.FirstScienceEra2;
+        return _weights.FirstScienceCardBonusEra2;
     }
 
     /// <summary>A resource card: is it a resource the wonder stages still to build lack?</summary>
@@ -251,7 +251,7 @@ public sealed class HeuristicValues
         }
         if (_era == 2 && anyGood && !GoodsNearby())
         {
-            return _weights.NoGoodsNearbyEra2;
+            return _weights.NoManufacturedGoodsNearbyBonusEra2;
         }
         return 0;
     }
@@ -318,9 +318,9 @@ public sealed class HeuristicValues
         switch (_era)
         {
             case 1:
-                return _weights.WonderResourceEra1;
+                return _weights.MissingWonderResourceBonusEra1;
             case 2:
-                return _weights.WonderResourceEra2;
+                return _weights.MissingWonderResourceBonusEra2;
             default:
                 return 0;
         }
@@ -335,11 +335,11 @@ public sealed class HeuristicValues
         double bonus = wonderResource;
         if (IsEitherOrCard(card))
         {
-            bonus += _weights.PerUsefulChoice * CountUsefulChoices(goods);
+            bonus += _weights.BonusPerUsefulResourceChoice * CountUsefulChoices(goods);
         }
         if (lackingAllRaw && CheapRawTrade())
         {
-            bonus -= _weights.CheapRawTradePenalty;
+            bonus -= _weights.CheapRawMaterialTradePenalty;
         }
         return bonus;
     }
@@ -430,7 +430,7 @@ public sealed class HeuristicValues
     {
         int west = RawCards(_player.WestNeighbour);
         int east = RawCards(_player.EastNeighbour);
-        int plenty = _weights.RawNeighbourPlenty;
+        int plenty = _weights.NeighbourRawMaterialCardsForCheapTrade;
         bool cheapFromEast = _player.Has(Ability.RawMaterialsCheapFromEastNeighbour) && east >= plenty;
         bool cheapFromWest = _player.Has(Ability.RawMaterialsCheapFromWestNeighbour) && west >= plenty;
         bool cheapFromEither = _player.Has(Ability.RawMaterialsCheapFromBothNeighbours)
@@ -444,7 +444,7 @@ public sealed class HeuristicValues
     private double TradingPostBonus(PlayerState neighbour)
     {
         int theirs = RawCards(neighbour);
-        return TradeDiscountBonus(RawCards(_player), _weights.FewOwnRaw, theirs);
+        return TradingDiscountBonus(RawCards(_player), _weights.FewOwnRawMaterialCardsThreshold, theirs);
     }
 
     /// <summary>The Marketplace: worth it when the player has few goods and its neighbours have some.</summary>
@@ -452,17 +452,17 @@ public sealed class HeuristicValues
     {
         // each neighbour's own board
         int theirs = GoodsCards(_player.WestNeighbour) + GoodsCards(_player.EastNeighbour);
-        return TradeDiscountBonus(GoodsCards(_player), _weights.FewOwnGoods, theirs);
+        return TradingDiscountBonus(GoodsCards(_player), _weights.FewOwnManufacturedGoodsCardsThreshold, theirs);
     }
 
     /// <summary>
     /// A discount card's bonus: only when the player has few cards of the kind and the neighbours have some.
     /// </summary>
-    private double TradeDiscountBonus(int ownCards, int fewOwnCards, int neighbourCards)
+    private double TradingDiscountBonus(int ownCards, int fewOwnCards, int neighbourCards)
     {
         if (ownCards <= fewOwnCards && neighbourCards >= 1)
         {
-            return _weights.TradeDiscount + _weights.TradeDiscountPerCard * neighbourCards;
+            return _weights.TradingDiscountBonus + _weights.TradingDiscountBonusPerNeighbourCard * neighbourCards;
         }
         return 0;
     }

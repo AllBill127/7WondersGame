@@ -134,26 +134,26 @@ public class AnalysisTests
     {
         var labels = Analysis.PlayerLabels(new[]
         {
-            ("k1", "MctsAgent", "{\"C\":0.3,\"Iterations\":1000}", true),
-            ("k2", "MctsAgent", "{\"C\":1.2,\"Iterations\":1000}", true),
-            ("k3", "HeuristicAI", "{\"CoinValue\":0.75}", false),
-            ("k4", "HeuristicAI", "{\"CoinValue\":0.75}", true),
-            ("k5", "HeuristicAI", "{\"CoinValue\":0.25}", true),
+            ("k1", "MctsAgent", "{\"ExplorationConstant\":0.3,\"IterationBudget\":1000}", true),
+            ("k2", "MctsAgent", "{\"ExplorationConstant\":1.2,\"IterationBudget\":1000}", true),
+            ("k3", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.75}", false),
+            ("k4", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.75}", true),
+            ("k5", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.25}", true),
         });
 
-        Assert.AreEqual("MctsAgent C=0.3", labels["k1"]);
-        Assert.AreEqual("MctsAgent C=1.2", labels["k2"]);
-        Assert.AreEqual("HeuristicAI", labels["k3"], "the opponents, named apart from the swept values");
-        Assert.AreEqual("HeuristicAI CoinValue=0.75", labels["k4"]);
-        Assert.AreEqual("HeuristicAI CoinValue=0.25", labels["k5"]);
+        Assert.AreEqual("MctsAgent ExplorationConstant=0.3", labels["k1"]);
+        Assert.AreEqual("MctsAgent ExplorationConstant=1.2", labels["k2"]);
+        Assert.AreEqual("HeuristicAgent", labels["k3"], "the opponents, named apart from the swept values");
+        Assert.AreEqual("HeuristicAgent CoinValueInVictoryPoints=0.75", labels["k4"]);
+        Assert.AreEqual("HeuristicAgent CoinValueInVictoryPoints=0.25", labels["k5"]);
     }
 
     [TestMethod]
     public void SweptSeat_FollowsTheRotation_AsTheRunPlansIt()
     {
-        RunPlan plan = RunPlan.FromCli(CliArgs.Parse(new[]
+        RunPlan plan = RunPlan.FromCli(CliArguments.Parse(new[]
         {
-            "run", "--players", "RandomChoiceAI,SettingsTestAgent:c=0..1,RandomChoiceAI,RandomChoiceAI",
+            "run", "--players", "RandomAgent,SettingsTestAgent:Weight=0..1,RandomAgent,RandomAgent",
             "--steps", "3", "--games", "2", "--seed", "1", "--rotate", "yes",
         }));
         var swept = new SweptSeat(plan.Sweep!.Seat, plan.Games, plan.Rotations);
@@ -171,22 +171,25 @@ public class AnalysisTests
     public async Task Analyze_ASweepRun_GroupsTheValuesAndWritesTheTables()
     {
         string csv = Path.Combine(_directory, "results.csv");
-        int exit = await Commands.Run(CliArgs.Parse(new[]
+        int exit = await Commands.Run(CliArguments.Parse(new[]
         {
-            "run", "--players", "SettingsTestAgent:c=0..1,SettingsTestAgent,RandomChoiceAI", "--steps", "2",
-            "--games", "3", "--seed", "5", "--rotate", "yes", "--out", csv, "--log", "warning",
+            "run", "--players", "SettingsTestAgent:Weight=0..1,SettingsTestAgent,RandomAgent", "--steps", "2",
+            "--games", "3", "--seed", "5", "--rotate", "yes", "--output", csv, "--log-level", "warning",
         }), Array.Empty<string>());
         Assert.AreEqual(Commands.Ok, exit);
 
         exit = Commands.Analyze(
-            CliArgs.Parse(new[] { "analyze", "--from", csv, "--out", "summary.csv", "--log", "warning" }));
+            CliArguments.Parse(new[]
+            {
+                "analyze", "--from", csv, "--output", "summary.csv", "--log-level", "warning",
+            }));
 
         Assert.AreEqual(Commands.Ok, exit);
         var groups = ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.csv")).ToList();
         // the swept agent at c=0 and c=1 (C defaults to 1, so c=1 equals the opponent's settings), the opponent,
-        // RandomChoiceAI
+        // RandomAgent
         CollectionAssert.AreEquivalent(
-            new[] { "SettingsTestAgent C=0", "SettingsTestAgent C=1", "SettingsTestAgent", "RandomChoiceAI" },
+            new[] { "SettingsTestAgent Weight=0", "SettingsTestAgent Weight=1", "SettingsTestAgent", "RandomAgent" },
             groups.Select(group => group["label"]).ToArray());
         Assert.IsTrue(
             groups.All(group => group["games"] == ExpectedGamesOf(group["label"])),
@@ -199,7 +202,7 @@ public class AnalysisTests
     // a swept value plays 3 deals in 3 seatings; the other players play in both values' games
     private static string ExpectedGamesOf(string label)
     {
-        if (label.StartsWith("SettingsTestAgent C="))
+        if (label.StartsWith("SettingsTestAgent Weight="))
         {
             return "9";
         }
@@ -222,11 +225,13 @@ public class AnalysisTests
             "r2,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
         });
 
-        CliArgs noRun = CliArgs.Parse(new[] { "analyze", "--from", csv });
-        CliArgs unknownRun = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r3" });
-        CliArgs unknownGrouping = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r1", "--by", "x" });
-        CliArgs oneRun = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r1" });
-        CliArgs allRunsBySeat = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "all", "--by", "seat" });
+        CliArguments noRun = CliArguments.Parse(new[] { "analyze", "--from", csv });
+        CliArguments unknownRun = CliArguments.Parse(new[] { "analyze", "--from", csv, "--run", "r3" });
+        CliArguments unknownGrouping =
+            CliArguments.Parse(new[] { "analyze", "--from", csv, "--run", "r1", "--group-by", "x" });
+        CliArguments oneRun = CliArguments.Parse(new[] { "analyze", "--from", csv, "--run", "r1" });
+        CliArguments allRunsBySeat =
+            CliArguments.Parse(new[] { "analyze", "--from", csv, "--run", "all", "--group-by", "seat" });
 
         Assert.ThrowsException<UsageException>(() => Commands.Analyze(noRun));
         Assert.ThrowsException<UsageException>(() => Commands.Analyze(unknownRun));

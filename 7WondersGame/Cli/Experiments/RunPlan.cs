@@ -13,12 +13,12 @@ public sealed class RunPlan
 {
     /// <summary>The options 'run' takes.</summary>
     public static readonly string[] Options =
-        { "players", "games", "seed", "steps", "rotate", "dataset", "parallel", "out", "log", "experiment" };
+        { "players", "games", "seed", "steps", "rotate", "dataset", "parallel", "output", "log-level", "experiment" };
 
     /// <summary>
     /// The options that may go with --experiment: they say where and how fast it runs, not what it plays.
     /// </summary>
-    public static readonly string[] MachineOptions = { "parallel", "out", "log" };
+    public static readonly string[] MachineOptions = { "parallel", "output", "log-level" };
 
     /// <summary>The keys of an experiment file: the options (except experiment) and a free-text description.</summary>
     public static readonly string[] FileKeys = Options
@@ -26,7 +26,7 @@ public sealed class RunPlan
         .Append("description")
         .ToArray();
 
-    private const string DefaultOut = "results.csv";
+    private const string DefaultOutput = "results.csv";
 
     /// <summary>The line-up as listed: the agent in each seat when not rotated.</summary>
     public List<AgentSpec> Players { get; init; } = new();
@@ -52,10 +52,10 @@ public sealed class RunPlan
     public int Parallel { get; init; } = 1;
 
     /// <summary>The results CSV, as given.</summary>
-    public string Out { get; init; } = DefaultOut;
+    public string Output { get; init; } = DefaultOutput;
 
     /// <summary>The log level, as given, or null for the default.</summary>
-    public string? Log { get; init; }
+    public string? LogLevel { get; init; }
 
     /// <summary>The experiment file (full path), if the plan came from one.</summary>
     public string? Experiment { get; init; }
@@ -143,7 +143,7 @@ public sealed class RunPlan
     }
 
     /// <summary>The plan the command line gives, or the experiment file it names.</summary>
-    public static RunPlan FromCli(CliArgs cli)
+    public static RunPlan FromCli(CliArguments cli)
     {
         cli.AllowOnly(Options);
         string? experiment = null;
@@ -167,15 +167,15 @@ public sealed class RunPlan
             Rotate = cli.GetYesNoOrDefault("rotate", false),
             Dataset = cli.Get("dataset"),
             Parallel = cli.GetIntOrDefault("parallel", 1, 1),
-            Out = cli.GetOrDefault("out", DefaultOut),
-            Log = cli.Get("log"),
+            Output = cli.GetOrDefault("output", DefaultOutput),
+            LogLevel = cli.Get("log-level"),
             Experiment = experiment,
             Description = description,
         };
     }
 
     /// <summary>The file sets what the run plays, so the command line may only add the machine options.</summary>
-    private static void CheckOnlyMachineOptionsWithExperiment(CliArgs cli)
+    private static void CheckOnlyMachineOptionsWithExperiment(CliArguments cli)
     {
         foreach (string name in cli.Names)
         {
@@ -184,7 +184,8 @@ public sealed class RunPlan
             if (!isExperiment && !isMachineOption)
             {
                 throw new UsageException(
-                    $"--{name} can't go with --experiment: the file sets it. Only --parallel, --out and --log can.",
+                    $"--{name} can't go with --experiment: the file sets it. " +
+                    "Only --parallel, --output and --log-level can.",
                     "run");
             }
         }
@@ -315,7 +316,8 @@ public sealed class RunPlan
             if (player.ValueKind != JsonValueKind.String)
             {
                 throw new UsageException(
-                    $"{path}: each player is a string like \"HeuristicAI\" or \"MctsAgent:C=1.2\".",
+                    $"{path}: each player is a string like \"HeuristicAgent\" or " +
+                    "\"MctsAgent:ExplorationConstant=1.2\".",
                     "run");
             }
             specs.Add(player.GetString()!);

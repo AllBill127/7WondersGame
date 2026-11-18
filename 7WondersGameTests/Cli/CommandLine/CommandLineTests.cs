@@ -26,13 +26,13 @@ public class CommandLineTests
     [TestMethod]
     public void NoArguments_MeansHelp()
     {
-        Assert.AreEqual("help", CliArgs.Parse(Array.Empty<string>()).Command);
+        Assert.AreEqual("help", CliArguments.Parse(Array.Empty<string>()).Command);
     }
 
     [TestMethod]
     public void Options_InBothForms()
     {
-        CliArgs cli = CliArgs.Parse(new[] { "RUN", "--games", "5", "--Seed=0x10" });
+        CliArguments cli = CliArguments.Parse(new[] { "RUN", "--games", "5", "--Seed=0x10" });
 
         Assert.AreEqual("run", cli.Command);
         Assert.AreEqual(5, cli.RequireInt("games", 1));
@@ -45,13 +45,13 @@ public class CommandLineTests
         string[] noValue = { "run", "--games" };
         string[] twice = { "run", "--games", "1", "--games", "2" };
         string[] noDashes = { "run", "games" };
-        CliArgs unknownOption = CliArgs.Parse(new[] { "run", "--gmaes", "1" });
-        CliArgs noGames = CliArgs.Parse(new[] { "run", "--games", "0" });
-        CliArgs noPlayers = CliArgs.Parse(new[] { "run" });
+        CliArguments unknownOption = CliArguments.Parse(new[] { "run", "--gmaes", "1" });
+        CliArguments noGames = CliArguments.Parse(new[] { "run", "--games", "0" });
+        CliArguments noPlayers = CliArguments.Parse(new[] { "run" });
 
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(noValue));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(twice));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(noDashes));
+        Assert.ThrowsException<UsageException>(() => CliArguments.Parse(noValue));
+        Assert.ThrowsException<UsageException>(() => CliArguments.Parse(twice));
+        Assert.ThrowsException<UsageException>(() => CliArguments.Parse(noDashes));
         Assert.ThrowsException<UsageException>(() => unknownOption.AllowOnly("games"));
         Assert.ThrowsException<UsageException>(() => noGames.RequireInt("games", 1));
         Assert.ThrowsException<UsageException>(() => noPlayers.Require("players"));
@@ -60,29 +60,29 @@ public class CommandLineTests
     [TestMethod]
     public void HelpTopic()
     {
-        CliArgs cli = CliArgs.Parse(new[] { "help", "run" });
+        CliArguments cli = CliArguments.Parse(new[] { "help", "run" });
         Assert.AreEqual("run", cli.Get("topic"));
         StringAssert.Contains(HelpText.For("run"), "--players");
-        Assert.IsTrue(CliArgs.Parse(new[] { "replay", "--help" }).HelpRequested);
+        Assert.IsTrue(CliArguments.Parse(new[] { "replay", "--help" }).HelpRequested);
     }
 
     [TestMethod]
     public void AgentSpec_Settings()
     {
         List<AgentSpec> specs =
-            AgentSpec.ParseList("HeuristicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
+            AgentSpec.ParseList("HeuristicAgent, RandomAgent ,SettingsTestAgent:Weight=1.5:ITERATIONS=500");
 
         Assert.AreEqual(3, specs.Count);
         var agent = AgentCatalog.Create(specs[2]);
         Assert.IsInstanceOfType(agent, typeof(SettingsTestAgent));
-        Assert.AreEqual("{\"C\":1.5,\"Iterations\":500}", agent.ConfigJson());
+        Assert.AreEqual("{\"Iterations\":500,\"Weight\":1.5}", agent.ConfigurationJson());
     }
 
     [TestMethod]
     public void AgentSpec_Defaults_AreTheClassDefaults()
     {
         var agent = AgentCatalog.Create(AgentSpec.Parse("settingstestagent"));
-        Assert.AreEqual("{\"C\":1,\"Iterations\":100}", agent.ConfigJson());
+        Assert.AreEqual("{\"Iterations\":100,\"Weight\":1}", agent.ConfigurationJson());
     }
 
     [TestMethod]
@@ -90,8 +90,8 @@ public class CommandLineTests
     {
         AgentSpec unknownAgent = AgentSpec.Parse("Nobody");
         AgentSpec unknownSetting = AgentSpec.Parse("SettingsTestAgent:x=1");
-        AgentSpec notANumber = AgentSpec.Parse("SettingsTestAgent:c=abc");
-        AgentSpec agentWithoutSettings = AgentSpec.Parse("RandomChoiceAI:c=1");
+        AgentSpec notANumber = AgentSpec.Parse("SettingsTestAgent:Weight=abc");
+        AgentSpec agentWithoutSettings = AgentSpec.Parse("RandomAgent:Weight=1");
 
         Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(unknownAgent));
         Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(unknownSetting));
@@ -113,23 +113,23 @@ public class CommandLineTests
     [TestMethod]
     public void ResultRow_RebuildsTheSameAgent()
     {
-        var original = AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=0.1:iterations=1234"));
-        AgentSpec fromRow = AgentCatalog.FromResultRow(original.Name, original.ConfigJson());
+        var original = AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:Weight=0.1:iterations=1234"));
+        AgentSpec fromRow = AgentCatalog.FromResultRow(original.Name, original.ConfigurationJson());
 
-        Assert.AreEqual(original.ConfigJson(), AgentCatalog.Create(fromRow).ConfigJson());
+        Assert.AreEqual(original.ConfigurationJson(), AgentCatalog.Create(fromRow).ConfigurationJson());
     }
 
     [TestMethod]
     public void Range_GivesASweep()
     {
-        var specs = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,SettingsTestAgent:c=0..2:iterations=7");
+        var specs = AgentSpec.ParseList("HeuristicAgent,RandomAgent,SettingsTestAgent:Weight=0..2:iterations=7");
         Sweep? sweep = AgentCatalog.Validate(specs, 5);
 
         Assert.IsNotNull(sweep);
         Assert.AreEqual(2, sweep.Seat);
         double[] values = Enumerable.Range(0, 5).Select(sweep.ValueAt).ToArray();
         CollectionAssert.AreEqual(new[] { 0, 0.5, 1, 1.5, 2 }, values);
-        StringAssert.Contains(AgentCatalog.Create(specs[2], sweep.ValueAt(3)).ConfigJson(), "\"C\":1.5");
+        StringAssert.Contains(AgentCatalog.Create(specs[2], sweep.ValueAt(3)).ConfigurationJson(), "\"Weight\":1.5");
     }
 
     [TestMethod]
@@ -149,9 +149,9 @@ public class CommandLineTests
     [TestMethod]
     public void Range_Mistakes_AreUsageErrors()
     {
-        var oneRange = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,SettingsTestAgent:c=0..2");
-        var noRange = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,RandomChoiceAI");
-        var twoRanges = AgentSpec.ParseList("SettingsTestAgent:c=0..1,RandomChoiceAI,SettingsTestAgent:c=0..2");
+        var oneRange = AgentSpec.ParseList("HeuristicAgent,RandomAgent,SettingsTestAgent:Weight=0..2");
+        var noRange = AgentSpec.ParseList("HeuristicAgent,RandomAgent,RandomAgent");
+        var twoRanges = AgentSpec.ParseList("SettingsTestAgent:Weight=0..1,RandomAgent,SettingsTestAgent:Weight=0..2");
 
         Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(oneRange, null), "range without --steps");
         Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(noRange, 3), "--steps without a range");
@@ -161,21 +161,21 @@ public class CommandLineTests
     [TestMethod]
     public void LogLevel_Precedence()
     {
-        string? saved = Environment.GetEnvironmentVariable(Logging.EnvVar);
+        string? saved = Environment.GetEnvironmentVariable(Logging.EnvironmentVariable);
         try
         {
-            Environment.SetEnvironmentVariable(Logging.EnvVar, "verbose");
+            Environment.SetEnvironmentVariable(Logging.EnvironmentVariable, "verbose");
             Assert.AreEqual(LogEventLevel.Verbose, Logging.Resolve(null).Level, "environment variable");
-            Assert.AreEqual(LogEventLevel.Information, Logging.Resolve("info").Level, "--log wins");
+            Assert.AreEqual(LogEventLevel.Information, Logging.Resolve("info").Level, "--log-level wins");
             Assert.AreEqual(LogEventLevel.Debug, Logging.Resolve(null, LogEventLevel.Debug).Level, "replay's default");
 
-            Environment.SetEnvironmentVariable(Logging.EnvVar, null);
-            Assert.AreNotEqual(Logging.EnvVar, Logging.Resolve(null).Source, "falls back to the build");
+            Environment.SetEnvironmentVariable(Logging.EnvironmentVariable, null);
+            Assert.AreNotEqual(Logging.EnvironmentVariable, Logging.Resolve(null).Source, "falls back to the build");
             Assert.ThrowsException<UsageException>(() => Logging.Resolve("loud"));
         }
         finally
         {
-            Environment.SetEnvironmentVariable(Logging.EnvVar, saved);
+            Environment.SetEnvironmentVariable(Logging.EnvironmentVariable, saved);
         }
     }
 

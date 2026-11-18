@@ -60,7 +60,7 @@ public class SetupTests
         Game game = new Game(seed);
         for (int agentIndex = 0; agentIndex < 3; agentIndex++)
         {
-            game.Agents.Add(new RandomChoiceAI());
+            game.Agents.Add(new RandomAgent());
         }
 
         return game;

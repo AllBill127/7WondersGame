@@ -16,7 +16,7 @@ public class DatasetFileTests
         var game = new Game(seed);
         for (int seat = 0; seat < players; seat++)
         {
-            game.Agents.Add(new RandomChoiceAI());
+            game.Agents.Add(new RandomAgent());
         }
 
         game.SetUpRandomGame();

@@ -12,7 +12,7 @@ namespace _7WondersGame.Cli.ResultsAnalysis;
 /// </summary>
 public static class Analysis
 {
-    /// <summary>Without --vs, 'analyze' lists every pair only up to this many groups.</summary>
+    /// <summary>Without --compare-with, 'analyze' lists every pair only up to this many groups.</summary>
     public const int MaxAllPairsGroups = 8;
 
     /// <summary>The columns of the group table's CSV.</summary>
@@ -85,9 +85,9 @@ public static class Analysis
     }
 
     /// <summary>What the rows of one group have in common, for a grouping.</summary>
-    public static string KeyOf(ResultRow row, GroupBy by)
+    public static string KeyOf(ResultRow row, GroupBy grouping)
     {
-        switch (by)
+        switch (grouping)
         {
             case GroupBy.Player:
                 return PlayerKeyOf(row);
@@ -98,7 +98,7 @@ public static class Analysis
             case GroupBy.Wonder:
                 return row.Wonder;
             default:
-                throw new ArgumentOutOfRangeException(nameof(by));
+                throw new ArgumentOutOfRangeException(nameof(grouping));
         }
     }
 
@@ -117,12 +117,12 @@ public static class Analysis
     /// The groups, numbered from 1 in the order the run plays them (by first game, then seat; not by when games
     /// finished), so a sweep's values come in order.
     /// </summary>
-    public static List<GroupStats> Groups(IReadOnlyList<ResultRow> rows, GroupBy by)
+    public static List<GroupStats> Groups(IReadOnlyList<ResultRow> rows, GroupBy grouping)
     {
-        var groups = rows.GroupBy(row => KeyOf(row, by))
+        var groups = rows.GroupBy(row => KeyOf(row, grouping))
             .OrderBy(FirstPlayed)
             .ToList();
-        Dictionary<string, string> labels = LabelsOf(groups, by);
+        Dictionary<string, string> labels = LabelsOf(groups, grouping);
 
         var statistics = new List<GroupStats>(groups.Count);
         for (int groupIndex = 0; groupIndex < groups.Count; groupIndex++)
@@ -145,9 +145,9 @@ public static class Analysis
     }
 
     /// <summary>The printed name of each group, by key: short names for players, otherwise the key.</summary>
-    private static Dictionary<string, string> LabelsOf(List<IGrouping<string, ResultRow>> groups, GroupBy by)
+    private static Dictionary<string, string> LabelsOf(List<IGrouping<string, ResultRow>> groups, GroupBy grouping)
     {
-        if (by == GroupBy.Player)
+        if (grouping == GroupBy.Player)
         {
             return PlayerLabels(groups.Select(PlayerGroupOf).ToList());
         }
@@ -176,8 +176,9 @@ public static class Analysis
 
     /// <summary>
     /// Short names for agent configurations: the agent, plus the settings whose values differ between the groups
-    /// of that agent (e.g. "MctsAgent C=0.3"). An agent with one configuration is just its name. The swept agent's
-    /// values are named apart from the other players' (an opponent is "HeuristicAI" even if a swept value equals it).
+    /// of that agent (e.g. "MctsAgent ExplorationConstant=0.3"). An agent with one configuration is just its name. The
+    /// swept agent's values are named apart from the other players' (an opponent is "HeuristicAgent" even if a swept
+    /// value equals it).
     /// </summary>
     public static Dictionary<string, string> PlayerLabels(
         IReadOnlyList<(string Key, string Agent, string ConfigJson, bool Swept)> groups)
@@ -279,10 +280,11 @@ public static class Analysis
     }
 
     /// <summary>The paired comparison of two groups over the deals both played (null if they share none).</summary>
-    public static PairStats? Compare(IReadOnlyList<ResultRow> rows, GroupBy by, GroupStats groupA, GroupStats groupB)
+    public static PairStats? Compare(IReadOnlyList<ResultRow> rows, GroupBy grouping, GroupStats groupA,
+                                     GroupStats groupB)
     {
-        var dealsA = PerDeal(rows, by, groupA);
-        var dealsB = PerDeal(rows, by, groupB);
+        var dealsA = PerDeal(rows, grouping, groupA);
+        var dealsB = PerDeal(rows, grouping, groupB);
         var shared = dealsA.Keys.Where(dealsB.ContainsKey).ToList();
         if (shared.Count == 0)
         {
@@ -297,10 +299,10 @@ public static class Analysis
     }
 
     /// <summary>The group's mean VP and win share on each deal it played, by the deal's seed.</summary>
-    private static Dictionary<string, (double Vp, double Win)> PerDeal(IReadOnlyList<ResultRow> rows, GroupBy by,
+    private static Dictionary<string, (double Vp, double Win)> PerDeal(IReadOnlyList<ResultRow> rows, GroupBy grouping,
                                                                        GroupStats group)
     {
-        return rows.Where(row => KeyOf(row, by) == group.Key)
+        return rows.Where(row => KeyOf(row, grouping) == group.Key)
             .GroupBy(row => row.Seed)
             .ToDictionary(deal => deal.Key, AveragesOf);
     }
@@ -311,15 +313,16 @@ public static class Analysis
     }
 
     /// <summary>
-    /// Every pair of groups, or every group against group <paramref name="vs"/>, that played shared deals.
+    /// Every pair of groups, or every group against group <paramref name="compare-with"/>, that played shared deals.
     /// </summary>
-    public static List<PairStats> Pairs(IReadOnlyList<ResultRow> rows, GroupBy by, IReadOnlyList<GroupStats> groups,
-                                        int? vs)
+    public static List<PairStats> Pairs(IReadOnlyList<ResultRow> rows, GroupBy grouping,
+                                        IReadOnlyList<GroupStats> groups,
+                                        int? comparedGroup)
     {
         var pairs = new List<(GroupStats, GroupStats)>();
-        if (vs != null)
+        if (comparedGroup != null)
         {
-            GroupStats baseline = groups.Single(group => group.Number == vs.Value);
+            GroupStats baseline = groups.Single(group => group.Number == comparedGroup.Value);
             foreach (GroupStats group in groups)
             {
                 if (group != baseline)
@@ -342,7 +345,7 @@ public static class Analysis
         var compared = new List<PairStats>();
         foreach (var (first, second) in pairs)
         {
-            PairStats? pair = Compare(rows, by, first, second);
+            PairStats? pair = Compare(rows, grouping, first, second);
             if (pair != null)
             {
                 compared.Add(pair);

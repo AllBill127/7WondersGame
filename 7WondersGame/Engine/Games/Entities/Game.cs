@@ -1012,7 +1012,7 @@ public class Game
     {
         if (seat < Agents.Count)
         {
-            return Agents[seat].ConfigJson();
+            return Agents[seat].ConfigurationJson();
         }
         return "{}";
     }
@@ -1051,7 +1051,7 @@ public class Game
     {
         Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
             view.Seat,
-            Names(view.PlayableCards),
+            Names(view.BuildableCards),
             view.CanBuildWonder);
     }
 

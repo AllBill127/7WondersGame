@@ -37,7 +37,7 @@ public class TraceTests
         {
             Agents = new List<IAgent>
             {
-                new HeuristicAI(), new RandomChoiceAI(), new RandomChoiceAI(),
+                new HeuristicAgent(), new RandomAgent(), new RandomAgent(),
             },
         };
         if (trace != null)
@@ -88,7 +88,12 @@ public class TraceTests
     {
         var game = new Game(5)
         {
-            Agents = new List<IAgent> { new HeuristicAI(), MctsAgentTests.Mcts(":n=40"), new HeuristicAI() },
+            Agents = new List<IAgent>
+            {
+                new HeuristicAgent(),
+                MctsAgentTests.Mcts(":IterationBudget=40"),
+                new HeuristicAgent(),
+            },
         };
         if (trace != null)
         {

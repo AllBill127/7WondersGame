@@ -99,9 +99,9 @@ public class SeedingTests
     private static Game NewGame(ulong seed)
     {
         Game game = new Game(seed);
-        game.Agents.Add(new RandomChoiceAI());
-        game.Agents.Add(new HeuristicAI());
-        game.Agents.Add(new RandomChoiceAI());
+        game.Agents.Add(new RandomAgent());
+        game.Agents.Add(new HeuristicAgent());
+        game.Agents.Add(new RandomAgent());
         return game;
     }
 
