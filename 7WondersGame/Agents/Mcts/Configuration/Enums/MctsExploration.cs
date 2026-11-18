@@ -1,6 +1,6 @@
 ﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
 
-/// <summary>The tree policy (M4). Moves not tried yet are always tried first.</summary>
+/// <summary>The tree policy. Moves not tried yet are always tried first.</summary>
 public enum MctsExploration
 {
     /// <summary>UCB1: mean + C √(ln n / nᵢ), n = how often the move was available (ISMCTS).</summary>

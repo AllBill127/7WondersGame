@@ -8,9 +8,9 @@ using _7WondersGame.Engine.Players.Entities;
 namespace _7WondersGame.Agents.HiddenInformation;
 
 /// <summary>
-/// One guess at the hidden cards, from one seat's point of view (fix plan step 6, M1): a copy of the game in which
-/// everything that seat can't know is dealt again at random, consistent with what it does know
-/// (<see cref="SeatKnowledge"/>). What it can't know:
+/// One guess at the hidden cards, from one seat's point of view: a copy of the game in which everything that seat
+/// can't know is dealt again at random, consistent with what it does know (<see cref="SeatKnowledge"/>). What it
+/// can't know:
 /// <list type="bullet">
 /// <item>the other players' hands, except cards it saw passing by;</item>
 /// <item>the discard pile (face down), except its own discards and what it saw looking through it;</item>
@@ -18,124 +18,343 @@ namespace _7WondersGame.Agents.HiddenInformation;
 /// </list>
 /// The public state (cities, coins, wonder stages, hand and pile sizes) and the seat's own hand stay as they are.
 /// </summary>
+/// <remarks>Runs once per MCTS iteration: no LINQ, lambdas or extra allocations.</remarks>
 public static class Determinization
 {
+    /// <summary>
+    /// A copy of the game with the hidden cards dealt again, as <paramref name="seat"/> may guess them.
+    /// </summary>
     /// <param name="game">The game to copy (not changed).</param>
+    /// <param name="seat">The seat whose point of view the guess takes.</param>
     /// <param name="known">What the seat knows; null means only its own hand and the public state.</param>
+    /// <param name="rng">The random stream every shuffle draws from.</param>
     public static Game Sample(Game game, int seat, SeatKnowledge? known, Random rng)
     {
         Game copy = game.DeepCopy();
         int n = copy.Players.Count;
         int era = copy.Era;
-        if (era > 3)
+        if (era > Game.LastEra)
+        {
             return copy;
+        }
         List<PlayerState> players = copy.Players;
-        IReadOnlyList<Card> inPile = known?.InPile ?? Array.Empty<Card>();
-        IReadOnlyList<Card> buried = known?.Buried ?? Array.Empty<Card>();
-        IReadOnlyList<Card> InHand(int h) => known?.InHand[h] ?? Array.Empty<Card>();
+        IReadOnlyList<Card> inPile = KnownInPile(known);
+        IReadOnlyList<Card> buried = KnownBuried(known);
 
         // every card of eras 1 to now, with the guilds in play: the ones the seat has seen, plus random others
-        var seen = new List<Card>(players.SelectMany(p => p.PlayedCards));
-        seen.AddRange(players[seat].HandCards);
-        for (int h = 0; h < n; h++)
-            seen.AddRange(InHand(h));
-        seen.AddRange(inPile);
-        seen.AddRange(buried);
+        List<Card> seen = CardsSeen(players, seat, known, inPile, buried);
         var pool = new List<Card>();
         for (int e = 1; e <= era; e++)
+        {
             pool.AddRange(Deck(e, n, seen, rng));
+        }
 
         // take out the cards the seat knows where they are
-        foreach (Card c in players.SelectMany(p => p.PlayedCards))
-            pool.Remove(c);
-        foreach (Card c in players[seat].HandCards)
-            pool.Remove(c);
-        foreach (Card c in buried)
-            pool.Remove(c);
-        List<Card> pileKnown = inPile.Where(pool.Remove).ToList();
+        RemoveBuiltCards(pool, players);
+        RemoveAll(pool, players[seat].HandCards);
+        RemoveAll(pool, buried);
+        List<Card> pileKnown = TakeOutOfPool(pool, inPile);
 
-        // each other hand: the cards seen in it (some of them may be gone face down), then unseen cards
-        var hands = new List<Card>?[n];
         // cards seen in a hand that this guess says were buried or discarded since
         var goneFaceDown = new List<Card>();
-        for (int h = 0; h < n; h++)
+        List<Card>?[] hands = HandsOfSeenCards(players, seat, known, pool, goneFaceDown, rng);
+        FillHandsWithUnseenCards(players, seat, hands, pool, era, rng);
+
+        copy.DiscardedCards = DiscardPileGuess(copy, seat, pileKnown, goneFaceDown, pool, rng);
+        ShuffleDecks(copy, era, n, rng);
+        return copy;
+    }
+
+    /// <summary>The discard-pile cards the seat knows about (none without knowledge).</summary>
+    private static IReadOnlyList<Card> KnownInPile(SeatKnowledge? known)
+    {
+        if (known == null)
+        {
+            return Array.Empty<Card>();
+        }
+        return known.InPile;
+    }
+
+    /// <summary>The cards the seat buried under its wonder (none without knowledge).</summary>
+    private static IReadOnlyList<Card> KnownBuried(SeatKnowledge? known)
+    {
+        if (known == null)
+        {
+            return Array.Empty<Card>();
+        }
+        return known.Buried;
+    }
+
+    /// <summary>
+    /// The cards the seat saw in the hand <paramref name="handOwnerSeat"/> holds now (none without knowledge).
+    /// </summary>
+    private static IReadOnlyList<Card> SeenInHand(SeatKnowledge? known, int handOwnerSeat)
+    {
+        if (known == null)
+        {
+            return Array.Empty<Card>();
+        }
+        return known.InHand[handOwnerSeat];
+    }
+
+    /// <summary>
+    /// Every card the seat has seen: the built cards of every city, its own hand, the cards seen in the hands, the
+    /// known discard-pile cards and its buried cards.
+    /// </summary>
+    private static List<Card> CardsSeen(List<PlayerState> players, int seat, SeatKnowledge? known,
+                                        IReadOnlyList<Card> inPile, IReadOnlyList<Card> buried)
+    {
+        var seen = new List<Card>();
+        foreach (PlayerState p in players)
+        {
+            seen.AddRange(p.PlayedCards);
+        }
+        seen.AddRange(players[seat].HandCards);
+        for (int h = 0; h < players.Count; h++)
+        {
+            seen.AddRange(SeenInHand(known, h));
+        }
+        seen.AddRange(inPile);
+        seen.AddRange(buried);
+        return seen;
+    }
+
+    /// <summary>Takes every city's built cards out of the pool.</summary>
+    private static void RemoveBuiltCards(List<Card> pool, List<PlayerState> players)
+    {
+        foreach (PlayerState p in players)
+        {
+            RemoveAll(pool, p.PlayedCards);
+        }
+    }
+
+    /// <summary>Takes one copy of each of the cards out of the pool (a card not in it is skipped).</summary>
+    private static void RemoveAll(List<Card> pool, IEnumerable<Card> cards)
+    {
+        foreach (Card c in cards)
+        {
+            pool.Remove(c);
+        }
+    }
+
+    /// <summary>The cards that were still in the pool, in their order; each is taken out of it.</summary>
+    private static List<Card> TakeOutOfPool(List<Card> pool, IReadOnlyList<Card> cards)
+    {
+        var taken = new List<Card>();
+        foreach (Card c in cards)
+        {
+            if (pool.Remove(c))
+            {
+                taken.Add(c);
+            }
+        }
+        return taken;
+    }
+
+    /// <summary>
+    /// Each other seat's hand (null for the searching seat): the cards seen in it, shuffled and cut to the hand's
+    /// size. The cards cut off were buried or discarded since; they go to <paramref name="goneFaceDown"/>.
+    /// </summary>
+    private static List<Card>?[] HandsOfSeenCards(List<PlayerState> players, int seat, SeatKnowledge? known,
+                                                  List<Card> pool, List<Card> goneFaceDown, Random rng)
+    {
+        var hands = new List<Card>?[players.Count];
+        for (int h = 0; h < players.Count; h++)
         {
             if (h == seat)
+            {
                 continue;
+            }
             int size = players[h].HandCards.Count;
-            List<Card> candidates = InHand(h).Where(pool.Remove).ToList();
+            List<Card> candidates = TakeOutOfPool(pool, SeenInHand(known, h));
             Shuffle(candidates, rng);
-            hands[h] = candidates.Take(size).ToList();
-            goneFaceDown.AddRange(candidates.Skip(size));
+            hands[h] = FirstCards(candidates, size);
+            AddCardsAfter(goneFaceDown, candidates, size);
         }
-        List<Card> unseenThisEra = pool.Where(c => c.Era == era).ToList();
+        return hands;
+    }
+
+    /// <summary>A new list of the first <paramref name="count"/> cards (all of them if there are fewer).</summary>
+    private static List<Card> FirstCards(List<Card> cards, int count)
+    {
+        var first = new List<Card>();
+        for (int cardIndex = 0; cardIndex < count && cardIndex < cards.Count; cardIndex++)
+        {
+            first.Add(cards[cardIndex]);
+        }
+        return first;
+    }
+
+    /// <summary>Adds the cards after the first <paramref name="count"/> to <paramref name="target"/>.</summary>
+    private static void AddCardsAfter(List<Card> target, List<Card> cards, int count)
+    {
+        for (int cardIndex = count; cardIndex < cards.Count; cardIndex++)
+        {
+            target.Add(cards[cardIndex]);
+        }
+    }
+
+    /// <summary>
+    /// Fills each other hand up to its real size with unseen cards of this era, drawn in a random order from the
+    /// pool, and gives the hands to the players.
+    /// </summary>
+    private static void FillHandsWithUnseenCards(List<PlayerState> players, int seat, List<Card>?[] hands,
+                                                 List<Card> pool, int era, Random rng)
+    {
+        List<Card> unseenThisEra = CardsOfEra(pool, era);
         Shuffle(unseenThisEra, rng);
         int next = 0;
-        for (int h = 0; h < n; h++)
+        for (int h = 0; h < players.Count; h++)
         {
-            if (hands[h] is not { } hand)
+            List<Card>? hand = hands[h];
+            if (hand == null)
+            {
                 continue;
+            }
             while (hand.Count < players[h].HandCards.Count)
             {
                 if (next == unseenThisEra.Count)
-                    throw new InvalidOperationException($"Not enough unseen era {era} cards to fill seat {h}'s hand (seat {seat}'s guess).");
-                Card c = unseenThisEra[next++];
+                {
+                    throw new InvalidOperationException(
+                        $"Not enough unseen era {era} cards to fill seat {h}'s hand (seat {seat}'s guess).");
+                }
+                Card c = unseenThisEra[next];
+                next++;
                 pool.Remove(c);
                 hand.Add(c);
             }
             players[h].HandCards = hand;
         }
+    }
 
-        // the discard pile: what the seat knows is there, then cards gone face down
-        List<Card> rest = goneFaceDown.Concat(pool).ToList();
+    /// <summary>A new list of the pool's cards of this era, in pool order.</summary>
+    private static List<Card> CardsOfEra(List<Card> pool, int era)
+    {
+        var cardsOfEra = new List<Card>();
+        foreach (Card c in pool)
+        {
+            if (c.Era == era)
+            {
+                cardsOfEra.Add(c);
+            }
+        }
+        return cardsOfEra;
+    }
+
+    /// <summary>
+    /// The discard pile: what the seat knows is there, then random cards out of those gone face down and the rest of
+    /// the pool, up to the pile's real size.
+    /// </summary>
+    private static List<Card> DiscardPileGuess(Game copy, int seat, List<Card> pileKnown, List<Card> goneFaceDown,
+                                               List<Card> pool, Random rng)
+    {
+        var rest = new List<Card>(goneFaceDown);
+        rest.AddRange(pool);
         Shuffle(rest, rng);
         int unknownInPile = copy.DiscardedCards.Count - pileKnown.Count;
         if (unknownInPile > rest.Count)
-            throw new InvalidOperationException($"Not enough unseen cards to fill the discard pile (seat {seat}'s guess).");
-        copy.DiscardedCards = pileKnown.Concat(rest.Take(unknownInPile)).ToList();
-
-        // the decks: dealt ones are used up; later ones are new shuffles
-        for (int e = 1; e <= 3; e++)
         {
+            throw new InvalidOperationException(
+                $"Not enough unseen cards to fill the discard pile (seat {seat}'s guess).");
+        }
+        for (int restIndex = 0; restIndex < unknownInPile; restIndex++)
+        {
+            pileKnown.Add(rest[restIndex]);
+        }
+        return pileKnown;
+    }
+
+    /// <summary>The decks: those already dealt are used up; the later ones are new shuffles.</summary>
+    private static void ShuffleDecks(Game copy, int era, int n, Random rng)
+    {
+        for (int e = 1; e <= Game.LastEra; e++)
+        {
+            int deckIndex = e - 1;
             if (e <= era)
-                copy.Decks[e - 1] = new List<Card>();
+            {
+                copy.Decks[deckIndex] = new List<Card>();
+            }
             else
             {
                 List<Card> deck = Deck(e, n, Array.Empty<Card>(), rng);
                 Shuffle(deck, rng);
-                copy.Decks[e - 1] = deck;
+                copy.Decks[deckIndex] = deck;
             }
         }
-        return copy;
     }
 
     /// <summary>
     /// The era's cards for this many players. In era 3, players + 2 guilds: every guild in <paramref name="seen"/>,
     /// then random other guilds.
     /// </summary>
-    private static List<Card> Deck(int era, int players, IEnumerable<Card> seen, Random rng)
+    private static List<Card> Deck(int era, int players, IReadOnlyList<Card> seen, Random rng)
     {
         var deck = new List<Card>();
-        foreach (Card card in CardsDataset.Cards.Values.Where(c => c.Era == era))
-            for (int i = 0; i < card.CopiesFor(players); i++)
-                deck.Add(card);
-        if (era == 3)
+        foreach (Card card in CardsDataset.Cards.Values)
         {
-            List<Card> guilds = seen.Where(c => c.Type == CardType.Guild).Distinct().ToList();
-            List<Card> others = CardsDataset.GuildCards.Values.Except(guilds).ToList();
-            Shuffle(others, rng);
-            guilds.AddRange(others.Take(players + 2 - guilds.Count));
-            deck.AddRange(guilds);
+            if (card.Era != era)
+            {
+                continue;
+            }
+            for (int i = 0; i < card.CopiesFor(players); i++)
+            {
+                deck.Add(card);
+            }
+        }
+        if (era == Game.LastEra)
+        {
+            deck.AddRange(GuildsInPlay(players, seen, rng));
         }
         return deck;
     }
 
+    /// <summary>
+    /// Players + 2 guilds: every guild in <paramref name="seen"/> (once each), then random other guilds.
+    /// </summary>
+    private static List<Card> GuildsInPlay(int players, IReadOnlyList<Card> seen, Random rng)
+    {
+        var guilds = new List<Card>();
+        foreach (Card card in seen)
+        {
+            if (card.Type == CardType.Guild && !guilds.Contains(card))
+            {
+                guilds.Add(card);
+            }
+        }
+
+        var others = new List<Card>();
+        foreach (Card guild in CardsDataset.GuildCards.Values)
+        {
+            if (!guilds.Contains(guild))
+            {
+                others.Add(guild);
+            }
+        }
+        Shuffle(others, rng);
+
+        int guildsInPlay = players + 2;
+        int missingGuilds = guildsInPlay - guilds.Count;
+        for (int otherIndex = 0; otherIndex < missingGuilds && otherIndex < others.Count; otherIndex++)
+        {
+            guilds.Add(others[otherIndex]);
+        }
+        return guilds;
+    }
+
+    /// <summary>Fisher-Yates shuffle, drawing from <paramref name="rng"/>.</summary>
     private static void Shuffle(List<Card> cards, Random rng)
     {
         for (int i = cards.Count - 1; i > 0; i--)
         {
             int j = rng.Next(i + 1);
-            (cards[i], cards[j]) = (cards[j], cards[i]);
+            Swap(cards, i, j);
         }
+    }
+
+    private static void Swap(List<Card> cards, int firstIndex, int secondIndex)
+    {
+        Card first = cards[firstIndex];
+        cards[firstIndex] = cards[secondIndex];
+        cards[secondIndex] = first;
     }
 }

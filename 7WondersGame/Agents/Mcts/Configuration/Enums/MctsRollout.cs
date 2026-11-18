@@ -3,7 +3,7 @@ using _7WondersGame.Agents.RandomChoice;
 
 namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
 
-/// <summary>How the players move in a rollout (M8).</summary>
+/// <summary>How the players move in a rollout.</summary>
 public enum MctsRollout
 {
     /// <summary><see cref="HeuristicAI"/>'s move, or with probability ε a random move.</summary>

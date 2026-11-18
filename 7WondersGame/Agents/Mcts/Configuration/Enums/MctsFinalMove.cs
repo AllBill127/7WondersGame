@@ -1,6 +1,6 @@
 ﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
 
-/// <summary>Which of the searching player's moves is played after the search (M4).</summary>
+/// <summary>Which of the searching player's moves is played after the search.</summary>
 public enum MctsFinalMove
 {
     /// <summary>The most visited (robust child).</summary>

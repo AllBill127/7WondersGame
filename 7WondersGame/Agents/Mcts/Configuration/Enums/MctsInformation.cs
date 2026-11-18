@@ -2,10 +2,12 @@
 
 namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
 
-/// <summary>What the search may know (M1).</summary>
+/// <summary>What the search may know.</summary>
 public enum MctsInformation
 {
-    /// <summary>SO-ISMCTS: each iteration searches a new guess at the hidden cards (<see cref="Determinization"/>).</summary>
+    /// <summary>
+    /// SO-ISMCTS: each iteration searches a new guess at the hidden cards (<see cref="Determinization"/>).
+    /// </summary>
     Determinized,
     /// <summary>Searches the real game, hidden cards included: a cheating baseline.</summary>
     PerfectInformation,

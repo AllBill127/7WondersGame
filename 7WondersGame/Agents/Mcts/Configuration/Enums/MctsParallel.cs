@@ -13,7 +13,10 @@ public enum MctsParallel
     /// at the hidden cards; at the end their root statistics are added up. Same results whatever the threads do.
     /// </summary>
     Root,
-    /// <summary>Leaf parallelisation: one tree; from each new node Workers rollouts at once. Same results whatever the threads do.</summary>
+    /// <summary>
+    /// Leaf parallelisation: one tree; from each new node Workers rollouts at once. Same results whatever the
+    /// threads do.
+    /// </summary>
     Leaf,
     /// <summary>
     /// Tree parallelisation: one tree shared by Workers threads, with one lock around walking down and updating it
