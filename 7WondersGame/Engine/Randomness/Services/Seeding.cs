@@ -1,7 +1,7 @@
 ﻿namespace _7WondersGame.Engine.Randomness.Services;
 
 /// <summary>
-/// All randomness comes from here, so the same seed always gives the same games (B1).
+/// All randomness comes from here, so the same seed always gives the same games.
 /// Seeds are mixed with SplitMix64, which is fixed and the same in every process
 /// (unlike HashCode, which is randomised per process).
 /// </summary>

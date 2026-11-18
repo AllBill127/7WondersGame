@@ -17,16 +17,6 @@ namespace _7WondersGameTests.Agents;
 [TestClass]
 public class ChooseMoveTests
 {
-    // TODO:    test ChooseMoveCard() when
-    //          - cardList is empty
-    //          - at least one card in cards list
-
-    // TODO:    test ChooseMoveCommand when
-    //          - build_structure -> PlayableCards contains player command argument
-    //          - any other command -> HandCards contain player command argumnt
-    //          - no PlayableCards -> player command is skip_move (check also when using OlympiaA stage2
-    //            (playableCards should be hand cards and action = discard))
-
     [TestMethod]
     public void ChooseMoveCommand_WhenOlympiaA2_AndPlayableCardsViolateNoDuplicateRule_SetCommandToDiscard()
     {

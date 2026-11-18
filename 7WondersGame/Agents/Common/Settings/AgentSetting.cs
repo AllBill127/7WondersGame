@@ -11,6 +11,10 @@ public sealed class AgentSetting
     private readonly FieldInfo _field;
     private readonly FieldInfo? _group;
 
+    /// <summary>
+    /// A setting called <paramref name="name"/>, stored in <paramref name="field"/> of the agent, or of the
+    /// object in the agent's <paramref name="group"/> field when there is one.
+    /// </summary>
     internal AgentSetting(string name, FieldInfo field, FieldInfo? group)
     {
         Name = name;

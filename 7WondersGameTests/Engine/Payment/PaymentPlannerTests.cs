@@ -115,9 +115,9 @@ public class PaymentPlannerTests
     }
 
     [TestMethod]
-    public void R7_OwnEitherOrCardsAreMatchedToTheCost()
+    public void OwnEitherOrCardsAreMatchedToTheCost()
     {
-        // The critique's example: Tree Farm (wood/clay) + Forest Cave (wood/ore) pay wood + clay.
+        // Tree Farm (wood/clay) + Forest Cave (wood/ore) pay wood + clay.
         // Taking wood from Tree Farm first would leave clay missing.
         var (_, buyer, _) = SetUp(coins: 0);
         Build(buyer, CardId.TreeFarm, CardId.ForestCave);
@@ -125,7 +125,7 @@ public class PaymentPlannerTests
     }
 
     [TestMethod]
-    public void R7_NeighbourEitherOrCardsAreMatchedToTheCost()
+    public void NeighbourEitherOrCardsAreMatchedToTheCost()
     {
         var (west, buyer, _) = SetUp(coins: 4);
         Build(west, CardId.TreeFarm, CardId.ForestCave);
@@ -143,7 +143,7 @@ public class PaymentPlannerTests
     }
 
     [TestMethod]
-    public void R8_PurchaseIsSplitBetweenNeighbours()
+    public void PurchaseIsSplitBetweenNeighbours()
     {
         var (west, buyer, east) = SetUp(coins: 4);
         west.Resources[Resource.Wood] = 1;
@@ -155,7 +155,7 @@ public class PaymentPlannerTests
     }
 
     [TestMethod]
-    public void R8_CheapUnitsFirstThenTheRestFromTheOtherNeighbour()
+    public void CheapUnitsFirstThenTheRestFromTheOtherNeighbour()
     {
         // East Trading Post: 1 coin per raw from the east. East has one wood, west has plenty.
         var (west, buyer, east) = SetUp(coins: 3);

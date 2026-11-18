@@ -326,7 +326,10 @@ public class Game
             }
             player.HandCards = hand;
         }
-        _knowledge?.Dealt(Players);
+        if (_knowledge != null)
+        {
+            _knowledge.Dealt(Players);
+        }
     }
 
     /// <summary>
@@ -547,7 +550,11 @@ public class Game
         }
         player.Place(planned);
         player.Settle(planned);
-        _knowledge?.BuiltFromPile(card);
+        if (_knowledge != null)
+        {
+            _knowledge.BuiltFromPile(card);
+        }
+
         Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Id, card.Name);
     }
 
@@ -584,7 +591,10 @@ public class Game
             // Halikarnassos looks through the discard pile to choose
             if (phase == Phase.DiscardBuild && p.DiscardFree)
             {
-                _knowledge?.LooksAtPile(p.Id, DiscardedCards);
+                if (_knowledge != null)
+                {
+                    _knowledge.LooksAtPile(p.Id, DiscardedCards);
+                }
             }
         }
         return AnyoneWaiting();
@@ -632,7 +642,11 @@ public class Game
 
     private void DiscardLastCardsOfHands()
     {
-        _knowledge?.EraEndDiscards(Players);
+        if (_knowledge != null)
+        {
+            _knowledge.EraEndDiscards(Players);
+        }
+
         if (Tracing)
         {
             IEnumerable<Card> lastCards = Players.SelectMany(player => player.HandCards);
@@ -725,7 +739,10 @@ public class Game
     /// </summary>
     public void RotateHandCards()
     {
-        _knowledge?.HandsPassing(Players, west: HandsPassWestThisEra());
+        if (_knowledge != null)
+        {
+            _knowledge.HandsPassing(Players, west: HandsPassWestThisEra());
+        }
 
         PlayerState p1 = Players[0];
         PlayerState p = p1;
@@ -938,7 +955,10 @@ public class Game
             {
                 DiscardedCards.Add(move.Card);
             }
-            _knowledge?.Moved(move);
+            if (_knowledge != null)
+            {
+                _knowledge.Moved(move);
+            }
         }
     }
 

@@ -67,7 +67,9 @@ public sealed class HeuristicWeights
     /// </summary>
     public int FewOwnRaw { get; set; } = 2;
 
-    /// <summary>The most good cards (the board counted) a player can have and still gain from the Marketplace.</summary>
+    /// <summary>
+    /// The most good cards (the board counted) a player can have and still gain from the Marketplace.
+    /// </summary>
     public int FewOwnGoods { get; set; } = 1;
 
     // ---------- card types ----------
