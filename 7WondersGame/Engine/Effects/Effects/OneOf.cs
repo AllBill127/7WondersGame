@@ -5,11 +5,35 @@ using _7WondersGame.Engine.Payment.Services;
 namespace _7WondersGame.Engine.Effects.Effects;
 
 /// <summary>
-/// One unit of any of <paramref name="Choices"/> each turn, chosen when paying (see <see cref="PaymentPlanner"/>).
-/// Neighbours can buy it only if <paramref name="Sellable"/> (the brown cards, not Caravansery or Forum).
+/// One unit of any of <see cref="Choices"/> each turn, chosen when paying (see <see cref="PaymentPlanner"/>).
+/// Neighbours can buy it only if <see cref="Sellable"/> (the brown cards, not Caravansery or Forum).
 /// </summary>
-public sealed record OneOf(bool Sellable, params Resource[] Choices) : IEffect
+public sealed class OneOf : IEffect
 {
+    /// <summary>An effect that produces one of <paramref name="choices"/> each turn.</summary>
+    public OneOf(bool sellable, params Resource[] choices)
+    {
+        Sellable = sellable;
+        Choices = choices;
+    }
+
+    /// <summary>Whether neighbours can buy the resource from it.</summary>
+    public bool Sellable { get; }
+
+    /// <summary>The resources it can produce, one per turn.</summary>
+    public Resource[] Choices { get; }
+
     /// <summary>Bit i stands for the resource with value i.</summary>
-    public int Mask => Choices.Aggregate(0, (mask, r) => mask | 1 << (int)r);
+    public int Mask
+    {
+        get
+        {
+            int mask = 0;
+            foreach (Resource choice in Choices)
+            {
+                mask |= 1 << (int)choice;
+            }
+            return mask;
+        }
+    }
 }

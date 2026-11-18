@@ -4,7 +4,20 @@ using _7WondersGame.Engine.Players.Entities;
 namespace _7WondersGame.Engine.Effects.Effects;
 
 /// <summary>Victory points at the end of the game.</summary>
-public sealed record Points(int Vp) : IEffect
+public sealed class Points : IEffect
 {
-    public int EndGameVp(PlayerState p) => Vp;
+    /// <summary>An effect worth <paramref name="vp"/> victory points at the end.</summary>
+    public Points(int vp)
+    {
+        Vp = vp;
+    }
+
+    /// <summary>The victory points.</summary>
+    public int Vp { get; }
+
+    /// <inheritdoc/>
+    public int EndGameVp(PlayerState p)
+    {
+        return Vp;
+    }
 }

@@ -37,7 +37,7 @@ public static class Analysis
     /// <summary>Marks the rows of the swept agent in the runs that had a range setting.</summary>
     public static List<ResultRow> MarkSwept(IReadOnlyList<ResultRow> rows, IReadOnlyDictionary<string, SweptSeat> sweeps) =>
         rows.Select(r => sweeps.TryGetValue(r.RunId, out SweptSeat? s) && s.SeatIn(r.GameIndex, r.Players) == r.Seat
-            ? r with { Swept = true }
+            ? r.AsSwept()
             : r).ToList();
 
     public static string KeyOf(ResultRow row, GroupBy by) => by switch

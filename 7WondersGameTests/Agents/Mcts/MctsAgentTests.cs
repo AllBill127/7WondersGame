@@ -133,7 +133,9 @@ public class MctsAgentTests
 
         AgentSpec fromRow = AgentCatalog.FromResultRow("MctsAgent", json);
         Assert.AreEqual(json, AgentCatalog.Create(fromRow).ConfigJson());
-        Assert.AreEqual(new MctsConfig(), Mcts().Config, "one agent's settings don't change the defaults");
+        // every MctsConfig property is a setting, so equal settings JSON means an equal configuration
+        Assert.AreEqual(((IAgent)new MctsAgent()).ConfigJson(), ((IAgent)Mcts()).ConfigJson(),
+            "one agent's settings don't change the defaults");
     }
 
     [TestMethod]

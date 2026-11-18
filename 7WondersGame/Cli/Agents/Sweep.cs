@@ -6,8 +6,59 @@ namespace _7WondersGame.Cli.Agents;
 /// A setting given as a range <c>a..b</c>: the run plays every deal once for each of <c>Steps</c> evenly spaced values
 /// from a to b (both included). Only one setting in a run may be a range.
 /// </summary>
-public sealed record Sweep(int Seat, string Setting, double From, double To, int Steps)
+public sealed class Sweep : IEquatable<Sweep>
 {
+    /// <summary>The range setting <paramref name="setting"/> of seat <paramref name="seat"/>.</summary>
+    public Sweep(int seat, string setting, double from, double to, int steps)
+    {
+        Seat = seat;
+        Setting = setting;
+        From = from;
+        To = to;
+        Steps = steps;
+    }
+
+    /// <summary>The seat (in the line-up as listed) whose setting is a range.</summary>
+    public int Seat { get; }
+
+    /// <summary>The setting's name as written.</summary>
+    public string Setting { get; }
+
+    /// <summary>The first value.</summary>
+    public double From { get; }
+
+    /// <summary>The last value.</summary>
+    public double To { get; }
+
+    /// <summary>How many values, both ends included.</summary>
+    public int Steps { get; }
+
+    /// <summary>Whether both are the same range of the same setting (e.g. from a file and a command line).</summary>
+    public bool Equals(Sweep? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+        return Seat == other.Seat
+            && Setting == other.Setting
+            && From.Equals(other.From)
+            && To.Equals(other.To)
+            && Steps == other.Steps;
+    }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as Sweep);
+    }
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Seat, Setting, From, To, Steps);
+    }
+
     // same arithmetic as the old C sweep (minC + k * ((maxC - minC) / intervals)), so its values are reproduced exactly
     public double ValueAt(int step) => From + step * ((To - From) / (Steps - 1));
 

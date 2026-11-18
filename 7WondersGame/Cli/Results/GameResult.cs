@@ -25,7 +25,7 @@ public static class GameResult
 
         int winners = standings.Count(s => s.Rank == 1);
         return standings
-            .Select(s => s.Rank == 1 ? s with { WinShare = 1.0 / winners } : s)
+            .Select(s => s.Rank == 1 ? s.WithWinShare(1.0 / winners) : s)
             .ToList();
     }
 

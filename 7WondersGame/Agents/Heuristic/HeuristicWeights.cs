@@ -9,7 +9,7 @@ namespace _7WondersGame.Agents.Heuristic;
 /// Each one is an agent setting, e.g. <c>--players HeuristicAI:CoinValue=0.5,...</c>, and is logged in the results.
 /// </summary>
 [SettingsGroup]
-public sealed record HeuristicWeights
+public sealed class HeuristicWeights
 {
     // ---------- money ----------
 

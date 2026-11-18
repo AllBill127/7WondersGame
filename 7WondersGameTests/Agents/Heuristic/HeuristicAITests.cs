@@ -111,7 +111,8 @@ public class HeuristicAITests
         AgentCatalog.Create(AgentSpec.Parse("HeuristicAI:CoinValue=0.2"));
 
         var fresh = (HeuristicAI)AgentCatalog.Create(AgentSpec.Parse("HeuristicAI"));
-        Assert.AreEqual(new HeuristicWeights(), fresh.Weights);
+        // every weight is a setting, so equal settings JSON means equal weights
+        Assert.AreEqual(((IAgent)new HeuristicAI()).ConfigJson(), ((IAgent)fresh).ConfigJson());
         Assert.AreNotEqual(0.2, fresh.Weights.CoinValue);
     }
 

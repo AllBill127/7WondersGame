@@ -9,7 +9,7 @@ namespace _7WondersGame.Agents.Mcts.Configuration;
 /// fix plan's; C is still to be tuned (in [0.3, 2]).
 /// </summary>
 [SettingsGroup]
-public sealed record MctsConfig
+public sealed class MctsConfig
 {
     public MctsInformation Information { get; set; } = MctsInformation.Determinized;
     public MctsTree Tree { get; set; } = MctsTree.Sequential;

@@ -80,7 +80,7 @@ public static partial class Rules
     /// <summary>Step 1 for Halikarnassos: a free build from the discard pile while <see cref="PlayerState.DiscardFree"/> is on.</summary>
     public static PlannedMove? PlanDiscardPileBuild(this PlayerState p, Card card, List<Card> discardPile) =>
         p.DiscardFree && p.PlanBuild(ActionType.Build, card, discardPile, free: true) is { } move
-            ? move with { FromDiscardPile = true }
+            ? move.AsDiscardPileBuild()
             : null;
 
     private static PlannedMove? PlanBuild(this PlayerState p, ActionType action, Card card, List<Card> source, bool free)

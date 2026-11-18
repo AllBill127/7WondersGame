@@ -5,11 +5,29 @@ using _7WondersGame.Cli.Results;
 namespace _7WondersGame.Cli.ResultsAnalysis;
 
 /// <summary>
-/// Where a sweep run's swept agent sits, from its manifest: listed in position <paramref name="Listed"/>, each deal
-/// played <paramref name="Rotations"/> times (moving the line-up one seat on each time), <paramref name="Games"/> deals per value.
+/// Where a sweep run's swept agent sits, from its manifest: listed in position <see cref="Listed"/>, each deal
+/// played <see cref="Rotations"/> times (moving the line-up one seat on each time), <see cref="Games"/> deals
+/// per value.
 /// </summary>
-public sealed record SweptSeat(int Listed, int Games, int Rotations)
+public sealed class SweptSeat
 {
+    /// <summary>The swept agent listed in position <paramref name="listed"/>.</summary>
+    public SweptSeat(int listed, int games, int rotations)
+    {
+        Listed = listed;
+        Games = games;
+        Rotations = rotations;
+    }
+
+    /// <summary>The swept agent's position in the line-up as listed.</summary>
+    public int Listed { get; }
+
+    /// <summary>Deals per sweep value.</summary>
+    public int Games { get; }
+
+    /// <summary>How many seatings each deal is played in.</summary>
+    public int Rotations { get; }
+
     /// <summary>The seat of the swept agent in game <paramref name="gameIndex"/> (the numbering of <see cref="RunPlan.At"/>).</summary>
     public int SeatIn(long gameIndex, int players)
     {
