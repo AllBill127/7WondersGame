@@ -182,13 +182,13 @@ public class CommandLineTests
     [TestMethod]
     public void ResultsCsv_RowsReadBack()
     {
-        var seat = new SeatResult(1, "SomeAgent", "{\"a\":1,\"b\":\"x,y\"}", "Gizah", "B", 50, 3, 1, 0.5);
+        var seat = new SeatResult(1, "SomeAgent", "{\"a\":1,\"b\":\"x;y\"}", "Gizah", "B", 50, 3, 1, 0.5);
         string row = ResultsCsvWriter.FormatRow("run1", 4, 2, 99, seat);
 
         List<string> fields = ResultsCsvWriter.SplitRow(row);
 
         Assert.AreEqual(ResultsCsvWriter.Columns.Length, fields.Count);
-        Assert.AreEqual(seat.ConfigJson, fields[Array.IndexOf(ResultsCsvWriter.Columns, "configJson")]);
-        Assert.AreEqual("50", fields[Array.IndexOf(ResultsCsvWriter.Columns, "vp")]);
+        Assert.AreEqual(seat.ConfigurationJson, fields[Array.IndexOf(ResultsCsvWriter.Columns, "configurationJson")]);
+        Assert.AreEqual("50", fields[Array.IndexOf(ResultsCsvWriter.Columns, "victoryPoints")]);
     }
 }

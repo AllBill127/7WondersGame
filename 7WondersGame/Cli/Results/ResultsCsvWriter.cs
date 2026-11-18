@@ -9,15 +9,21 @@ namespace _7WondersGame.Cli.Results;
 /// </summary>
 public sealed class ResultsCsvWriter : IDisposable
 {
+    /// <summary>
+    /// What separates the fields of every CSV the program writes and reads. Not a comma, so the JSON fields seldom
+    /// need quotes; decimals use a point (invariant culture).
+    /// </summary>
+    public const char Separator = ';';
+
     /// <summary>The columns, in the order of the header and of every row.</summary>
     public static readonly string[] Columns =
     {
-        "runId", "gameIndex", "dealIndex", "seed", "seat", "agent", "configJson",
-        "wonder", "side", "vp", "coins", "rank", "winShare", "agentStats",
+        "runId", "gameIndex", "dealIndex", "seed", "seat", "agent", "configurationJson",
+        "wonder", "side", "victoryPoints", "coins", "rank", "winShare", "agentStatistics",
     };
 
     /// <summary>The characters that make a field need quotes.</summary>
-    private static readonly char[] CharactersToQuote = { ',', '"', '\n', '\r' };
+    private static readonly char[] CharactersToQuote = { Separator, '"', '\n', '\r' };
 
     private readonly object _lock = new();
     private readonly StreamWriter _writer;
@@ -56,7 +62,7 @@ public sealed class ResultsCsvWriter : IDisposable
     {
         get
         {
-            return string.Join(",", Columns);
+            return string.Join(Separator, Columns);
         }
     }
 
@@ -91,20 +97,21 @@ public sealed class ResultsCsvWriter : IDisposable
             seed.ToString(invariantCulture),
             seatResult.Seat.ToString(invariantCulture),
             seatResult.Agent,
-            seatResult.ConfigJson,
+            seatResult.ConfigurationJson,
             seatResult.Wonder,
             seatResult.Side,
             seatResult.VictoryPoints.ToString(invariantCulture),
             seatResult.Coins.ToString(invariantCulture),
             seatResult.Rank.ToString(invariantCulture),
             seatResult.WinShare.ToString("0.######", invariantCulture),
-            seatResult.StatsJson,
+            seatResult.AgentStatisticsJson,
         };
-        return string.Join(",", fields.Select(Escape));
+        return string.Join(Separator, fields.Select(Escape));
     }
 
     /// <summary>
-    /// RFC 4180 quoting: fields with commas, quotes or line breaks are quoted, and quotes are doubled.
+    /// RFC 4180 quoting with <see cref="Separator"/>: fields with the separator, quotes or line breaks are quoted,
+    /// and quotes are doubled.
     /// </summary>
     public static string Escape(string field)
     {
@@ -175,7 +182,7 @@ public sealed class ResultsCsvWriter : IDisposable
             {
                 quoted = true;
             }
-            else if (character == ',')
+            else if (character == Separator)
             {
                 fields.Add(field.ToString());
                 field.Clear();

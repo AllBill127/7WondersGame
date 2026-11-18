@@ -91,7 +91,7 @@ public class MctsAgentTests
             // a move the rules don't allow would throw
             game.Loop(record: true);
             Assert.AreEqual(Phase.GameOver, game.Phase);
-            StringAssert.Contains(game.Results![1].StatsJson, "\"searches\":");
+            StringAssert.Contains(game.Results![1].AgentStatisticsJson, "\"searches\":");
         }
     }
 
@@ -189,12 +189,12 @@ public class MctsAgentTests
         Game game = NewGame(9, Mcts(":IterationBudget=25"), new HeuristicAgent(), new HeuristicAgent());
         game.Loop(record: true);
 
-        var statistics = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+        var statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
-        Assert.IsTrue(searches >= 15, game.Results[0].StatsJson);
+        Assert.IsTrue(searches >= 15, game.Results[0].AgentStatisticsJson);
         Assert.AreEqual(25L * searches, statistics.GetProperty("iterations").GetInt64());
-        Assert.AreEqual("{}", game.Results[1].StatsJson);
-        Assert.IsTrue(statistics.GetProperty("allocatedMb").GetDouble() > 0,
+        Assert.AreEqual("{}", game.Results[1].AgentStatisticsJson);
+        Assert.IsTrue(statistics.GetProperty("allocatedMegabytes").GetDouble() > 0,
                       "it measures the memory its searches allocate");
     }
 
@@ -228,11 +228,12 @@ public class MctsAgentTests
         Game game = NewGame(9, searcher, new HeuristicAgent(), new HeuristicAgent());
         game.Loop(record: true);
 
-        var statistics = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+        var statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
-        Assert.AreEqual(40L * searches, statistics.GetProperty("iterations").GetInt64(), game.Results[0].StatsJson);
-        // one worker is the plain search, with the plain stats
-        Assert.AreEqual(workers > 1, statistics.TryGetProperty("workers", out _), game.Results[0].StatsJson);
+        string statisticsJson = game.Results[0].AgentStatisticsJson;
+        Assert.AreEqual(40L * searches, statistics.GetProperty("iterations").GetInt64(), statisticsJson);
+        // one worker is the plain search, with the plain statistics
+        Assert.AreEqual(workers > 1, statistics.TryGetProperty("parallelWorkerCount", out _), statisticsJson);
     }
 
     [TestMethod]

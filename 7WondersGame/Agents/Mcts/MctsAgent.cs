@@ -91,15 +91,15 @@ public sealed class MctsAgent : IAgent
         {
             ["searches"] = _statistics.Searches,
             ["iterations"] = _statistics.Iterations,
-            ["searchMs"] = Math.Round(_statistics.SearchMilliseconds),
-            ["longestSearchMs"] = Math.Round(_statistics.LongestSearchMilliseconds),
-            ["allocatedMb"] = Math.Round(_statistics.AllocatedBytes / BytesPerMegabyte),
+            ["searchMilliseconds"] = Math.Round(_statistics.SearchMilliseconds),
+            ["longestSearchMilliseconds"] = Math.Round(_statistics.LongestSearchMilliseconds),
+            ["allocatedMegabytes"] = Math.Round(_statistics.AllocatedBytes / BytesPerMegabyte),
         };
         if (IsParallel())
         {
-            statistics["parallel"] = Configuration.Parallelisation.ToString();
-            statistics["workers"] = Configuration.ParallelWorkerCount;
-            statistics["lockWaitMs"] = Math.Round(_statistics.LockWaitMilliseconds);
+            statistics["parallelisation"] = Configuration.Parallelisation.ToString();
+            statistics["parallelWorkerCount"] = Configuration.ParallelWorkerCount;
+            statistics["lockWaitMilliseconds"] = Math.Round(_statistics.LockWaitMilliseconds);
         }
         return JsonSerializer.Serialize(statistics);
     }

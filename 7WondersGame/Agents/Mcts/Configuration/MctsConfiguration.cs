@@ -6,7 +6,7 @@ namespace _7WondersGame.Agents.Mcts.Configuration;
 /// <summary>
 /// Every setting of <see cref="MctsAgent"/>. Each is a setting on the command line, e.g.
 /// <c>MctsAgent:ExplorationConstant=1.2:BackpropagationRule=Paranoid</c>, and is logged in the results
-/// (configJson). The exploration constant is still to be tuned (in [0.3, 2]).
+/// (configurationJson). The exploration constant is still to be tuned (in [0.3, 2]).
 /// </summary>
 [SettingsGroup]
 public sealed class MctsConfiguration

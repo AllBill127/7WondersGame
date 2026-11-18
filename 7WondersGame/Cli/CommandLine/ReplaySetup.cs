@@ -106,7 +106,7 @@ internal sealed class ReplaySetup
 
     private static AgentSpec RecordedSpec(Dictionary<string, string> row)
     {
-        return AgentCatalog.FromResultRow(row["agent"], row["configJson"]);
+        return AgentCatalog.FromResultRow(row["agent"], row["configurationJson"]);
     }
 
     private static bool HasRange(AgentSpec spec)

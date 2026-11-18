@@ -78,7 +78,7 @@ public static class Commands
         {
             RunId = runId,
             RunSeed = plan.Seed,
-            Args = args,
+            Arguments = args,
             Settings = ManifestSettings(plan, experimentCopy, $"{level} ({levelSource})"),
             ResultsCsv = csvPath,
             StartedUtc = started,
@@ -405,7 +405,7 @@ public static class Commands
 
     private static bool SameSeatResult(Dictionary<string, string> row, SeatResult result)
     {
-        return row["vp"] == result.VictoryPoints.ToString(InvariantCulture)
+        return row["victoryPoints"] == result.VictoryPoints.ToString(InvariantCulture)
             && row["coins"] == result.Coins.ToString(InvariantCulture)
             && row["wonder"] == result.Wonder
             && row["side"] == result.Side;
@@ -438,11 +438,11 @@ public static class Commands
         rows = Analysis.MarkSwept(rows, SweptSeats(runs, csv));
 
         GroupBy grouping = ParseGroupBy(cli.GetOrDefault("group-by", "player"));
-        List<GroupStats> groups = Analysis.Groups(rows, grouping);
+        List<GroupStatistics> groups = Analysis.Groups(rows, grouping);
         int? comparedGroup = cli.GetInt("compare-with", 1, groups.Count);
         // all pairs of many groups (e.g. 14 wonders: 91 pairs) is a long list where some differ by chance alone
         bool allPairs = comparedGroup != null || groups.Count <= Analysis.MaxAllPairsGroups;
-        var pairs = new List<PairStats>();
+        var pairs = new List<PairStatistics>();
         if (allPairs)
         {
             pairs = Analysis.Pairs(rows, grouping, groups, comparedGroup);
@@ -518,7 +518,7 @@ public static class Commands
     }
 
     private static void PrintAnalysis(string csv, List<ResultRow> rows, List<string> runs, GroupBy grouping,
-                                      List<GroupStats> groups, List<PairStats> pairs, bool allPairs)
+                                      List<GroupStatistics> groups, List<PairStatistics> pairs, bool allPairs)
     {
         int games = rows.Select(row => (row.RunId, row.GameIndex)).Distinct().Count();
         int deals = rows.Select(row => row.Seed).Distinct().Count();
@@ -555,7 +555,8 @@ public static class Commands
     /// Writes the group table to <paramref name="outputName"/> (a relative name goes next to the results CSV) and the
     /// pairs next to it, as <c>&lt;name&gt;.pairs.csv</c>.
     /// </summary>
-    private static void WriteAnalysis(string outputName, string csv, List<GroupStats> groups, List<PairStats> pairs)
+    private static void WriteAnalysis(string outputName, string csv, List<GroupStatistics> groups,
+                                      List<PairStatistics> pairs)
     {
         string outputPath = outputName;
         if (!Path.IsPathRooted(outputName))
@@ -653,7 +654,7 @@ public static class Commands
             text.AppendLine($"  {entry.Name,-32} {entry.Description}");
             foreach (var (name, type, value) in AgentCatalog.SettingsOf(entry))
             {
-                text.AppendLine($"      {name,-40} {type.Name,-8} default {ShownValue(value)}");
+                text.AppendLine($"      {name,-40} {type.Name,-24} default {ShownValue(value)}");
             }
         }
         text.AppendLine();

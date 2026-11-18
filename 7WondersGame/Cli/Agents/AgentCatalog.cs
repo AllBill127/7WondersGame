@@ -245,11 +245,11 @@ public static class AgentCatalog
         return sweep;
     }
 
-    /// <summary>The spec that rebuilds an agent from a results row (agent name + configJson).</summary>
-    public static AgentSpec FromResultRow(string agent, string configJson)
+    /// <summary>The spec that rebuilds an agent from a results row (agent name + configurationJson).</summary>
+    public static AgentSpec FromResultRow(string agent, string configurationJson)
     {
         var settings = new List<KeyValuePair<string, string>>();
-        using (JsonDocument doc = JsonDocument.Parse(configJson))
+        using (JsonDocument doc = JsonDocument.Parse(configurationJson))
         {
             foreach (JsonProperty property in doc.RootElement.EnumerateObject())
             {
@@ -260,7 +260,7 @@ public static class AgentCatalog
     }
 
     /// <summary>
-    /// A setting's value in a configJson object as the command line writes it: a string without quotes.
+    /// A setting's value in a configurationJson object as the command line writes it: a string without quotes.
     /// </summary>
     internal static string SettingValueText(JsonElement value)
     {

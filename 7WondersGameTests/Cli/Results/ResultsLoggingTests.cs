@@ -93,8 +93,8 @@ public class ResultsLoggingTests
 
         string row = ResultsCsvWriter.FormatRow("run1", 4, 1, 18446744073709551615UL, seat);
 
-        string expected = "run1,4,1,18446744073709551615,2,SomeAgent,\"{\"\"c\"\":1.5,\"\"n\"\":2}\"," +
-                          "Gizah,B,51,7,1,0.5,\"{\"\"searches\"\":3,\"\"iterations\"\":30}\"";
+        string expected = "run1;4;1;18446744073709551615;2;SomeAgent;\"{\"\"c\"\":1.5,\"\"n\"\":2}\";" +
+                          "Gizah;B;51;7;1;0.5;\"{\"\"searches\"\":3,\"\"iterations\"\":30}\"";
         Assert.AreEqual(expected, row);
     }
 
@@ -117,8 +117,8 @@ public class ResultsLoggingTests
         string[] lines = File.ReadAllLines(path);
         Assert.AreEqual(ResultsCsvWriter.Header, lines[0]);
         Assert.AreEqual(1 + 6, lines.Length);
-        Assert.AreEqual(3, lines.Count(line => line.StartsWith("runA,")));
-        Assert.AreEqual(3, lines.Count(line => line.StartsWith("runB,")));
+        Assert.AreEqual(3, lines.Count(line => line.StartsWith("runA;")));
+        Assert.AreEqual(3, lines.Count(line => line.StartsWith("runB;")));
     }
 
     [TestMethod]
@@ -140,7 +140,7 @@ public class ResultsLoggingTests
             Parallel.For(0, 200, gameWriter.WriteGame);
         }
 
-        var rows = File.ReadAllLines(path).Skip(1).Select(line => line.Split(',')).ToList();
+        var rows = File.ReadAllLines(path).Skip(1).Select(line => line.Split(ResultsCsvWriter.Separator)).ToList();
         Assert.AreEqual(600, rows.Count);
         Assert.IsTrue(rows.All(row => row.Length == ResultsCsvWriter.Columns.Length));
         // a game's 3 rows are written together

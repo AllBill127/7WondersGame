@@ -18,13 +18,13 @@ public sealed class MachineInfo
     public int LogicalCores { get; init; }
 
     /// <summary>The operating system.</summary>
-    public string Os { get; init; } = "";
+    public string OperatingSystem { get; init; } = "";
 
     /// <summary>The .NET runtime.</summary>
     public string Runtime { get; init; } = "";
 
     /// <summary>"server" or "workstation", and whether it is concurrent.</summary>
-    public string Gc { get; init; } = "";
+    public string GarbageCollector { get; init; } = "";
 
     /// <summary>This machine.</summary>
     public static MachineInfo Current()
@@ -33,13 +33,13 @@ public sealed class MachineInfo
         {
             Cpu = CpuName(),
             LogicalCores = Environment.ProcessorCount,
-            Os = RuntimeInformation.OSDescription.Trim(),
+            OperatingSystem = RuntimeInformation.OSDescription.Trim(),
             Runtime = RuntimeInformation.FrameworkDescription,
-            Gc = GcDescription(),
+            GarbageCollector = GarbageCollectorDescription(),
         };
     }
 
-    private static string GcDescription()
+    private static string GarbageCollectorDescription()
     {
         string description = "workstation";
         if (GCSettings.IsServerGC)
@@ -58,7 +58,7 @@ public sealed class MachineInfo
         string? name = null;
         try
         {
-            if (OperatingSystem.IsWindows())
+            if (System.OperatingSystem.IsWindows())
             {
                 name = WindowsCpuName();
             }

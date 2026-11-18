@@ -18,7 +18,7 @@ public sealed class RunManifest
     public ulong RunSeed { get; init; }
 
     /// <summary>The command line as given.</summary>
-    public string[] Args { get; init; } = Array.Empty<string>();
+    public string[] Arguments { get; init; } = Array.Empty<string>();
 
     /// <summary>The run's options as the program understood them, by name.</summary>
     public Dictionary<string, string> Settings { get; init; } = new();

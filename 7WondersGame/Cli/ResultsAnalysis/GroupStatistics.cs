@@ -4,11 +4,11 @@
 /// A group's results. Wins counts a k-way tie for first as 1/k (the winShare column). The win rate's interval is
 /// the 95% Wilson score interval; FairShare is what a player no better than the others would get (1 / players).
 /// </summary>
-public sealed class GroupStats
+public sealed class GroupStatistics
 {
     /// <summary>A group's results with these values.</summary>
-    public GroupStats(int number, string label, string key, int games, double wins, double winRate,
-                      double winLow, double winHigh, double fairShare, double meanVictoryPoints,
+    public GroupStatistics(int number, string label, string key, int games, double wins, double winRate,
+                      double winRateLow, double winRateHigh, double fairShare, double meanVictoryPoints,
                       double victoryPointsStandardError, double meanRank)
     {
         Number = number;
@@ -17,11 +17,11 @@ public sealed class GroupStats
         Games = games;
         Wins = wins;
         WinRate = winRate;
-        WinLow = winLow;
-        WinHigh = winHigh;
+        WinRateLow = winRateLow;
+        WinRateHigh = winRateHigh;
         FairShare = fairShare;
-        MeanVp = meanVictoryPoints;
-        VpSe = victoryPointsStandardError;
+        MeanVictoryPoints = meanVictoryPoints;
+        VictoryPointsStandardError = victoryPointsStandardError;
         MeanRank = meanRank;
     }
 
@@ -44,19 +44,19 @@ public sealed class GroupStats
     public double WinRate { get; }
 
     /// <summary>The low end of the win rate's 95% Wilson interval.</summary>
-    public double WinLow { get; }
+    public double WinRateLow { get; }
 
     /// <summary>The high end of the win rate's 95% Wilson interval.</summary>
-    public double WinHigh { get; }
+    public double WinRateHigh { get; }
 
     /// <summary>The win rate of a player no better than the others (1 / players).</summary>
     public double FairShare { get; }
 
     /// <summary>The mean victory points.</summary>
-    public double MeanVp { get; }
+    public double MeanVictoryPoints { get; }
 
-    /// <summary>The standard error of <see cref="MeanVp"/>.</summary>
-    public double VpSe { get; }
+    /// <summary>The standard error of <see cref="MeanVictoryPoints"/>.</summary>
+    public double VictoryPointsStandardError { get; }
 
     /// <summary>The mean place (1 = first).</summary>
     public double MeanRank { get; }

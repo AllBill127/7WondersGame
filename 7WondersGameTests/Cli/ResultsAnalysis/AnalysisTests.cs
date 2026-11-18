@@ -74,10 +74,10 @@ public class AnalysisTests
     [TestMethod]
     public void MeanSe_IsTheStandardErrorOfTheMean()
     {
-        var (mean, se) = Analysis.MeanSe(new[] { 1.0, 2, 3, 4 });
+        var (mean, se) = Analysis.MeanAndStandardError(new[] { 1.0, 2, 3, 4 });
         Assert.AreEqual(2.5, mean, 1e-12);
         Assert.AreEqual(Math.Sqrt(5.0 / 3 / 4), se, 1e-12);
-        Assert.AreEqual((7.0, 0.0), Analysis.MeanSe(new[] { 7.0 }));
+        Assert.AreEqual((7.0, 0.0), Analysis.MeanAndStandardError(new[] { 7.0 }));
     }
 
     [TestMethod]
@@ -91,23 +91,24 @@ public class AnalysisTests
             Row("s3", 2, 0, "A", 40, 0), Row("s3", 2, 1, "B", 34, 0), Row("s3", 2, 2, "C", 45, 1),
         };
 
-        List<GroupStats> groups = Analysis.Groups(rows, GroupBy.Agent);
+        List<GroupStatistics> groups = Analysis.Groups(rows, GroupBy.Agent);
 
         CollectionAssert.AreEqual(new[] { "A", "B", "C" }, groups.Select(group => group.Label).ToArray());
         Assert.AreEqual(1.5, groups[0].Wins, 1e-12);
         Assert.AreEqual(0.5, groups[0].WinRate, 1e-12);
         Assert.AreEqual(1.0 / 3, groups[0].FairShare, 1e-12);
 
-        PairStats pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
+        PairStatistics pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
         Assert.AreEqual(3, pair.Deals);
-        Assert.AreEqual(4, pair.VpDiff, 1e-12);
-        Assert.AreEqual(Analysis.MeanSe(new[] { 2.0, 4, 6 }).Se, pair.VpDiffSe, 1e-12);
-        Assert.AreEqual(0.5, pair.WinDiff, 1e-12);
-        Assert.IsTrue(pair.VpDiffers);
+        Assert.AreEqual(4, pair.VictoryPointDifference, 1e-12);
+        double expectedStandardError = Analysis.MeanAndStandardError(new[] { 2.0, 4, 6 }).StandardError;
+        Assert.AreEqual(expectedStandardError, pair.VictoryPointDifferenceStandardError, 1e-12);
+        Assert.AreEqual(0.5, pair.WinRateDifference, 1e-12);
+        Assert.IsTrue(pair.VictoryPointDifferenceIsSignificant);
 
         Assert.AreEqual(3, Analysis.Pairs(rows, GroupBy.Agent, groups, null).Count);
-        List<PairStats> vsB = Analysis.Pairs(rows, GroupBy.Agent, groups, 2);
-        string[] pairLabels = vsB.Select(pair => $"{pair.A.Label}-{pair.B.Label}").ToArray();
+        List<PairStatistics> vsB = Analysis.Pairs(rows, GroupBy.Agent, groups, 2);
+        string[] pairLabels = vsB.Select(pair => $"{pair.GroupA.Label}-{pair.GroupB.Label}").ToArray();
         CollectionAssert.AreEqual(new[] { "A-B", "C-B" }, pairLabels);
     }
 
@@ -120,13 +121,13 @@ public class AnalysisTests
             Row("s1", 0, 0, "x", 50, 1), Row("s2", 1, 0, "x", 40, 0),
             Row("s2", 2, 0, "y", 30, 0), Row("s2", 3, 1, "y", 36, 0), Row("s3", 4, 0, "y", 60, 1),
         };
-        List<GroupStats> groups = Analysis.Groups(rows, GroupBy.Agent);
+        List<GroupStatistics> groups = Analysis.Groups(rows, GroupBy.Agent);
 
-        PairStats pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
+        PairStatistics pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
 
         Assert.AreEqual(1, pair.Deals);
-        Assert.AreEqual(40 - 33, pair.VpDiff, 1e-12);
-        Assert.IsFalse(pair.VpDiffers, "one deal tells nothing about chance");
+        Assert.AreEqual(40 - 33, pair.VictoryPointDifference, 1e-12);
+        Assert.IsFalse(pair.VictoryPointDifferenceIsSignificant, "one deal tells nothing about chance");
     }
 
     [TestMethod]
@@ -217,12 +218,12 @@ public class AnalysisTests
         File.WriteAllLines(csv, new[]
         {
             ResultsCsvWriter.Header,
-            "r1,0,0,1,0,A,{},GizahA,A,50,3,1,1,{}",
-            "r1,0,0,1,1,B,{},RhodosA,A,40,3,2,0,{}",
-            "r1,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
-            "r2,0,0,1,0,A,{},GizahA,A,50,3,1,1,{}",
-            "r2,0,0,1,1,B,{},RhodosA,A,40,3,2,0,{}",
-            "r2,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
+            "r1;0;0;1;0;A;{};GizahA;A;50;3;1;1;{}",
+            "r1;0;0;1;1;B;{};RhodosA;A;40;3;2;0;{}",
+            "r1;0;0;1;2;B;{};EphesosA;A;30;3;3;0;{}",
+            "r2;0;0;1;0;A;{};GizahA;A;50;3;1;1;{}",
+            "r2;0;0;1;1;B;{};RhodosA;A;40;3;2;0;{}",
+            "r2;0;0;1;2;B;{};EphesosA;A;30;3;3;0;{}",
         });
 
         CliArguments noRun = CliArguments.Parse(new[] { "analyze", "--from", csv });

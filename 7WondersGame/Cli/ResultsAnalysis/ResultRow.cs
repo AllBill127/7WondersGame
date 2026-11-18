@@ -8,7 +8,7 @@ namespace _7WondersGame.Cli.ResultsAnalysis;
 public sealed class ResultRow
 {
     /// <summary>A row with these column values.</summary>
-    public ResultRow(string runId, long gameIndex, string seed, int seat, string agent, string configJson,
+    public ResultRow(string runId, long gameIndex, string seed, int seat, string agent, string configurationJson,
                      string wonder, int victoryPoints, int rank, double winShare, int players, bool swept = false)
     {
         RunId = runId;
@@ -16,9 +16,9 @@ public sealed class ResultRow
         Seed = seed;
         Seat = seat;
         Agent = agent;
-        ConfigJson = configJson;
+        ConfigurationJson = configurationJson;
         Wonder = wonder;
-        Vp = victoryPoints;
+        VictoryPoints = victoryPoints;
         Rank = rank;
         WinShare = winShare;
         Players = players;
@@ -41,13 +41,13 @@ public sealed class ResultRow
     public string Agent { get; }
 
     /// <summary>The agent's settings as JSON.</summary>
-    public string ConfigJson { get; }
+    public string ConfigurationJson { get; }
 
     /// <summary>The wonder board and side, e.g. <c>GizahA</c>.</summary>
     public string Wonder { get; }
 
     /// <summary>The seat's final victory points.</summary>
-    public int Vp { get; }
+    public int VictoryPoints { get; }
 
     /// <summary>The seat's place, 1 for the winner.</summary>
     public int Rank { get; }
@@ -64,15 +64,15 @@ public sealed class ResultRow
     /// <summary>A copy of this row with the player count set.</summary>
     public ResultRow WithPlayers(int players)
     {
-        return new ResultRow(RunId, GameIndex, Seed, Seat, Agent, ConfigJson, Wonder, Vp, Rank, WinShare, players,
-                             Swept);
+        return new ResultRow(RunId, GameIndex, Seed, Seat, Agent, ConfigurationJson, Wonder, VictoryPoints, Rank,
+                             WinShare, players, Swept);
     }
 
     /// <summary>A copy of this row marked as the swept agent's.</summary>
     public ResultRow AsSwept()
     {
-        return new ResultRow(RunId, GameIndex, Seed, Seat, Agent, ConfigJson, Wonder, Vp, Rank, WinShare, Players,
-                             swept: true);
+        return new ResultRow(RunId, GameIndex, Seed, Seat, Agent, ConfigurationJson, Wonder, VictoryPoints, Rank,
+                             WinShare, Players, swept: true);
     }
 
     /// <summary>The rows of a results CSV, with each game's player count worked out from its rows.</summary>
@@ -95,18 +95,18 @@ public sealed class ResultRow
     /// <summary>One CSV row (column → value), the player count not yet known (0).</summary>
     private static ResultRow FromCsv(Dictionary<string, string> csvRow)
     {
-        var inv = CultureInfo.InvariantCulture;
+        var invariantCulture = CultureInfo.InvariantCulture;
         return new ResultRow(
             csvRow["runId"],
-            long.Parse(csvRow["gameIndex"], inv),
+            long.Parse(csvRow["gameIndex"], invariantCulture),
             csvRow["seed"],
-            int.Parse(csvRow["seat"], inv),
+            int.Parse(csvRow["seat"], invariantCulture),
             csvRow["agent"],
-            csvRow["configJson"],
+            csvRow["configurationJson"],
             csvRow["wonder"] + csvRow["side"],
-            int.Parse(csvRow["vp"], inv),
-            int.Parse(csvRow["rank"], inv),
-            double.Parse(csvRow["winShare"], inv),
+            int.Parse(csvRow["victoryPoints"], invariantCulture),
+            int.Parse(csvRow["rank"], invariantCulture),
+            double.Parse(csvRow["winShare"], invariantCulture),
             0);
     }
 }

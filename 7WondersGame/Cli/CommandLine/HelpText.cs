@@ -87,7 +87,7 @@ Required:
 Optional:
   --steps <n>         With a range a..b: the number of evenly spaced values, both ends included.
                       Every value plays the same deals, so values are compared on equal games.
-                      The value each game used is in the configJson column.
+                      The value each game used is in the configurationJson column.
   --rotate yes|no     yes: play each deal once per rotation of the line-up (as many seatings as
                       players), so every agent sits in every seat on the same deals and seat
                       advantage cancels out. Each seat keeps its wonder; the agents move on one

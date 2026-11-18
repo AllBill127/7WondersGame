@@ -18,21 +18,23 @@ public static class Analysis
     /// <summary>The columns of the group table's CSV.</summary>
     public static readonly string[] GroupColumns =
     {
-        "group", "label", "key", "games", "wins", "winRate", "winLow95", "winHigh95", "fairShare", "meanVp", "vpSe",
-        "meanRank",
+        "group", "label", "key", "games", "wins", "winRate", "winRateLow95", "winRateHigh95", "fairShare",
+        "meanVictoryPoints", "victoryPointsStandardError", "meanRank",
     };
 
     /// <summary>The columns of the pairs' CSV.</summary>
     public static readonly string[] PairColumns =
     {
-        "groupA", "labelA", "groupB", "labelB", "deals", "vpDiff", "vpDiffSe", "vpDiffLow95", "vpDiffHigh95",
-        "winDiff", "winDiffSe", "winDiffLow95", "winDiffHigh95",
+        "groupA", "labelA", "groupB", "labelB", "deals",
+        "victoryPointDifference", "victoryPointDifferenceStandardError",
+        "victoryPointDifferenceLow95", "victoryPointDifferenceHigh95",
+        "winRateDifference", "winRateDifferenceStandardError", "winRateDifferenceLow95", "winRateDifferenceHigh95",
     };
 
     private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     /// <summary>The 95% Wilson score interval for <paramref name="wins"/> out of <paramref name="games"/>.</summary>
-    public static (double Low, double High) Wilson(double wins, int games, double zScore = PairStats.Z95)
+    public static (double Low, double High) Wilson(double wins, int games, double zScore = PairStatistics.ZScore95)
     {
         if (games == 0)
         {
@@ -47,7 +49,7 @@ public static class Analysis
     }
 
     /// <summary>Mean and standard error of the mean (0 for fewer than 2 values).</summary>
-    public static (double Mean, double Se) MeanSe(IReadOnlyList<double> values)
+    public static (double Mean, double StandardError) MeanAndStandardError(IReadOnlyList<double> values)
     {
         if (values.Count == 0)
         {
@@ -105,7 +107,7 @@ public static class Analysis
     /// <summary>The agent and its settings; the swept agent apart from the others.</summary>
     private static string PlayerKeyOf(ResultRow row)
     {
-        string key = row.Agent + " " + row.ConfigJson;
+        string key = row.Agent + " " + row.ConfigurationJson;
         if (row.Swept)
         {
             return "swept " + key;
@@ -117,18 +119,18 @@ public static class Analysis
     /// The groups, numbered from 1 in the order the run plays them (by first game, then seat; not by when games
     /// finished), so a sweep's values come in order.
     /// </summary>
-    public static List<GroupStats> Groups(IReadOnlyList<ResultRow> rows, GroupBy grouping)
+    public static List<GroupStatistics> Groups(IReadOnlyList<ResultRow> rows, GroupBy grouping)
     {
         var groups = rows.GroupBy(row => KeyOf(row, grouping))
             .OrderBy(FirstPlayed)
             .ToList();
         Dictionary<string, string> labels = LabelsOf(groups, grouping);
 
-        var statistics = new List<GroupStats>(groups.Count);
+        var statistics = new List<GroupStatistics>(groups.Count);
         for (int groupIndex = 0; groupIndex < groups.Count; groupIndex++)
         {
             int number = groupIndex + 1;
-            statistics.Add(StatsOf(groups[groupIndex], number, labels[groups[groupIndex].Key]));
+            statistics.Add(StatisticsOf(groups[groupIndex], number, labels[groups[groupIndex].Key]));
         }
         return statistics;
     }
@@ -154,23 +156,23 @@ public static class Analysis
         return groups.ToDictionary(group => group.Key, group => group.Key);
     }
 
-    private static (string Key, string Agent, string ConfigJson, bool Swept) PlayerGroupOf(
+    private static (string Key, string Agent, string ConfigurationJson, bool Swept) PlayerGroupOf(
         IGrouping<string, ResultRow> group)
     {
         ResultRow first = group.First();
-        return (group.Key, first.Agent, first.ConfigJson, first.Swept);
+        return (group.Key, first.Agent, first.ConfigurationJson, first.Swept);
     }
 
-    private static GroupStats StatsOf(IGrouping<string, ResultRow> group, int number, string label)
+    private static GroupStatistics StatisticsOf(IGrouping<string, ResultRow> group, int number, string label)
     {
         int games = group.Count();
         double wins = group.Sum(row => row.WinShare);
         var (low, high) = Wilson(wins, games);
-        List<double> victoryPoints = group.Select(row => (double)row.Vp).ToList();
-        var (meanVictoryPoints, victoryPointsStandardError) = MeanSe(victoryPoints);
+        List<double> victoryPoints = group.Select(row => (double)row.VictoryPoints).ToList();
+        var (meanVictoryPoints, victoryPointsStandardError) = MeanAndStandardError(victoryPoints);
         double fairShare = group.Average(row => 1.0 / row.Players);
         double meanRank = group.Average(row => (double)row.Rank);
-        return new GroupStats(number, label, group.Key, games, wins, wins / games, low, high, fairShare,
+        return new GroupStatistics(number, label, group.Key, games, wins, wins / games, low, high, fairShare,
                               meanVictoryPoints, victoryPointsStandardError, meanRank);
     }
 
@@ -181,13 +183,14 @@ public static class Analysis
     /// value equals it).
     /// </summary>
     public static Dictionary<string, string> PlayerLabels(
-        IReadOnlyList<(string Key, string Agent, string ConfigJson, bool Swept)> groups)
+        IReadOnlyList<(string Key, string Agent, string ConfigurationJson, bool Swept)> groups)
     {
         var labels = new Dictionary<string, string>();
         foreach (var sameAgent in groups.GroupBy(group => (group.Agent, group.Swept)))
         {
-            var settingsByGroup = sameAgent.Select(group => (group.Key, Settings: ParseConfig(group.ConfigJson)))
-                                           .ToList();
+            var settingsByGroup = sameAgent
+                .Select(group => (group.Key, Settings: ParseConfiguration(group.ConfigurationJson)))
+                .ToList();
             List<string> differing = DifferingSettings(settingsByGroup);
             foreach (var (key, settings) in settingsByGroup)
             {
@@ -256,7 +259,7 @@ public static class Analysis
         return "-";
     }
 
-    private static Dictionary<string, string> ParseConfig(string json)
+    private static Dictionary<string, string> ParseConfiguration(string json)
     {
         var settings = new Dictionary<string, string>(StringComparer.Ordinal);
         try
@@ -280,8 +283,8 @@ public static class Analysis
     }
 
     /// <summary>The paired comparison of two groups over the deals both played (null if they share none).</summary>
-    public static PairStats? Compare(IReadOnlyList<ResultRow> rows, GroupBy grouping, GroupStats groupA,
-                                     GroupStats groupB)
+    public static PairStatistics? Compare(IReadOnlyList<ResultRow> rows, GroupBy grouping, GroupStatistics groupA,
+                                     GroupStatistics groupB)
     {
         var dealsA = PerDeal(rows, grouping, groupA);
         var dealsB = PerDeal(rows, grouping, groupB);
@@ -290,40 +293,43 @@ public static class Analysis
         {
             return null;
         }
-        List<double> victoryPointDifferences = shared.Select(deal => dealsA[deal].Vp - dealsB[deal].Vp).ToList();
-        List<double> winDifferences = shared.Select(deal => dealsA[deal].Win - dealsB[deal].Win).ToList();
-        var (victoryPointDifference, victoryPointDifferenceStandardError) = MeanSe(victoryPointDifferences);
-        var (winDifference, winDifferenceStandardError) = MeanSe(winDifferences);
-        return new PairStats(groupA, groupB, shared.Count, victoryPointDifference, victoryPointDifferenceStandardError,
-                             winDifference, winDifferenceStandardError);
+        List<double> victoryPointDifferences = shared
+            .Select(deal => dealsA[deal].VictoryPoints - dealsB[deal].VictoryPoints)
+            .ToList();
+        List<double> winDifferences = shared.Select(deal => dealsA[deal].WinShare - dealsB[deal].WinShare).ToList();
+        var (victoryPointDifference, victoryPointDifferenceStandardError) =
+            MeanAndStandardError(victoryPointDifferences);
+        var (winDifference, winDifferenceStandardError) = MeanAndStandardError(winDifferences);
+        return new PairStatistics(groupA, groupB, shared.Count, victoryPointDifference,
+                                  victoryPointDifferenceStandardError, winDifference, winDifferenceStandardError);
     }
 
     /// <summary>The group's mean VP and win share on each deal it played, by the deal's seed.</summary>
-    private static Dictionary<string, (double Vp, double Win)> PerDeal(IReadOnlyList<ResultRow> rows, GroupBy grouping,
-                                                                       GroupStats group)
+    private static Dictionary<string, (double VictoryPoints, double WinShare)> PerDeal(
+        IReadOnlyList<ResultRow> rows, GroupBy grouping, GroupStatistics group)
     {
         return rows.Where(row => KeyOf(row, grouping) == group.Key)
             .GroupBy(row => row.Seed)
             .ToDictionary(deal => deal.Key, AveragesOf);
     }
 
-    private static (double Vp, double Win) AveragesOf(IGrouping<string, ResultRow> deal)
+    private static (double VictoryPoints, double WinShare) AveragesOf(IGrouping<string, ResultRow> deal)
     {
-        return (deal.Average(row => (double)row.Vp), deal.Average(row => row.WinShare));
+        return (deal.Average(row => (double)row.VictoryPoints), deal.Average(row => row.WinShare));
     }
 
     /// <summary>
     /// Every pair of groups, or every group against group <paramref name="compare-with"/>, that played shared deals.
     /// </summary>
-    public static List<PairStats> Pairs(IReadOnlyList<ResultRow> rows, GroupBy grouping,
-                                        IReadOnlyList<GroupStats> groups,
+    public static List<PairStatistics> Pairs(IReadOnlyList<ResultRow> rows, GroupBy grouping,
+                                        IReadOnlyList<GroupStatistics> groups,
                                         int? comparedGroup)
     {
-        var pairs = new List<(GroupStats, GroupStats)>();
+        var pairs = new List<(GroupStatistics, GroupStatistics)>();
         if (comparedGroup != null)
         {
-            GroupStats baseline = groups.Single(group => group.Number == comparedGroup.Value);
-            foreach (GroupStats group in groups)
+            GroupStatistics baseline = groups.Single(group => group.Number == comparedGroup.Value);
+            foreach (GroupStatistics group in groups)
             {
                 if (group != baseline)
                 {
@@ -342,10 +348,10 @@ public static class Analysis
             }
         }
 
-        var compared = new List<PairStats>();
+        var compared = new List<PairStatistics>();
         foreach (var (first, second) in pairs)
         {
-            PairStats? pair = Compare(rows, grouping, first, second);
+            PairStatistics? pair = Compare(rows, grouping, first, second);
             if (pair != null)
             {
                 compared.Add(pair);
@@ -362,16 +368,19 @@ public static class Analysis
     }
 
     /// <summary>The groups as a printed table.</summary>
-    public static string GroupsTable(IReadOnlyList<GroupStats> groups)
+    public static string GroupsTable(IReadOnlyList<GroupStatistics> groups)
     {
         int width = Math.Max(5, groups.Max(group => group.Label.Length));
         var table = new StringBuilder();
         table.AppendLine($"{"#",3}  {"Group".PadRight(width)}  {"Games",6}  {"Win rate",8}  {"95% interval",15}  " +
                          $"{"Fair",5}  {"Mean VP",13}  {"Rank",5}");
-        foreach (GroupStats group in groups)
+        foreach (GroupStatistics group in groups)
         {
-            string interval = "[" + Formatted(group.WinLow, "0.000") + ", " + Formatted(group.WinHigh, "0.000") + "]";
-            string meanVictoryPoints = Formatted(group.MeanVp, "0.00") + " +- " + Formatted(group.VpSe, "0.00");
+            string winRateLow = Formatted(group.WinRateLow, "0.000");
+            string winRateHigh = Formatted(group.WinRateHigh, "0.000");
+            string interval = "[" + winRateLow + ", " + winRateHigh + "]";
+            string meanVictoryPoints = Formatted(group.MeanVictoryPoints, "0.00") + " +- " +
+                                       Formatted(group.VictoryPointsStandardError, "0.00");
             string winRate = Formatted(group.WinRate, "0.000");
             string fairShare = Formatted(group.FairShare, "0.00");
             string meanRank = Formatted(group.MeanRank, "0.00");
@@ -382,21 +391,22 @@ public static class Analysis
     }
 
     /// <summary>The paired differences as a printed table, with a star where the interval leaves out 0.</summary>
-    public static string PairsTable(IReadOnlyList<PairStats> pairs)
+    public static string PairsTable(IReadOnlyList<PairStatistics> pairs)
     {
         var table = new StringBuilder();
         table.AppendLine($"{"A - B",9}  {"Deals",5}  {"VP diff",8}  {"95% interval",17}  {"Win diff",8}  " +
                          $"{"95% interval",17}");
-        foreach (PairStats pair in pairs)
+        foreach (PairStatistics pair in pairs)
         {
-            string name = $"{pair.A.Number} - {pair.B.Number}";
-            string victoryPointDifference = Formatted(pair.VpDiff, "+0.00;-0.00;0.00");
-            string victoryPointInterval = Interval(pair.VpDiff, pair.VpDiffSe, "0.00");
-            string winDifference = Formatted(pair.WinDiff, "+0.000;-0.000;0.000");
-            string winInterval = Interval(pair.WinDiff, pair.WinDiffSe, "0.000");
+            string name = $"{pair.GroupA.Number} - {pair.GroupB.Number}";
+            string victoryPointDifference = Formatted(pair.VictoryPointDifference, "+0.00;-0.00;0.00");
+            string victoryPointInterval = Interval(pair.VictoryPointDifference,
+                                                   pair.VictoryPointDifferenceStandardError, "0.00");
+            string winDifference = Formatted(pair.WinRateDifference, "+0.000;-0.000;0.000");
+            string winInterval = Interval(pair.WinRateDifference, pair.WinRateDifferenceStandardError, "0.000");
             table.AppendLine($"{name,9}  {pair.Deals,5}  {victoryPointDifference,8}  " +
-                             $"{victoryPointInterval,17}{DiffersMark(pair.VpDiffers)}" +
-                             $" {winDifference,8}  {winInterval,17}{DiffersMark(pair.WinDiffers)}");
+                             $"{victoryPointInterval,17}{DiffersMark(pair.VictoryPointDifferenceIsSignificant)}" +
+                             $" {winDifference,8}  {winInterval,17}{DiffersMark(pair.WinRateDifferenceIsSignificant)}");
         }
         table.AppendLine("* the 95% interval leaves out 0: the difference is unlikely to be chance.");
         return table.ToString();
@@ -413,45 +423,46 @@ public static class Analysis
 
     private static string Interval(double mean, double standardError, string format)
     {
-        string low = Formatted(mean - PairStats.Z95 * standardError, format);
-        string high = Formatted(mean + PairStats.Z95 * standardError, format);
+        string low = Formatted(mean - PairStatistics.ZScore95 * standardError, format);
+        string high = Formatted(mean + PairStatistics.ZScore95 * standardError, format);
         return "[" + low + ", " + high + "]";
     }
 
     /// <summary>The group table as CSV lines, the header first.</summary>
-    public static IEnumerable<string> GroupsCsv(IEnumerable<GroupStats> groups)
+    public static IEnumerable<string> GroupsCsv(IEnumerable<GroupStatistics> groups)
     {
-        var lines = new List<string> { string.Join(",", GroupColumns) };
-        foreach (GroupStats group in groups)
+        var lines = new List<string> { string.Join(ResultsCsvWriter.Separator, GroupColumns) };
+        foreach (GroupStatistics group in groups)
         {
             lines.Add(Row(group.Number.ToString(InvariantCulture), group.Label, group.Key,
                           group.Games.ToString(InvariantCulture),
                           RoundForOutput(group.Wins), RoundForOutput(group.WinRate),
-                          RoundForOutput(group.WinLow), RoundForOutput(group.WinHigh),
+                          RoundForOutput(group.WinRateLow), RoundForOutput(group.WinRateHigh),
                           RoundForOutput(group.FairShare),
-                          RoundForOutput(group.MeanVp), RoundForOutput(group.VpSe),
+                          RoundForOutput(group.MeanVictoryPoints), RoundForOutput(group.VictoryPointsStandardError),
                           RoundForOutput(group.MeanRank)));
         }
         return lines;
     }
 
     /// <summary>The paired differences as CSV lines, the header first.</summary>
-    public static IEnumerable<string> PairsCsv(IEnumerable<PairStats> pairs)
+    public static IEnumerable<string> PairsCsv(IEnumerable<PairStatistics> pairs)
     {
-        var lines = new List<string> { string.Join(",", PairColumns) };
-        foreach (PairStats pair in pairs)
+        var lines = new List<string> { string.Join(ResultsCsvWriter.Separator, PairColumns) };
+        foreach (PairStatistics pair in pairs)
         {
-            double victoryPointMargin = PairStats.Z95 * pair.VpDiffSe;
-            double winMargin = PairStats.Z95 * pair.WinDiffSe;
-            lines.Add(Row(pair.A.Number.ToString(InvariantCulture), pair.A.Label,
-                          pair.B.Number.ToString(InvariantCulture), pair.B.Label,
+            double victoryPointMargin = PairStatistics.ZScore95 * pair.VictoryPointDifferenceStandardError;
+            double winMargin = PairStatistics.ZScore95 * pair.WinRateDifferenceStandardError;
+            lines.Add(Row(pair.GroupA.Number.ToString(InvariantCulture), pair.GroupA.Label,
+                          pair.GroupB.Number.ToString(InvariantCulture), pair.GroupB.Label,
                           pair.Deals.ToString(InvariantCulture),
-                          RoundForOutput(pair.VpDiff), RoundForOutput(pair.VpDiffSe),
-                          RoundForOutput(pair.VpDiff - victoryPointMargin),
-                          RoundForOutput(pair.VpDiff + victoryPointMargin),
-                          RoundForOutput(pair.WinDiff), RoundForOutput(pair.WinDiffSe),
-                          RoundForOutput(pair.WinDiff - winMargin),
-                          RoundForOutput(pair.WinDiff + winMargin)));
+                          RoundForOutput(pair.VictoryPointDifference),
+                          RoundForOutput(pair.VictoryPointDifferenceStandardError),
+                          RoundForOutput(pair.VictoryPointDifference - victoryPointMargin),
+                          RoundForOutput(pair.VictoryPointDifference + victoryPointMargin),
+                          RoundForOutput(pair.WinRateDifference), RoundForOutput(pair.WinRateDifferenceStandardError),
+                          RoundForOutput(pair.WinRateDifference - winMargin),
+                          RoundForOutput(pair.WinRateDifference + winMargin)));
         }
         return lines;
     }
@@ -463,6 +474,6 @@ public static class Analysis
 
     private static string Row(params string[] fields)
     {
-        return string.Join(",", fields.Select(ResultsCsvWriter.Escape));
+        return string.Join(ResultsCsvWriter.Separator, fields.Select(ResultsCsvWriter.Escape));
     }
 }
