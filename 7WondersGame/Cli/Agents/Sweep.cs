@@ -8,6 +8,8 @@ namespace _7WondersGame.Cli.Agents;
 /// </summary>
 public sealed class Sweep : IEquatable<Sweep>
 {
+    private const string RangeDots = "..";
+
     /// <summary>The range setting <paramref name="setting"/> of seat <paramref name="seat"/>.</summary>
     public Sweep(int seat, string setting, double from, double to, int steps)
     {
@@ -59,15 +61,31 @@ public sealed class Sweep : IEquatable<Sweep>
         return HashCode.Combine(Seat, Setting, From, To, Steps);
     }
 
-    // same arithmetic as the old C sweep (minC + k * ((maxC - minC) / intervals)), so its values are reproduced exactly
-    public double ValueAt(int step) => From + step * ((To - From) / (Steps - 1));
+    /// <summary>
+    /// The value at <paramref name="step"/>: <see cref="From"/> at step 0, <see cref="To"/> at the last.
+    /// </summary>
+    public double ValueAt(int step)
+    {
+        // same arithmetic as the old C sweep (minC + k * ((maxC - minC) / intervals)), so its values are reproduced
+        // exactly
+        return From + step * ((To - From) / (Steps - 1));
+    }
 
+    /// <summary>Whether <paramref name="value"/> is a range <c>a..b</c> of two numbers, and its ends.</summary>
     public static bool TryParseRange(string value, out double from, out double to)
     {
-        from = to = 0;
-        int dots = value.IndexOf("..", StringComparison.Ordinal);
-        return dots > 0 &&
-               double.TryParse(value[..dots], NumberStyles.Float, CultureInfo.InvariantCulture, out from) &&
-               double.TryParse(value[(dots + 2)..], NumberStyles.Float, CultureInfo.InvariantCulture, out to);
+        from = 0;
+        to = 0;
+        int dots = value.IndexOf(RangeDots, StringComparison.Ordinal);
+        if (dots <= 0)
+        {
+            return false;
+        }
+
+        string fromText = value.Substring(0, dots);
+        int toStart = dots + RangeDots.Length;
+        string toText = value.Substring(toStart);
+        return double.TryParse(fromText, NumberStyles.Float, CultureInfo.InvariantCulture, out from)
+            && double.TryParse(toText, NumberStyles.Float, CultureInfo.InvariantCulture, out to);
     }
 }

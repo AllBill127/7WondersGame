@@ -2,23 +2,36 @@
 
 namespace _7WondersGame.Cli.Agents;
 
-/// <summary>An agent the command line can create: its name, how to make one, and its 'agents' list line.</summary>
+/// <summary>An agent the command line can create: its name, its class, and its 'agents' list line.</summary>
 public sealed class AgentCatalogEntry
 {
-    /// <summary>The agent called <paramref name="name"/>, made by <paramref name="create"/>.</summary>
-    public AgentCatalogEntry(string name, Func<IAgent> create, string description)
+    /// <summary>
+    /// The agent called <paramref name="name"/>, an instance of <paramref name="agentType"/> (a class implementing
+    /// <see cref="IAgent"/> with a constructor without parameters).
+    /// </summary>
+    public AgentCatalogEntry(string name, Type agentType, string description)
     {
+        if (!typeof(IAgent).IsAssignableFrom(agentType))
+        {
+            throw new ArgumentException($"{agentType.Name} is not an agent.", nameof(agentType));
+        }
         Name = name;
-        Create = create;
+        AgentType = agentType;
         Description = description;
     }
 
     /// <summary>The name used in <c>--players</c>.</summary>
     public string Name { get; }
 
-    /// <summary>Makes a new agent with its default settings.</summary>
-    public Func<IAgent> Create { get; }
+    /// <summary>The agent's class.</summary>
+    public Type AgentType { get; }
 
     /// <summary>What the agent does, for the 'agents' list.</summary>
     public string Description { get; }
+
+    /// <summary>Makes a new agent with its default settings.</summary>
+    public IAgent Create()
+    {
+        return (IAgent)Activator.CreateInstance(AgentType)!;
+    }
 }

@@ -4,22 +4,23 @@ using System.Text;
 namespace _7WondersGame.Cli.Results;
 
 /// <summary>
-/// The one writer of the results CSV (B2): one row per (game, seat), appended and flushed after every game,
+/// The one writer of the results CSV: one row per (game, seat), appended and flushed after every game,
 /// so a crash loses at most the game being written. Safe to call from parallel games.
 /// </summary>
 public sealed class ResultsCsvWriter : IDisposable
 {
+    /// <summary>The columns, in the order of the header and of every row.</summary>
     public static readonly string[] Columns =
     {
         "runId", "gameIndex", "dealIndex", "seed", "seat", "agent", "configJson",
         "wonder", "side", "vp", "coins", "rank", "winShare", "agentStats",
     };
-    public static string Header => string.Join(",", Columns);
+
+    /// <summary>The characters that make a field need quotes.</summary>
+    private static readonly char[] CharactersToQuote = { ',', '"', '\n', '\r' };
 
     private readonly object _lock = new();
     private readonly StreamWriter _writer;
-
-    public string FilePath { get; }
 
     /// <summary>
     /// Opens the file for appending (creating it and writing the header if it is new or empty).
@@ -35,8 +36,10 @@ public sealed class ResultsCsvWriter : IDisposable
         {
             string? existingHeader = File.ReadLines(FilePath).FirstOrDefault();
             if (existingHeader != Header)
+            {
                 throw new InvalidOperationException(
                     $"{FilePath} has a different header. Expected: {Header}. Found: {existingHeader}");
+            }
         }
 
         var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
@@ -48,11 +51,26 @@ public sealed class ResultsCsvWriter : IDisposable
         }
     }
 
+    /// <summary>The header line: the column names.</summary>
+    public static string Header
+    {
+        get
+        {
+            return string.Join(",", Columns);
+        }
+    }
+
+    /// <summary>The results CSV (full path).</summary>
+    public string FilePath { get; }
+
+    /// <summary>Appends one row per seat of a finished game, all at once, and flushes them.</summary>
     public void WriteGame(string runId, long gameIndex, long dealIndex, ulong seed, IEnumerable<SeatResult> seats)
     {
         var sb = new StringBuilder();
         foreach (SeatResult s in seats)
+        {
             sb.Append(FormatRow(runId, gameIndex, dealIndex, seed, s)).Append('\n');
+        }
 
         lock (_lock)
         {
@@ -61,6 +79,7 @@ public sealed class ResultsCsvWriter : IDisposable
         }
     }
 
+    /// <summary>One seat's row, its fields quoted where needed (no line break at the end).</summary>
     public static string FormatRow(string runId, long gameIndex, long dealIndex, ulong seed, SeatResult s)
     {
         var inv = CultureInfo.InvariantCulture;
@@ -84,15 +103,22 @@ public sealed class ResultsCsvWriter : IDisposable
         return string.Join(",", fields.Select(Escape));
     }
 
-    /// <summary>RFC 4180 quoting: fields with commas, quotes or line breaks are quoted, and quotes are doubled.</summary>
-    public static string Escape(string field) =>
-        field.IndexOfAny(new[] { ',', '"', '\n', '\r' }) >= 0
-            ? "\"" + field.Replace("\"", "\"\"") + "\""
-            : field;
+    /// <summary>
+    /// RFC 4180 quoting: fields with commas, quotes or line breaks are quoted, and quotes are doubled.
+    /// </summary>
+    public static string Escape(string field)
+    {
+        if (field.IndexOfAny(CharactersToQuote) < 0)
+        {
+            return field;
+        }
+        return "\"" + field.Replace("\"", "\"\"") + "\"";
+    }
 
     /// <summary>
     /// Reads a results CSV back as one dictionary (column → value) per row.
-    /// Handles the quoting <see cref="Escape"/> writes (no line breaks inside fields, which this writer never produces).
+    /// Handles the quoting <see cref="Escape"/> writes (no line breaks inside fields, which this writer never
+    /// produces).
     /// </summary>
     public static IEnumerable<Dictionary<string, string>> ReadRows(string filePath)
     {
@@ -100,7 +126,9 @@ public sealed class ResultsCsvWriter : IDisposable
         foreach (string line in File.ReadLines(filePath))
         {
             if (line.Length == 0)
+            {
                 continue;
+            }
             List<string> fields = SplitRow(line);
             if (header == null)
             {
@@ -109,11 +137,14 @@ public sealed class ResultsCsvWriter : IDisposable
             }
             var row = new Dictionary<string, string>(StringComparer.Ordinal);
             for (int i = 0; i < header.Length && i < fields.Count; i++)
+            {
                 row[header[i]] = fields[i];
+            }
             yield return row;
         }
     }
 
+    /// <summary>The fields of one CSV line, unquoted.</summary>
     public static List<string> SplitRow(string line)
     {
         var fields = new List<string>();
@@ -124,21 +155,51 @@ public sealed class ResultsCsvWriter : IDisposable
             char ch = line[i];
             if (quoted)
             {
-                if (ch == '"' && i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i++; }
-                else if (ch == '"') quoted = false;
-                else sb.Append(ch);
+                int nextIndex = i + 1;
+                if (ch == '"' && IsQuoteAt(line, nextIndex))
+                {
+                    // a doubled quote inside a quoted field is one quote
+                    sb.Append('"');
+                    i = nextIndex;
+                }
+                else if (ch == '"')
+                {
+                    quoted = false;
+                }
+                else
+                {
+                    sb.Append(ch);
+                }
             }
-            else if (ch == '"') quoted = true;
-            else if (ch == ',') { fields.Add(sb.ToString()); sb.Clear(); }
-            else sb.Append(ch);
+            else if (ch == '"')
+            {
+                quoted = true;
+            }
+            else if (ch == ',')
+            {
+                fields.Add(sb.ToString());
+                sb.Clear();
+            }
+            else
+            {
+                sb.Append(ch);
+            }
         }
         fields.Add(sb.ToString());
         return fields;
     }
 
+    private static bool IsQuoteAt(string line, int index)
+    {
+        return index < line.Length && line[index] == '"';
+    }
+
+    /// <summary>Closes the file.</summary>
     public void Dispose()
     {
         lock (_lock)
+        {
             _writer.Dispose();
+        }
     }
 }

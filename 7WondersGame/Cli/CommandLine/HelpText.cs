@@ -5,21 +5,39 @@ namespace _7WondersGame.Cli.CommandLine;
 /// <summary>The text printed by 'help' and 'help &lt;command&gt;'.</summary>
 public static class HelpText
 {
+    /// <summary>The commands that have their own help.</summary>
     public static readonly string[] Topics = { "run", "replay", "analyze", "dataset", "agents" };
-
-    public static string For(string? topic) => topic?.ToLowerInvariant() switch
-    {
-        null or "" or "help" => General,
-        "run" => Run,
-        "replay" => Replay,
-        "analyze" => Analyze,
-        "dataset" => Dataset,
-        "agents" => Commands.AgentsText(),
-        _ => $"No help for '{topic}'.\n\n" + General,
-    };
 
     private const string Exe = "7WondersGame";
 
+    /// <summary>The help for <paramref name="topic"/> (a command, any case), or the general help.</summary>
+    public static string For(string? topic)
+    {
+        if (topic == null)
+        {
+            return General;
+        }
+        switch (topic.ToLowerInvariant())
+        {
+            case "":
+            case "help":
+                return General;
+            case "run":
+                return Run;
+            case "replay":
+                return Replay;
+            case "analyze":
+                return Analyze;
+            case "dataset":
+                return Dataset;
+            case "agents":
+                return Commands.AgentsText();
+            default:
+                return $"No help for '{topic}'.\n\n" + General;
+        }
+    }
+
+    /// <summary>The general help: the commands, options, logging and exit codes.</summary>
     public static readonly string General = $@"7 Wonders game simulator.
 
 Usage:
@@ -49,6 +67,7 @@ Example:
   {Exe} run --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --games 100 --seed 42 --parallel 4
 ";
 
+    /// <summary>The help of 'run'.</summary>
     public static readonly string Run = $@"run: play games and append the results to a CSV, one row per player.
 
   {Exe} run --players <agents> --games <n> --seed <seed> [options]
@@ -113,6 +132,7 @@ Examples:
     {Exe} run --players MctsAgent:Parallel=Root:Workers=4:Budget=Time:TimeMs=500,HeuristicAI,HeuristicAI --games 50 --seed 1
 ";
 
+    /// <summary>The help of 'replay'.</summary>
     public static readonly string Replay = $@"replay: play one game again and print what happens, step by step.
 
 From a results CSV (the agents, settings and seed come from the rows):
@@ -143,9 +163,12 @@ Examples:
   {Exe} replay --players HeuristicAI,RandomChoiceAI,RandomChoiceAI --game-seed 0x9e3779b97f4a7c15 --log verbose
 ";
 
-    public static readonly string Analyze = $@"analyze: summarize a results CSV: who wins how often, and which differences are more than chance.
+    /// <summary>The help of 'analyze'.</summary>
+    public static readonly string Analyze =
+        $@"analyze: summarize a results CSV: who wins how often, and which differences are more than chance.
 
-  {Exe} analyze --from <results.csv> [--run <runId>[,<runId>...] | --run all] [--by <grouping>] [--vs <n>] [--out <file.csv>]
+  {Exe} analyze --from <results.csv> [--run <runId>[,<runId>...] | --run all] [--by <grouping>]
+                [--vs <n>] [--out <file.csv>]
 
   --from <file>       A results CSV (a relative name is looked for in the current folder, then in
                       the results folder).
@@ -180,7 +203,9 @@ Examples:
   {Exe} analyze --from c-sweep.csv --vs 1 --out c-sweep-summary.csv
 ";
 
-    public static readonly string Dataset = $@"dataset: write pre-shuffled deals (decks and wonders) to a file, for 'run --dataset'.
+    /// <summary>The help of 'dataset'.</summary>
+    public static readonly string Dataset =
+        $@"dataset: write pre-shuffled deals (decks and wonders) to a file, for 'run --dataset'.
 
   {Exe} dataset --seats <n> --games <n> --seed <seed> [--out <file>]
 

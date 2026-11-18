@@ -2,7 +2,9 @@
 
 namespace _7WondersGame.Cli.ResultsAnalysis;
 
-/// <summary>One row of a results CSV, as 'analyze' needs it. Swept: the row is the agent with the range setting.</summary>
+/// <summary>
+/// One row of a results CSV, as 'analyze' needs it. Swept: the row is the agent with the range setting.
+/// </summary>
 public sealed class ResultRow
 {
     /// <summary>A row with these column values.</summary>
@@ -76,12 +78,35 @@ public sealed class ResultRow
     /// <summary>The rows of a results CSV, with each game's player count worked out from its rows.</summary>
     public static List<ResultRow> Read(IEnumerable<Dictionary<string, string>> csvRows)
     {
+        List<ResultRow> rows = csvRows.Select(FromCsv).ToList();
+        var players = rows
+            .GroupBy(row => (row.RunId, row.GameIndex))
+            .ToDictionary(game => game.Key, game => game.Count());
+
+        var withPlayers = new List<ResultRow>(rows.Count);
+        foreach (ResultRow row in rows)
+        {
+            var game = (row.RunId, row.GameIndex);
+            withPlayers.Add(row.WithPlayers(players[game]));
+        }
+        return withPlayers;
+    }
+
+    /// <summary>One CSV row (column → value), the player count not yet known (0).</summary>
+    private static ResultRow FromCsv(Dictionary<string, string> csvRow)
+    {
         var inv = CultureInfo.InvariantCulture;
-        var rows = csvRows.Select(r => new ResultRow(
-            r["runId"], long.Parse(r["gameIndex"], inv), r["seed"], int.Parse(r["seat"], inv), r["agent"], r["configJson"],
-            r["wonder"] + r["side"], int.Parse(r["vp"], inv), int.Parse(r["rank"], inv),
-            double.Parse(r["winShare"], inv), 0)).ToList();
-        var players = rows.GroupBy(r => (r.RunId, r.GameIndex)).ToDictionary(g => g.Key, g => g.Count());
-        return rows.Select(r => r.WithPlayers(players[(r.RunId, r.GameIndex)])).ToList();
+        return new ResultRow(
+            csvRow["runId"],
+            long.Parse(csvRow["gameIndex"], inv),
+            csvRow["seed"],
+            int.Parse(csvRow["seat"], inv),
+            csvRow["agent"],
+            csvRow["configJson"],
+            csvRow["wonder"] + csvRow["side"],
+            int.Parse(csvRow["vp"], inv),
+            int.Parse(csvRow["rank"], inv),
+            double.Parse(csvRow["winShare"], inv),
+            0);
     }
 }

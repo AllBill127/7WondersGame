@@ -8,8 +8,11 @@ namespace _7WondersGame.Cli.Arguments;
 /// </summary>
 public sealed class CliArgs
 {
-    public string Command { get; }
-    public bool HelpRequested { get; }
+    /// <summary>Where an option's name starts, after its two dashes.</summary>
+    private const int OptionNameStart = 2;
+
+    private const string HexPrefix = "0x";
+
     private readonly Dictionary<string, string> _options;
 
     private CliArgs(string command, Dictionary<string, string> options, bool help)
@@ -19,21 +22,41 @@ public sealed class CliArgs
         HelpRequested = help;
     }
 
+    /// <summary>The command, in lower case ("help" for <c>-h</c>, <c>--help</c> or <c>/?</c>).</summary>
+    public string Command { get; }
+
+    /// <summary>Whether <c>-h</c> or <c>--help</c> followed the command.</summary>
+    public bool HelpRequested { get; }
+
+    /// <summary>The options given, as written (without the dashes).</summary>
+    public IEnumerable<string> Names
+    {
+        get
+        {
+            return _options.Keys;
+        }
+    }
+
+    /// <summary>Reads the command and its options, or throws a usage error.</summary>
     public static CliArgs Parse(IReadOnlyList<string> args)
     {
         if (args.Count == 0)
-            return new CliArgs("help", new(), false);
+        {
+            return new CliArgs("help", new Dictionary<string, string>(), false);
+        }
 
         string command = args[0].ToLowerInvariant();
-        if (command is "-h" or "--help" or "/?")
+        if (IsHelpCommand(command))
+        {
             command = "help";
+        }
 
         var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         bool help = false;
         for (int i = 1; i < args.Count; i++)
         {
             string arg = args[i];
-            if (arg is "-h" or "--help")
+            if (IsHelpFlag(arg))
             {
                 help = true;
                 continue;
@@ -48,46 +71,90 @@ public sealed class CliArgs
                 throw new UsageException($"Unexpected '{arg}'. Options are written as --name value.", command);
             }
 
-            string name, value;
-            int eq = arg.IndexOf('=');
-            if (eq > 0)
+            KeyValuePair<string, string> option = ReadOption(args, ref i, command);
+            if (!options.TryAdd(option.Key, option.Value))
             {
-                name = arg[2..eq];
-                value = arg[(eq + 1)..];
+                throw new UsageException($"--{option.Key} is given more than once.", command);
             }
-            else
-            {
-                name = arg[2..];
-                if (i + 1 >= args.Count || args[i + 1].StartsWith("--"))
-                    throw new UsageException($"--{name} needs a value.", command);
-                value = args[++i];
-            }
-            if (!options.TryAdd(name, value))
-                throw new UsageException($"--{name} is given more than once.", command);
         }
         return new CliArgs(command, options, help);
+    }
+
+    /// <summary>
+    /// The option at <paramref name="optionIndex"/> (<c>--name=value</c>, or <c>--name value</c>, which moves
+    /// <paramref name="optionIndex"/> on to the value), as its name and value.
+    /// </summary>
+    private static KeyValuePair<string, string> ReadOption(IReadOnlyList<string> args, ref int optionIndex,
+                                                           string command)
+    {
+        string arg = args[optionIndex];
+        int equalsSignIndex = arg.IndexOf('=');
+        if (equalsSignIndex > 0)
+        {
+            int nameLength = equalsSignIndex - OptionNameStart;
+            int valueStart = equalsSignIndex + 1;
+            string nameBeforeEqualsSign = arg.Substring(OptionNameStart, nameLength);
+            string valueAfterEqualsSign = arg.Substring(valueStart);
+            return new KeyValuePair<string, string>(nameBeforeEqualsSign, valueAfterEqualsSign);
+        }
+
+        string name = arg.Substring(OptionNameStart);
+        int valueIndex = optionIndex + 1;
+        if (!HasValueAt(args, valueIndex))
+        {
+            throw new UsageException($"--{name} needs a value.", command);
+        }
+        optionIndex = valueIndex;
+        return new KeyValuePair<string, string>(name, args[valueIndex]);
+    }
+
+    private static bool IsHelpCommand(string command)
+    {
+        return command == "-h" || command == "--help" || command == "/?";
+    }
+
+    private static bool IsHelpFlag(string arg)
+    {
+        return arg == "-h" || arg == "--help";
+    }
+
+    /// <summary>
+    /// Whether there is an argument at <paramref name="index"/> that is a value, not the next option.
+    /// </summary>
+    private static bool HasValueAt(IReadOnlyList<string> args, int index)
+    {
+        return index < args.Count && !args[index].StartsWith("--");
     }
 
     /// <summary>Throws if an option is not one this command knows.</summary>
     public void AllowOnly(params string[] known)
     {
         foreach (string name in _options.Keys)
+        {
             if (!known.Contains(name, StringComparer.OrdinalIgnoreCase))
-                throw new UsageException(
-                    $"Unknown option --{name} for '{Command}'. Known: {string.Join(", ", known.Select(k => "--" + k))}.", Command);
+            {
+                string knownText = string.Join(", ", known.Select(knownName => "--" + knownName));
+                throw new UsageException($"Unknown option --{name} for '{Command}'. Known: {knownText}.", Command);
+            }
+        }
     }
 
-    public bool Has(string name) => _options.ContainsKey(name);
+    /// <summary>Whether the option was given.</summary>
+    public bool Has(string name)
+    {
+        return _options.ContainsKey(name);
+    }
 
-    /// <summary>The options given, as written (without the dashes).</summary>
-    public IEnumerable<string> Names => _options.Keys;
-
-    /// <summary>These options plus <paramref name="defaults"/> (e.g. from an experiment file); an option given here wins.</summary>
+    /// <summary>
+    /// These options plus <paramref name="defaults"/> (e.g. from an experiment file); an option given here wins.
+    /// </summary>
     public CliArgs WithDefaults(IReadOnlyDictionary<string, string> defaults)
     {
         var merged = new Dictionary<string, string>(defaults, StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in _options)
+        {
             merged[name] = value;
+        }
         return new CliArgs(Command, merged, HelpRequested);
     }
 
@@ -95,49 +162,141 @@ public sealed class CliArgs
     public bool? GetYesNo(string name)
     {
         string? text = Get(name);
-        return text?.ToLowerInvariant() switch
+        if (text == null)
         {
-            null => null,
-            "yes" or "true" => true,
-            "no" or "false" => false,
-            _ => throw new UsageException($"--{name} must be yes or no, not '{text}'.", Command),
-        };
+            return null;
+        }
+
+        string answer = text.ToLowerInvariant();
+        if (answer == "yes" || answer == "true")
+        {
+            return true;
+        }
+        if (answer == "no" || answer == "false")
+        {
+            return false;
+        }
+        throw new UsageException($"--{name} must be yes or no, not '{text}'.", Command);
     }
 
-    public string? Get(string name) => _options.TryGetValue(name, out string? v) ? v : null;
+    /// <summary>yes/no (or true/false), or <paramref name="defaultValue"/> if not given.</summary>
+    public bool GetYesNoOrDefault(string name, bool defaultValue)
+    {
+        bool? answer = GetYesNo(name);
+        if (answer == null)
+        {
+            return defaultValue;
+        }
+        return answer.Value;
+    }
 
-    public string Require(string name) =>
-        Get(name) ?? throw new UsageException($"--{name} is required.", Command);
+    /// <summary>The option's value as written, or null if not given.</summary>
+    public string? Get(string name)
+    {
+        if (_options.TryGetValue(name, out string? value))
+        {
+            return value;
+        }
+        return null;
+    }
 
+    /// <summary>The option's value as written, or <paramref name="defaultValue"/> if not given.</summary>
+    public string GetOrDefault(string name, string defaultValue)
+    {
+        string? value = Get(name);
+        if (value == null)
+        {
+            return defaultValue;
+        }
+        return value;
+    }
+
+    /// <summary>The option's value as written, or a usage error if not given.</summary>
+    public string Require(string name)
+    {
+        string? value = Get(name);
+        if (value == null)
+        {
+            throw new UsageException($"--{name} is required.", Command);
+        }
+        return value;
+    }
+
+    /// <summary>A whole number from <paramref name="min"/> to <paramref name="max"/>, or null if not given.</summary>
     public int? GetInt(string name, int min, int max = int.MaxValue)
     {
         string? text = Get(name);
         if (text == null)
+        {
             return null;
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) || value < min || value > max)
-            throw new UsageException(
-                max == int.MaxValue
-                    ? $"--{name} must be a whole number of at least {min}, not '{text}'."
-                    : $"--{name} must be a whole number from {min} to {max}, not '{text}'.", Command);
+        }
+
+        bool isWholeNumber = int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value);
+        if (!isWholeNumber || value < min || value > max)
+        {
+            throw new UsageException(WholeNumberRangeMessage(name, min, max, text), Command);
+        }
         return value;
     }
 
-    public int RequireInt(string name, int min, int max = int.MaxValue) =>
-        GetInt(name, min, max) ?? throw new UsageException($"--{name} is required.", Command);
+    private static string WholeNumberRangeMessage(string name, int min, int max, string text)
+    {
+        if (max == int.MaxValue)
+        {
+            return $"--{name} must be a whole number of at least {min}, not '{text}'.";
+        }
+        return $"--{name} must be a whole number from {min} to {max}, not '{text}'.";
+    }
+
+    /// <summary>
+    /// A whole number of at least <paramref name="min"/>, or <paramref name="defaultValue"/> if not given.
+    /// </summary>
+    public int GetIntOrDefault(string name, int min, int defaultValue)
+    {
+        int? value = GetInt(name, min);
+        if (value == null)
+        {
+            return defaultValue;
+        }
+        return value.Value;
+    }
+
+    /// <summary>
+    /// A whole number from <paramref name="min"/> to <paramref name="max"/>, or a usage error if not given.
+    /// </summary>
+    public int RequireInt(string name, int min, int max = int.MaxValue)
+    {
+        int? value = GetInt(name, min, max);
+        if (value == null)
+        {
+            throw new UsageException($"--{name} is required.", Command);
+        }
+        return value.Value;
+    }
 
     /// <summary>A seed: a decimal number or 0x-prefixed hex.</summary>
-    public static bool TryParseSeed(string text, out ulong seed) =>
-        text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? ulong.TryParse(text[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out seed)
-            : ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out seed);
+    public static bool TryParseSeed(string text, out ulong seed)
+    {
+        if (text.StartsWith(HexPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            string hexDigits = text.Substring(HexPrefix.Length);
+            return ulong.TryParse(hexDigits, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out seed);
+        }
+        return ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out seed);
+    }
 
+    /// <summary>A seed (decimal or 0x hex), or null if not given.</summary>
     public ulong? GetSeed(string name)
     {
         string? text = Get(name);
         if (text == null)
+        {
             return null;
+        }
         if (!TryParseSeed(text, out ulong seed))
+        {
             throw new UsageException($"--{name} must be a number (decimal or 0x hex), not '{text}'.", Command);
+        }
         return seed;
     }
 }

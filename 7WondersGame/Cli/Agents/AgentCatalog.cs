@@ -13,61 +13,141 @@ namespace _7WondersGame.Cli.Agents;
 /// <summary>The agents the command line can create, and how their settings are set.</summary>
 public static class AgentCatalog
 {
-
     /// <summary>Short names for settings (the full names work too, in any case).</summary>
-    public static readonly IReadOnlyDictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "n", nameof(MctsConfig.Iterations) },
-        { "eps", nameof(MctsConfig.Epsilon) },
-    };
+    public static readonly IReadOnlyDictionary<string, string> Aliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "n", nameof(MctsConfig.Iterations) },
+            { "eps", nameof(MctsConfig.Epsilon) },
+        };
 
     private static readonly List<AgentCatalogEntry> BuiltIn = new()
     {
-        new("MctsAgent", () => new MctsAgent(), "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAI rollouts); 3-4 players"),
-        new("HeuristicAI", () => new HeuristicAI(), "values every move (card worth, price, wonder, denial); settings are its weights"),
-        new("RandomChoiceAI", () => new RandomChoiceAI(), "random legal move"),
+        new AgentCatalogEntry(
+            "MctsAgent",
+            typeof(MctsAgent),
+            "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAI rollouts); 3-4 players"),
+        new AgentCatalogEntry(
+            "HeuristicAI",
+            typeof(HeuristicAI),
+            "values every move (card worth, price, wonder, denial); settings are its weights"),
+        new AgentCatalogEntry(
+            "RandomChoiceAI",
+            typeof(RandomChoiceAI),
+            "random legal move"),
     };
 
     private static readonly List<AgentCatalogEntry> Registered = new();
 
-    /// <summary>Every agent the command line knows: the built-in ones, then any added with <see cref="Register"/>.</summary>
+    /// <summary>
+    /// Every agent the command line knows: the built-in ones, then any added with <see cref="Register"/>.
+    /// </summary>
     public static IReadOnlyList<AgentCatalogEntry> Entries
     {
-        get { lock (Registered) return BuiltIn.Concat(Registered).ToList(); }
+        get
+        {
+            lock (Registered)
+            {
+                return AllEntries();
+            }
+        }
     }
 
-    /// <summary>Adds an agent defined outside this project (the tests use it). A name already known is ignored.</summary>
+    /// <summary>
+    /// Adds an agent defined outside this project (the tests use it). A name already known is ignored.
+    /// </summary>
     public static void Register(AgentCatalogEntry entry)
     {
         lock (Registered)
-            if (!BuiltIn.Concat(Registered).Any(e => e.Name.Equals(entry.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (EntryCalled(entry.Name, AllEntries()) == null)
+            {
                 Registered.Add(entry);
+            }
+        }
     }
 
-    public static AgentCatalogEntry Find(string name) =>
-        Entries.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-        ?? throw new UsageException($"Unknown agent '{name}'. Run 'agents' to list them.");
+    /// <summary>The agent called <paramref name="name"/> (any case), or a usage error.</summary>
+    public static AgentCatalogEntry Find(string name)
+    {
+        AgentCatalogEntry? entry = EntryCalled(name, Entries);
+        if (entry == null)
+        {
+            throw new UsageException($"Unknown agent '{name}'. Run 'agents' to list them.");
+        }
+        return entry;
+    }
+
+    /// <summary>
+    /// The built-in entries, then the registered ones. The caller holds the lock on the registered list.
+    /// </summary>
+    private static List<AgentCatalogEntry> AllEntries()
+    {
+        var entries = new List<AgentCatalogEntry>(BuiltIn);
+        entries.AddRange(Registered);
+        return entries;
+    }
+
+    /// <summary>The first entry called <paramref name="name"/> (any case), or null.</summary>
+    private static AgentCatalogEntry? EntryCalled(string name, IEnumerable<AgentCatalogEntry> entries)
+    {
+        foreach (AgentCatalogEntry entry in entries)
+        {
+            if (entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                return entry;
+            }
+        }
+        return null;
+    }
 
     /// <summary>The settings of an agent type, with their defaults.</summary>
     public static List<(string Name, Type Type, object? Default)> SettingsOf(AgentCatalogEntry entry)
     {
         IAgent sample = entry.Create();
-        return AgentSettings.Of(sample.GetType())
-            .Select(s => (s.Name, s.Type, s.GetValue(sample)))
-            .OrderBy(s => s.Name, StringComparer.Ordinal)
+        var settings = new List<(string Name, Type Type, object? Default)>();
+        foreach (AgentSetting setting in AgentSettings.Of(sample.GetType()))
+        {
+            settings.Add((setting.Name, setting.Type, setting.GetValue(sample)));
+        }
+        return settings
+            .OrderBy(setting => setting.Name, StringComparer.Ordinal)
             .ToList();
     }
 
     /// <summary>The setting a key names (an alias or a field name, any case), or a usage error.</summary>
     public static AgentSetting ResolveSetting(Type agentType, string key)
     {
-        string wanted = Aliases.TryGetValue(key, out string? full) ? full : key;
+        string wanted = FullSettingName(key);
         var fields = AgentSettings.Of(agentType).ToList();
         foreach (var f in fields)
+        {
             if (f.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
+            {
                 return f;
-        string known = fields.Count == 0 ? "it has no settings" : "known: " + string.Join(", ", fields.Select(f => f.Name));
-        throw new UsageException($"{agentType.Name} has no setting '{key}' ({known}).");
+            }
+        }
+        throw new UsageException($"{agentType.Name} has no setting '{key}' ({KnownSettingsText(fields)}).");
+    }
+
+    /// <summary>The setting name an alias stands for, or the key itself.</summary>
+    private static string FullSettingName(string key)
+    {
+        if (Aliases.TryGetValue(key, out string? fullName))
+        {
+            return fullName;
+        }
+        return key;
+    }
+
+    /// <summary>The settings an agent has, for an error message.</summary>
+    private static string KnownSettingsText(List<AgentSetting> settings)
+    {
+        if (settings.Count == 0)
+        {
+            return "it has no settings";
+        }
+        return "known: " + string.Join(", ", settings.Select(setting => setting.Name));
     }
 
     /// <summary>
@@ -83,11 +163,22 @@ public static class AgentCatalog
             AgentSetting setting = ResolveSetting(agent.GetType(), key);
             string text = value;
             if (Sweep.TryParseRange(value, out _, out _))
-                text = (sweepValue ?? throw new InvalidOperationException("range setting without a sweep value"))
-                    .ToString("R", CultureInfo.InvariantCulture);
+            {
+                text = SweepValueText(sweepValue);
+            }
             setting.SetValue(agent, ConvertValue(text, setting.Type, $"{spec.Name}:{key}"));
         }
         return agent;
+    }
+
+    /// <summary>The value a range setting takes in this game, as text that parses back to the same number.</summary>
+    private static string SweepValueText(double? sweepValue)
+    {
+        if (sweepValue == null)
+        {
+            throw new InvalidOperationException("range setting without a sweep value");
+        }
+        return sweepValue.Value.ToString("R", CultureInfo.InvariantCulture);
     }
 
     private static object ConvertValue(string text, Type type, string where)
@@ -95,11 +186,17 @@ public static class AgentCatalog
         try
         {
             if (type.IsEnum)
+            {
                 return Enum.Parse(type, text, ignoreCase: true);
+            }
             if (type == typeof(bool))
+            {
                 return bool.Parse(text);
+            }
             if (type == typeof(string))
+            {
                 return text;
+            }
             if (type == typeof(int) || type == typeof(long) || type == typeof(short))
             {
                 // whole-number settings accept "2000" and also sweep values like "2000.0"
@@ -108,10 +205,19 @@ public static class AgentCatalog
             }
             return Convert.ChangeType(text, type, CultureInfo.InvariantCulture);
         }
-        catch (Exception ex) when (ex is FormatException or OverflowException or ArgumentException or InvalidCastException)
+        catch (Exception ex) when (IsBadValueError(ex))
         {
             throw new UsageException($"{where}: '{text}' is not a valid {type.Name}.");
         }
+    }
+
+    /// <summary>Whether converting a setting's text failed because the text is not a value of the type.</summary>
+    private static bool IsBadValueError(Exception exception)
+    {
+        return exception is FormatException
+            || exception is OverflowException
+            || exception is ArgumentException
+            || exception is InvalidCastException;
     }
 
     /// <summary>
@@ -126,18 +232,35 @@ public static class AgentCatalog
             foreach (var (key, value) in specs[seat].Settings)
             {
                 if (!Sweep.TryParseRange(value, out double from, out double to))
+                {
                     continue;
+                }
                 if (sweep != null)
+                {
                     throw new UsageException("Only one setting may be a range a..b.");
-                if (steps is null or < 2)
+                }
+                if (steps == null || steps.Value < 2)
+                {
                     throw new UsageException($"{specs[seat]} has a range; give --steps (2 or more values).");
+                }
                 sweep = new Sweep(seat, key, from, to, steps.Value);
             }
         }
         if (sweep == null && steps != null)
+        {
             throw new UsageException("--steps only applies when a setting is a range a..b.");
+        }
+
+        // creating every agent throws a usage error for bad names or values
+        double? firstSweepValue = null;
+        if (sweep != null)
+        {
+            firstSweepValue = sweep.From;
+        }
         foreach (AgentSpec spec in specs)
-            Create(spec, sweep?.From);  // throws a usage error for bad names or values
+        {
+            Create(spec, firstSweepValue);
+        }
         return sweep;
     }
 
@@ -145,9 +268,25 @@ public static class AgentCatalog
     public static AgentSpec FromResultRow(string agent, string configJson)
     {
         var settings = new List<KeyValuePair<string, string>>();
-        using JsonDocument doc = JsonDocument.Parse(configJson);
-        foreach (JsonProperty p in doc.RootElement.EnumerateObject())
-            settings.Add(new(p.Name, p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString()! : p.Value.GetRawText()));
+        using (JsonDocument doc = JsonDocument.Parse(configJson))
+        {
+            foreach (JsonProperty p in doc.RootElement.EnumerateObject())
+            {
+                settings.Add(new KeyValuePair<string, string>(p.Name, SettingValueText(p.Value)));
+            }
+        }
         return new AgentSpec(agent, settings);
+    }
+
+    /// <summary>
+    /// A setting's value in a configJson object as the command line writes it: a string without quotes.
+    /// </summary>
+    internal static string SettingValueText(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString()!;
+        }
+        return value.GetRawText();
     }
 }

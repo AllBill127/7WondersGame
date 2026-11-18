@@ -25,26 +25,46 @@ public sealed class AgentSpec
     public static List<AgentSpec> ParseList(string text)
     {
         var specs = text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(Parse).ToList();
+            .Select(Parse)
+            .ToList();
         if (specs.Count == 0)
+        {
             throw new UsageException("--players is empty.");
+        }
         return specs;
     }
 
+    /// <summary>One spec: the agent's name, then <c>setting=value</c> pairs, all separated by colons.</summary>
     public static AgentSpec Parse(string text)
     {
         string[] parts = text.Split(':', StringSplitOptions.TrimEntries);
         var settings = new List<KeyValuePair<string, string>>();
         foreach (string part in parts.Skip(1))
         {
-            int eq = part.IndexOf('=');
-            if (eq <= 0 || eq == part.Length - 1)
-                throw new UsageException($"'{part}' in '{text}' should be setting=value.");
-            settings.Add(new(part[..eq].Trim(), part[(eq + 1)..].Trim()));
+            settings.Add(ParseSetting(part, text));
         }
         return new AgentSpec(parts[0], settings);
     }
 
-    public override string ToString() =>
-        Name + string.Concat(Settings.Select(s => $":{s.Key}={s.Value}"));
+    /// <summary>One <c>setting=value</c> part of <paramref name="specText"/>.</summary>
+    private static KeyValuePair<string, string> ParseSetting(string part, string specText)
+    {
+        int equalsSignIndex = part.IndexOf('=');
+        int lastIndex = part.Length - 1;
+        if (equalsSignIndex <= 0 || equalsSignIndex == lastIndex)
+        {
+            throw new UsageException($"'{part}' in '{specText}' should be setting=value.");
+        }
+
+        int valueStart = equalsSignIndex + 1;
+        string setting = part.Substring(0, equalsSignIndex).Trim();
+        string value = part.Substring(valueStart).Trim();
+        return new KeyValuePair<string, string>(setting, value);
+    }
+
+    /// <summary>The spec as written on the command line.</summary>
+    public override string ToString()
+    {
+        return Name + string.Concat(Settings.Select(setting => $":{setting.Key}={setting.Value}"));
+    }
 }

@@ -6,9 +6,12 @@ using _7WondersGame.Engine.Players.Entities;
 namespace _7WondersGame.Cli.Results;
 
 /// <summary>
-/// Final ranking used everywhere results are judged (R9, rulebook tie-break):
+/// Final ranking used everywhere results are judged (the rulebook's tie-break):
 /// most VP wins; on a VP tie, the player with more coins wins; players still tied share the place.
 /// </summary>
+/// <remarks>
+/// MCTS ranks the players at the end of every rollout, so the ranking is written without LINQ or lambdas.
+/// </remarks>
 public static class GameResult
 {
     /// <summary>
@@ -17,20 +20,37 @@ public static class GameResult
     public static List<PlayerStanding> Rank(IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
     {
         var standings = new List<PlayerStanding>(players.Count);
-        foreach (var p in players)
+        for (int i = 0; i < players.Count; i++)
         {
-            int better = players.Count(o => Beats(o, p));
+            var p = players[i];
+            int better = CountPlayersBeating(p, players);
             standings.Add(new PlayerStanding(p.Id, p.VictoryPoints, p.Coins, better + 1, 0));
         }
 
-        int winners = standings.Count(s => s.Rank == 1);
-        return standings
-            .Select(s => s.Rank == 1 ? s.WithWinShare(1.0 / winners) : s)
-            .ToList();
+        // the players tied for first share the win
+        int winners = CountWinners(standings);
+        double winShare = 1.0 / winners;
+        for (int i = 0; i < standings.Count; i++)
+        {
+            if (standings[i].Rank == 1)
+            {
+                standings[i] = standings[i].WithWinShare(winShare);
+            }
+        }
+        return standings;
     }
 
-    public static List<PlayerStanding> Rank(IEnumerable<PlayerState> players) =>
-        Rank(players.Select(p => (p.Id, p.VictoryPoints, p.Resources[Resource.Coins])).ToList());
+    /// <summary>Standings of the players by their victory points and coins now, in the same order.</summary>
+    public static List<PlayerStanding> Rank(IReadOnlyList<PlayerState> players)
+    {
+        var scores = new List<(int Id, int VictoryPoints, int Coins)>(players.Count);
+        for (int i = 0; i < players.Count; i++)
+        {
+            PlayerState player = players[i];
+            scores.Add((player.Id, player.VictoryPoints, player.Resources[Resource.Coins]));
+        }
+        return Rank(scores);
+    }
 
     /// <summary>
     /// Final results of a scored game, one per seat, in seat order, with the agent that played each seat.
@@ -38,17 +58,65 @@ public static class GameResult
     public static List<SeatResult> ForPlayers(IReadOnlyList<PlayerState> players, IReadOnlyList<IAgent> agents)
     {
         List<PlayerStanding> standings = Rank(players);
-        return players.Select((p, i) =>
+        var results = new List<SeatResult>(players.Count);
+        for (int i = 0; i < players.Count; i++)
         {
-            string board = p.Board.Id.ToString();
-            return new SeatResult(p.Id, agents[i].Name, agents[i].ConfigJson(),
-                board[..^1], board[^1..],
-                p.VictoryPoints, p.Resources[Resource.Coins], standings[i].Rank, standings[i].WinShare,
-                agents[i].StatsJson());
-        }).ToList();
+            results.Add(ResultOf(players[i], agents[i], standings[i]));
+        }
+        return results;
     }
 
-    private static bool Beats((int Id, int VictoryPoints, int Coins) a, (int Id, int VictoryPoints, int Coins) b) =>
-        a.VictoryPoints > b.VictoryPoints ||
-        a.VictoryPoints == b.VictoryPoints && a.Coins > b.Coins;
+    /// <summary>What one seat got: the board name and side apart (e.g. "Gizah" and "A"), and the agent.</summary>
+    private static SeatResult ResultOf(PlayerState player, IAgent agent, PlayerStanding standing)
+    {
+        string board = player.Board.Id.ToString();
+        int sideStart = board.Length - 1;
+        string wonder = board.Substring(0, sideStart);
+        string side = board.Substring(sideStart);
+        return new SeatResult(
+            player.Id,
+            agent.Name,
+            agent.ConfigJson(),
+            wonder,
+            side,
+            player.VictoryPoints,
+            player.Resources[Resource.Coins],
+            standing.Rank,
+            standing.WinShare,
+            agent.StatsJson());
+    }
+
+    /// <summary>How many of <paramref name="players"/> beat <paramref name="player"/>.</summary>
+    private static int CountPlayersBeating((int Id, int VictoryPoints, int Coins) player,
+                                           IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
+    {
+        int count = 0;
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (Beats(players[i], player))
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int CountWinners(List<PlayerStanding> standings)
+    {
+        int winners = 0;
+        foreach (PlayerStanding standing in standings)
+        {
+            if (standing.Rank == 1)
+            {
+                winners++;
+            }
+        }
+        return winners;
+    }
+
+    private static bool Beats((int Id, int VictoryPoints, int Coins) a, (int Id, int VictoryPoints, int Coins) b)
+    {
+        return a.VictoryPoints > b.VictoryPoints
+            || (a.VictoryPoints == b.VictoryPoints && a.Coins > b.Coins);
+    }
 }
