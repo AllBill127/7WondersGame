@@ -4,13 +4,28 @@ using _7WondersGame.Engine.Players.Entities;
 namespace _7WondersGame.Engine.Effects.Interfaces;
 
 /// <summary>
-/// What a card or wonder stage does (E3). <see cref="OnBuild"/> runs once, when it is built;
+/// What a card or wonder stage does. <see cref="OnBuild"/> runs once, when it is built;
 /// <see cref="EndGameVp"/> is its share of the final score. Effects are shared by every game, so they hold no state.
 /// </summary>
 public interface IEffect
 {
-    void OnBuild(PlayerState p) { }
-    int EndGameVp(PlayerState p) => 0;
+    /// <summary>Changes the owner's city when the card or stage is built. Does nothing unless overridden.</summary>
+    void OnBuild(PlayerState p)
+    {
+    }
+
+    /// <summary>The victory points it is worth to its owner at the end of the game; 0 unless overridden.</summary>
+    int EndGameVp(PlayerState p)
+    {
+        return 0;
+    }
+
     /// <summary>The lasting abilities it gives, if any.</summary>
-    Ability Grants => Ability.None;
+    Ability Grants
+    {
+        get
+        {
+            return Ability.None;
+        }
+    }
 }

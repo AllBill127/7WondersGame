@@ -24,6 +24,6 @@ public sealed class PointsPerWonderStage : IEffect
     /// <inheritdoc/>
     public int EndGameVp(PlayerState p)
     {
-        return Vp * Cities.Count(p, Who, q => q.Board.Stage);
+        return Vp * Cities.CountWonderStages(p, Who);
     }
 }

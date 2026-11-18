@@ -20,6 +20,6 @@ public sealed class PointsPerNeighbourDefeat : IEffect
     /// <inheritdoc/>
     public int EndGameVp(PlayerState p)
     {
-        return Vp * Cities.Count(p, Who.Neighbours, q => q.DefeatTokens);
+        return Vp * Cities.CountDefeatTokens(p, Who.Neighbours);
     }
 }

@@ -1,23 +1,41 @@
 ﻿using System.Text;
+using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Effects.Effects;
 using _7WondersGame.Engine.Effects.Interfaces;
 
 namespace _7WondersGame.Engine.Cards.Entities;
 
+/// <summary>
+/// One card of the game: what it costs, what it chains from and what it does. Card objects come from
+/// <see cref="CardsDataset"/> and are shared by every game, so they never change.
+/// </summary>
 public sealed class Card : IEquatable<Card>
 {
+    /// <summary>Which card this is; the two copies of a name in different eras have different ids.</summary>
     public CardId Id { get; }
+
+    /// <summary>The name printed on the card.</summary>
     public string Name { get; }
+
+    /// <summary>The card's colour.</summary>
     public CardType Type { get; }
+
+    /// <summary>The era (age) whose deck it is in: 1, 2 or 3.</summary>
     public int Era { get; }
+
+    /// <summary>The card that lets this one be built for free (chaining), or <see cref="CardId.None"/>.</summary>
     public CardId FreeWithId { get; }
+
+    /// <summary>The resources and coins it costs.</summary>
     public IReadOnlyDictionary<Resource, int> Cost { get; }
 
-    /// <summary>What the card does when built and at the end of the game (E3).</summary>
+    /// <summary>What the card does when built and at the end of the game.</summary>
     public IReadOnlyList<IEffect> Effects { get; }
 
-    /// <summary>Its either/or production for its owner as a bit mask (bit i = resource i), or 0 (see <see cref="OneOf"/>).</summary>
+    /// <summary>
+    /// Its either/or production for its owner as a bit mask (bit i = resource i), or 0 (see <see cref="OneOf"/>).
+    /// </summary>
     public int ChoiceMask { get; }
 
     /// <summary>The part of <see cref="ChoiceMask"/> a neighbour can buy.</summary>
@@ -29,7 +47,13 @@ public sealed class Card : IEquatable<Card>
     /// <summary>Copies in the deck for 3, 4, 5, 6 and 7 players.</summary>
     private readonly int[] _copies;
 
-    public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] copies, params IEffect[] effects)
+    /// <summary>A card as listed in <see cref="CardsDataset"/>.</summary>
+    /// <param name="cost">
+    /// Wood, Ore, Clay, Stone, Loom, Glass, Papyrus, Coins (not the <see cref="Resource"/> order).
+    /// </param>
+    /// <param name="copies">Copies in the deck for 3, 4, 5, 6 and 7 players.</param>
+    public Card(CardId id, string name, CardType type, int era, CardId freeWithId, int[] cost, int[] copies,
+                params IEffect[] effects)
     {
         Id = id;
         Name = name;
@@ -38,9 +62,24 @@ public sealed class Card : IEquatable<Card>
         FreeWithId = freeWithId;
         _copies = copies.ToArray();
         Effects = effects;
-        ChoiceMask = effects.OfType<OneOf>().Aggregate(0, (mask, e) => mask | e.Mask);
-        SellableChoiceMask = effects.OfType<OneOf>().Where(e => e.Sellable).Aggregate(0, (mask, e) => mask | e.Mask);
-        ScienceWildcards = effects.OfType<ScienceWildcard>().Count();
+
+        // what the effects add up to, worked out once, since the payment search reads them all the time
+        foreach (IEffect effect in effects)
+        {
+            if (effect is OneOf choice)
+            {
+                ChoiceMask |= choice.Mask;
+                if (choice.Sellable)
+                {
+                    SellableChoiceMask |= choice.Mask;
+                }
+            }
+            if (effect is ScienceWildcard)
+            {
+                ScienceWildcards++;
+            }
+        }
+
         Cost = new Dictionary<Resource, int>()
         {
             { Resource.Wood,       cost[0] },
@@ -54,34 +93,52 @@ public sealed class Card : IEquatable<Card>
         };
     }
 
-    /// <summary>How many copies of this card go into the deck with <paramref name="players"/> players (3 to 7).</summary>
+    /// <summary>
+    /// How many copies of this card go into the deck with <paramref name="players"/> players (3 to 7).
+    /// </summary>
     public int CopiesFor(int players)
     {
         if (players < 3 || players > 7)
+        {
             throw new ArgumentOutOfRangeException(nameof(players), players, "7 Wonders is played by 3 to 7 players.");
-        return _copies[players - 3];
+        }
+        int copiesIndex = players - 3;
+        return _copies[copiesIndex];
     }
 
     /// <summary>
     /// The rulebook's no-duplicates rule: a city can't hold two cards with the same name
     /// (Loom from age I and Loom from age II are different cards with the same name).
     /// </summary>
-    public bool SameNameAs(Card other) => Name == other.Name;
+    public bool SameNameAs(Card other)
+    {
+        return Name == other.Name;
+    }
 
-    /// <summary>Cards are the same card when they have the same <see cref="Id"/> (E6).</summary>
-    public bool Equals(Card? other) => other is not null && Id == other.Id;
+    /// <summary>Cards are the same card when they have the same <see cref="Id"/>.</summary>
+    public bool Equals(Card? other)
+    {
+        return other is not null && Id == other.Id;
+    }
 
-    public override bool Equals(object? obj) => Equals(obj as Card);
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as Card);
+    }
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         return Id.GetHashCode();
     }
 
+    /// <summary>Two lines: id, name, era and copies; then type and the card it chains from.</summary>
     public override string ToString()
     {
+        string copies = string.Join(' ', _copies);
         StringBuilder cardStr = new StringBuilder();
-        cardStr.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  Copies (3-7 players): {string.Join(' ', _copies)}");
+        cardStr.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  Copies (3-7 players): {copies}");
         cardStr.AppendLine($"Type: {Type}   FreeWith: {FreeWithId}");
         return cardStr.ToString();
     }

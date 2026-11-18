@@ -25,7 +25,9 @@ public enum Ability
     AnyManufactured = 1 << 5,
     /// <summary>Babylon B stage 2: also plays the 7th card of each era.</summary>
     PlaySeventh = 1 << 6,
-    /// <summary>Olympia A stage 2: one card per era for free (the use is <see cref="PlayerState.FreeCardOnce"/>).</summary>
+    /// <summary>
+    /// Olympia A stage 2: one card per era for free (the use is <see cref="PlayerState.FreeCardOnce"/>).
+    /// </summary>
     FreeCardEachEra = 1 << 7,
     /// <summary>Olympia B stage 3: copies a neighbour's guild at the end of the game.</summary>
     CopyGuild = 1 << 8,

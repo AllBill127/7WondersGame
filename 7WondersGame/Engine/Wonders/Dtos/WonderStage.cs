@@ -3,7 +3,7 @@ using _7WondersGame.Engine.Effects.Interfaces;
 
 namespace _7WondersGame.Engine.Wonders.Dtos;
 
-/// <summary>One wonder stage: what it costs and what it does (E3).</summary>
+/// <summary>One wonder stage: what it costs and what it does.</summary>
 public sealed class WonderStage
 {
     /// <summary>A stage costing <paramref name="cost"/> that has <paramref name="effects"/> when built.</summary>

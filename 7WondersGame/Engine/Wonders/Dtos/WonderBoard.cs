@@ -1,6 +1,7 @@
 ﻿using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Effects.Effects;
 using _7WondersGame.Engine.Effects.Enums;
+using _7WondersGame.Engine.Effects.Interfaces;
 using _7WondersGame.Engine.Wonders.Enums;
 
 namespace _7WondersGame.Engine.Wonders.Dtos;
@@ -8,16 +9,28 @@ namespace _7WondersGame.Engine.Wonders.Dtos;
 /// <summary>A board's fixed description, with what its built stages add up to precomputed.</summary>
 public sealed class WonderBoard
 {
+    /// <summary>Which board and side this is.</summary>
     public WonderId Id { get; }
+
+    /// <summary>The board's name with its side, e.g. "Gizah A".</summary>
     public string Name { get; }
+
+    /// <summary>The resource the board produces from the start.</summary>
     public Resource Production { get; }
+
+    /// <summary>The stages in building order.</summary>
     public IReadOnlyList<WonderStage> Stages { get; }
+
+    /// <summary>The most of each raw and manufactured resource that any one stage needs.</summary>
     public IReadOnlyDictionary<Resource, int> HighestCosts { get; }
 
-    /// <summary>Indexed by the number of built stages.</summary>
+    /// <summary>The lasting abilities of the built stages, indexed by the number of built stages.</summary>
     internal Ability[] AbilitiesAfter { get; }
+
+    /// <summary>The science wildcards of the built stages, indexed by the number of built stages.</summary>
     internal int[] ScienceWildcardsAfter { get; }
 
+    /// <summary>The board <paramref name="id"/> with its <paramref name="stages"/> in building order.</summary>
     public WonderBoard(WonderId id, string name, Resource production, params WonderStage[] stages)
     {
         Id = id;
@@ -27,15 +40,61 @@ public sealed class WonderBoard
 
         var highest = new Dictionary<Resource, int>();
         for (Resource r = Resource.Wood; r <= Resource.Papyrus; r++)
-            highest[r] = stages.Max(stage => stage.Cost.TryGetValue(r, out int n) ? n : 0);
+        {
+            highest[r] = HighestCostOf(stages, r);
+        }
         HighestCosts = highest;
 
-        AbilitiesAfter = new Ability[stages.Length + 1];
-        ScienceWildcardsAfter = new int[stages.Length + 1];
+        // After s + 1 stages: what s stages gave plus what stage s gives.
+        int builtStageCounts = stages.Length + 1; // 0 to every stage built
+        AbilitiesAfter = new Ability[builtStageCounts];
+        ScienceWildcardsAfter = new int[builtStageCounts];
         for (int s = 0; s < stages.Length; s++)
         {
-            AbilitiesAfter[s + 1] = AbilitiesAfter[s] | stages[s].Effects.Aggregate(Ability.None, (a, e) => a | e.Grants);
-            ScienceWildcardsAfter[s + 1] = ScienceWildcardsAfter[s] + stages[s].Effects.OfType<ScienceWildcard>().Count();
+            int builtStages = s + 1;
+            AbilitiesAfter[builtStages] = AbilitiesAfter[s] | AbilitiesGrantedBy(stages[s]);
+            ScienceWildcardsAfter[builtStages] = ScienceWildcardsAfter[s] + ScienceWildcardsIn(stages[s]);
         }
+    }
+
+    /// <summary>
+    /// The most of <paramref name="resource"/> any one of <paramref name="stages"/> costs (0 if none).
+    /// </summary>
+    private static int HighestCostOf(WonderStage[] stages, Resource resource)
+    {
+        int highest = 0;
+        foreach (WonderStage stage in stages)
+        {
+            if (stage.Cost.TryGetValue(resource, out int amount) && amount > highest)
+            {
+                highest = amount;
+            }
+        }
+        return highest;
+    }
+
+    /// <summary>Every lasting ability the stage's effects give.</summary>
+    private static Ability AbilitiesGrantedBy(WonderStage stage)
+    {
+        Ability abilities = Ability.None;
+        foreach (IEffect effect in stage.Effects)
+        {
+            abilities |= effect.Grants;
+        }
+        return abilities;
+    }
+
+    /// <summary>How many science symbols of the player's choice the stage gives.</summary>
+    private static int ScienceWildcardsIn(WonderStage stage)
+    {
+        int wildcards = 0;
+        foreach (IEffect effect in stage.Effects)
+        {
+            if (effect is ScienceWildcard)
+            {
+                wildcards++;
+            }
+        }
+        return wildcards;
     }
 }

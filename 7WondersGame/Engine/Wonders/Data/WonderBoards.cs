@@ -9,19 +9,30 @@ using static _7WondersGame.Engine.Cards.Enums.Resource;
 namespace _7WondersGame.Engine.Wonders.Data;
 
 /// <summary>
-/// Every wonder board (E3): its starting resource and, for each stage in building order, the cost and the effects.
+/// Every wonder board: its starting resource and, for each stage in building order, the cost and the effects.
 /// Shared by every game and never changed. Checked against the rulebook in WonderDataTests.
 /// </summary>
 public static class WonderBoards
 {
-    private static IReadOnlyDictionary<Resource, int> Cost(params (Resource Resource, int Amount)[] parts) =>
-        parts.ToDictionary(p => p.Resource, p => p.Amount);
+    /// <summary>A stage's cost from (resource, amount) pairs.</summary>
+    private static IReadOnlyDictionary<Resource, int> Cost(params (Resource Resource, int Amount)[] parts)
+    {
+        return parts.ToDictionary(part => part.Resource, part => part.Amount);
+    }
 
-    private static WonderStage Stage(IReadOnlyDictionary<Resource, int> cost, params IEffect[] effects) => new(cost, effects);
+    /// <summary>A stage costing <paramref name="cost"/> with <paramref name="effects"/>.</summary>
+    private static WonderStage Stage(IReadOnlyDictionary<Resource, int> cost, params IEffect[] effects)
+    {
+        return new WonderStage(cost, effects);
+    }
 
-    private static WonderBoard Board(WonderId id, string name, Resource production, params WonderStage[] stages) =>
-        new(id, name, production, stages);
+    /// <summary>A board with its stages in building order.</summary>
+    private static WonderBoard Board(WonderId id, string name, Resource production, params WonderStage[] stages)
+    {
+        return new WonderBoard(id, name, production, stages);
+    }
 
+    /// <summary>Every board, both sides, by id.</summary>
     public static readonly IReadOnlyDictionary<WonderId, WonderBoard> All = new[]
     {
         // ---------- side A ----------

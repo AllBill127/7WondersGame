@@ -1,7 +1,9 @@
 ﻿namespace _7WondersGame.Engine.Cards.Enums;
 
+/// <summary>Every card of the game, one id per card (the era 1 and era 2 Loom are different cards).</summary>
 public enum CardId
 {
+    /// <summary>No card: a card that doesn't chain from anything has this as its <c>FreeWithId</c>.</summary>
     None,
 
     // Materials
@@ -97,5 +99,6 @@ public enum CardId
     Builders,
 
     //Extra commercial
+    /// <summary>Not a card: Forum's <c>FreeWithId</c>, meaning either trading post.</summary>
     AnyTradingPost = -1,
 };

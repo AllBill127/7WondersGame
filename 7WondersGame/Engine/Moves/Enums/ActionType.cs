@@ -1,6 +1,6 @@
 ﻿namespace _7WondersGame.Engine.Moves.Enums;
 
-/// <summary>What a player does with a card on their turn (E4).</summary>
+/// <summary>What a player does with a card on their turn.</summary>
 public enum ActionType
 {
     /// <summary>Build the card as a structure, paying its cost (or chaining).</summary>
