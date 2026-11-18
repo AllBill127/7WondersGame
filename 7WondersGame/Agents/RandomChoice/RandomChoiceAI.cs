@@ -29,7 +29,7 @@ public class RandomChoiceAI : IAgent
             return MoveOrSkip(ActionType.Build, discardPileCard);
         }
 
-        PlayerState me = view.Me;
+        PlayerState player = view.Me;
         ActionType action = ChooseAction(view);
         Card? card;
         if (action == ActionType.Build)
@@ -38,7 +38,7 @@ public class RandomChoiceAI : IAgent
         }
         else if (action == ActionType.BuildFreeOnce)
         {
-            List<Card> free = me.GetPlayableCards(me.HandCards, playAllFree: true);
+            List<Card> free = player.GetPlayableCards(player.HandCards, playAllFree: true);
             if (free.Count > 0)
             {
                 card = ChooseCard(view, free);
@@ -46,12 +46,12 @@ public class RandomChoiceAI : IAgent
             else
             {
                 action = ActionType.Discard;
-                card = ChooseCard(view, me.HandCards);
+                card = ChooseCard(view, player.HandCards);
             }
         }
         else
         {
-            card = ChooseCard(view, me.HandCards);
+            card = ChooseCard(view, player.HandCards);
         }
 
         return MoveOrSkip(action, card);

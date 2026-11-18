@@ -13,12 +13,12 @@ public static class AgentSettings
     /// </summary>
     public static string ConfigJson(this IAgent agent)
     {
-        var config = new SortedDictionary<string, object?>(StringComparer.Ordinal);
+        var settingValues = new SortedDictionary<string, object?>(StringComparer.Ordinal);
         foreach (AgentSetting setting in Of(agent.GetType()))
         {
-            config.Add(setting.Name, JsonValueOf(setting, agent));
+            settingValues.Add(setting.Name, JsonValueOf(setting, agent));
         }
-        return JsonSerializer.Serialize(config);
+        return JsonSerializer.Serialize(settingValues);
     }
 
     /// <summary>
@@ -64,9 +64,11 @@ public static class AgentSettings
     private static IEnumerable<(string Name, FieldInfo Field)> Fields(Type type, bool includeGroups)
     {
         var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-        for (Type? t = type; t != null && t != typeof(object); t = t.BaseType)
+        for (Type? declaringType = type;
+             declaringType != null && declaringType != typeof(object);
+             declaringType = declaringType.BaseType)
         {
-            foreach (var field in t.GetFields(flags))
+            foreach (var field in declaringType.GetFields(flags))
             {
                 if (IsSetting(field, includeGroups))
                 {
@@ -81,9 +83,9 @@ public static class AgentSettings
     /// </summary>
     private static bool IsSetting(FieldInfo field, bool includeGroups)
     {
-        Type ft = field.FieldType;
+        Type fieldType = field.FieldType;
         // a group is changed in place, so its own field may be readonly
-        if (includeGroups && IsSettingsGroup(ft))
+        if (includeGroups && IsSettingsGroup(fieldType))
         {
             return true;
         }
@@ -91,7 +93,7 @@ public static class AgentSettings
         {
             return false;
         }
-        return ft.IsPrimitive || ft.IsEnum || ft == typeof(string) || ft == typeof(decimal);
+        return fieldType.IsPrimitive || fieldType.IsEnum || fieldType == typeof(string) || fieldType == typeof(decimal);
     }
 
     private static bool IsSettingsGroup(Type type)

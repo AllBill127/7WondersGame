@@ -21,7 +21,7 @@ public sealed class MctsAgent : IAgent
     private const double BytesPerMegabyte = 1048576.0;
 
     // what it measured over its game (an agent is made for one game); in an object, so these aren't settings
-    private readonly SearchStatistics _stats = new();
+    private readonly SearchStatistics _statistics = new();
 
     /// <summary>Its settings.</summary>
     public MctsConfig Config { get; } = new();
@@ -32,7 +32,7 @@ public sealed class MctsAgent : IAgent
         List<Command> legal = view.LegalMoves();
         if (legal.Count == 1)
         {
-            _stats.LastNote = null;
+            _statistics.LastNote = null;
             return legal[0];
         }
 
@@ -40,32 +40,32 @@ public sealed class MctsAgent : IAgent
         var clock = Stopwatch.StartNew();
         var search = new MctsSearch(Config, view.Seat, view.CopyGame(), view.Known, view.Random, clock);
         Command move = search.Run();
-        double ms = clock.Elapsed.TotalMilliseconds;
+        double milliseconds = clock.Elapsed.TotalMilliseconds;
 
         long allocatedHere = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-        RecordSearch(search, ms, allocatedHere);
+        RecordSearch(search, milliseconds, allocatedHere);
         return move;
     }
 
     /// <summary>Adds one search to the statistics and keeps its note for the trace.</summary>
-    private void RecordSearch(MctsSearch search, double ms, long allocatedOnThisThread)
+    private void RecordSearch(MctsSearch search, double milliseconds, long allocatedOnThisThread)
     {
-        _stats.Searches++;
-        _stats.Iterations += search.Iterations;
-        _stats.SearchMs += ms;
-        _stats.LongestMs = Math.Max(_stats.LongestMs, ms);
-        _stats.AllocatedBytes += allocatedOnThisThread + search.OtherThreadBytes;
-        _stats.LockWaitMs += search.LockWaitMs;
+        _statistics.Searches++;
+        _statistics.Iterations += search.Iterations;
+        _statistics.SearchMs += milliseconds;
+        _statistics.LongestMs = Math.Max(_statistics.LongestMs, milliseconds);
+        _statistics.AllocatedBytes += allocatedOnThisThread + search.OtherThreadBytes;
+        _statistics.LockWaitMs += search.LockWaitMs;
         // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
-        _stats.LastNote = string.Create(CultureInfo.InvariantCulture,
-            $"{search.Iterations} iterations in {ms:0} ms; {search.TopMoves(3)}");
+        _statistics.LastNote = string.Create(CultureInfo.InvariantCulture,
+            $"{search.Iterations} iterations in {milliseconds:0} ms; {search.TopMoves(3)}");
     }
 
     string? IAgent.LastChoiceNote
     {
         get
         {
-            return _stats.LastNote;
+            return _statistics.LastNote;
         }
     }
 
@@ -87,21 +87,21 @@ public sealed class MctsAgent : IAgent
     /// </remarks>
     public string StatsJson()
     {
-        var stats = new Dictionary<string, object>
+        var statistics = new Dictionary<string, object>
         {
-            ["searches"] = _stats.Searches,
-            ["iterations"] = _stats.Iterations,
-            ["searchMs"] = Math.Round(_stats.SearchMs),
-            ["longestSearchMs"] = Math.Round(_stats.LongestMs),
-            ["allocatedMb"] = Math.Round(_stats.AllocatedBytes / BytesPerMegabyte),
+            ["searches"] = _statistics.Searches,
+            ["iterations"] = _statistics.Iterations,
+            ["searchMs"] = Math.Round(_statistics.SearchMs),
+            ["longestSearchMs"] = Math.Round(_statistics.LongestMs),
+            ["allocatedMb"] = Math.Round(_statistics.AllocatedBytes / BytesPerMegabyte),
         };
         if (IsParallel())
         {
-            stats["parallel"] = Config.Parallel.ToString();
-            stats["workers"] = Config.Workers;
-            stats["lockWaitMs"] = Math.Round(_stats.LockWaitMs);
+            statistics["parallel"] = Config.Parallel.ToString();
+            statistics["workers"] = Config.Workers;
+            statistics["lockWaitMs"] = Math.Round(_statistics.LockWaitMs);
         }
-        return JsonSerializer.Serialize(stats);
+        return JsonSerializer.Serialize(statistics);
     }
 
     private bool IsParallel()

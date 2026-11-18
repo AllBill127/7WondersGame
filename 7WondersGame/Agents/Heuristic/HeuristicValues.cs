@@ -22,9 +22,9 @@ namespace _7WondersGame.Agents.Heuristic;
 /// </remarks>
 public sealed class HeuristicValues
 {
-    private readonly PlayerState _p;
+    private readonly PlayerState _player;
     private readonly int _era;
-    private readonly HeuristicWeights _w;
+    private readonly HeuristicWeights _weights;
     private readonly int _baseline;
     // the gains worked out so far (a decision looks at a handful of cards, so a list beats a dictionary)
     private CardId[] _gainIds = new CardId[8];
@@ -32,16 +32,16 @@ public sealed class HeuristicValues
     private int _gainCount;
     // the next player's values, made the first time a card's gain for them is asked for: most hands never ask,
     // and a decision is made in every rollout step, so making it up front would allocate for nothing
-    private HeuristicValues? _next;
+    private HeuristicValues? _nextPlayerValues;
     // the copy each try is made on, reset to the player first
     private PlayerState? _scratch;
 
     /// <summary>Values for one decision of <paramref name="player"/> in <paramref name="era"/>.</summary>
     public HeuristicValues(PlayerState player, int era, HeuristicWeights weights)
     {
-        _p = player;
+        _player = player;
         _era = era;
-        _w = weights;
+        _weights = weights;
         _baseline = ScoreIfEraEnded(Copy());
     }
 
@@ -50,11 +50,11 @@ public sealed class HeuristicValues
     {
         if (_scratch == null)
         {
-            _scratch = _p.Clone();
+            _scratch = _player.Clone();
         }
         else
         {
-            _scratch.CopyFrom(_p);
+            _scratch.CopyFrom(_player);
         }
         return _scratch;
     }
@@ -62,11 +62,11 @@ public sealed class HeuristicValues
     /// <summary>What building the card would add, before its price.</summary>
     public double Gain(Card card)
     {
-        for (int i = 0; i < _gainCount; i++)
+        for (int gainIndex = 0; gainIndex < _gainCount; gainIndex++)
         {
-            if (_gainIds[i] == card.Id)
+            if (_gainIds[gainIndex] == card.Id)
             {
-                return _gains[i];
+                return _gains[gainIndex];
             }
         }
         double gain = WorkOutGain(card);
@@ -77,15 +77,15 @@ public sealed class HeuristicValues
     /// <summary>Builds the card on the scratch copy and scores it.</summary>
     private double WorkOutGain(Card card)
     {
-        PlayerState s = Copy();
-        int coinsBefore = s.Resources[Resource.Coins];
+        PlayerState scratchPlayer = Copy();
+        int coinsBefore = scratchPlayer.Resources[Resource.Coins];
 
         // in the city before its effect applies, like a real build (the Lighthouse counts itself)
-        s.PlayedCards.Add(card);
-        s.ApplyCardEffect(card);
+        scratchPlayer.PlayedCards.Add(card);
+        scratchPlayer.ApplyCardEffect(card);
 
-        int score = ScoreIfEraEnded(s);
-        int coinsGained = s.Resources[Resource.Coins] - coinsBefore;
+        int score = ScoreIfEraEnded(scratchPlayer);
+        int coinsGained = scratchPlayer.Resources[Resource.Coins] - coinsBefore;
         return score - _baseline + Bonus(card, coinsGained);
     }
 
@@ -106,17 +106,17 @@ public sealed class HeuristicValues
     /// <summary>What building the next wonder stage would add to the score.</summary>
     public double WonderGain()
     {
-        PlayerState s = Copy();
-        s.Board.AddStage(s);
-        return ScoreIfEraEnded(s) - _baseline;
+        PlayerState scratchPlayer = Copy();
+        scratchPlayer.Board.AddStage(scratchPlayer);
+        return ScoreIfEraEnded(scratchPlayer) - _baseline;
     }
 
     /// <summary>What a discard's 3 coins would add to the score.</summary>
     public double DiscardGain()
     {
-        PlayerState s = Copy();
-        s.Resources[Resource.Coins] += CoinsForDiscard;
-        return ScoreIfEraEnded(s) - _baseline;
+        PlayerState scratchPlayer = Copy();
+        scratchPlayer.Resources[Resource.Coins] += CoinsForDiscard;
+        return ScoreIfEraEnded(scratchPlayer) - _baseline;
     }
 
     /// <summary>
@@ -126,12 +126,12 @@ public sealed class HeuristicValues
     public double NextPlayerGain(Card card)
     {
         PlayerState next = NextPlayer();
-        if (next == null || next == _p || next.BuildPrice(card) == null)
+        if (next == null || next == _player || next.BuildPrice(card) == null)
         {
             return 0;
         }
-        _next ??= new HeuristicValues(next, _era, _w);
-        return _next.Gain(card);
+        _nextPlayerValues ??= new HeuristicValues(next, _era, _weights);
+        return _nextPlayerValues.Gain(card);
     }
 
     /// <summary>The player who gets this hand next: east in era 2, west in eras 1 and 3.</summary>
@@ -139,17 +139,17 @@ public sealed class HeuristicValues
     {
         if (_era == 2)
         {
-            return _p.PlayerEast;
+            return _player.PlayerEast;
         }
-        return _p.PlayerWest;
+        return _player.PlayerWest;
     }
 
     /// <summary>The player's score if the era ended now: a battle, then Olympia B's guild copy.</summary>
-    private int ScoreIfEraEnded(PlayerState s)
+    private int ScoreIfEraEnded(PlayerState scratchPlayer)
     {
-        s.Battle(_era);
-        s.CopyGuild();
-        return s.CalculateScore();
+        scratchPlayer.Battle(_era);
+        scratchPlayer.CopyGuild();
+        return scratchPlayer.CalculateScore();
     }
 
     // =========== bonuses ===========
@@ -162,11 +162,11 @@ public sealed class HeuristicValues
         Ability grants = AbilitiesGrantedBy(card);
         if ((grants & Ability.RawCheapEast) != 0)
         {
-            bonus += TradingPostBonus(_p.PlayerEast);
+            bonus += TradingPostBonus(_player.PlayerEast);
         }
         if ((grants & Ability.RawCheapWest) != 0)
         {
-            bonus += TradingPostBonus(_p.PlayerWest);
+            bonus += TradingPostBonus(_player.PlayerWest);
         }
         if ((grants & Ability.ManufCheap) != 0)
         {
@@ -179,12 +179,12 @@ public sealed class HeuristicValues
         }
         if (card.Type == CardType.Civilian && _era == 1)
         {
-            bonus += _w.CivilianEra1;
+            bonus += _weights.CivilianEra1;
         }
         // in era 1 everyone starts poor, so this starts in era 2
-        if (_era >= 2 && coinsGained > 0 && _p.Resources[Resource.Coins] <= _w.PoorCoins)
+        if (_era >= 2 && coinsGained > 0 && _player.Resources[Resource.Coins] <= _weights.PoorCoins)
         {
-            bonus += _w.PoorCoinBonus * coinsGained;
+            bonus += _weights.PoorCoinBonus * coinsGained;
         }
         return bonus;
     }
@@ -193,9 +193,9 @@ public sealed class HeuristicValues
     private static Ability AbilitiesGrantedBy(Card card)
     {
         Ability grants = Ability.None;
-        for (int i = 0; i < card.Effects.Count; i++)
+        for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
         {
-            grants |= card.Effects[i].Grants;
+            grants |= card.Effects[effectIndex].Grants;
         }
         return grants;
     }
@@ -205,17 +205,17 @@ public sealed class HeuristicValues
     /// </summary>
     private double ScienceBonus()
     {
-        bool isFirstScience = _p.AmountOfType(CardType.Scientific) == 0;
-        bool hasRawMaterials = _p.AmountOfType(CardType.Materials) >= 2;
+        bool isFirstScience = _player.AmountOfType(CardType.Scientific) == 0;
+        bool hasRawMaterials = _player.AmountOfType(CardType.Materials) >= 2;
         if (!isFirstScience || !hasRawMaterials)
         {
-            return _w.ScienceEarly;
+            return _weights.ScienceEarly;
         }
         if (_era == 1)
         {
-            return _w.FirstScienceEra1;
+            return _weights.FirstScienceEra1;
         }
-        return _w.FirstScienceEra2;
+        return _weights.FirstScienceEra2;
     }
 
     /// <summary>A resource card: is it a resource the wonder stages still to build lack?</summary>
@@ -235,14 +235,14 @@ public sealed class HeuristicValues
         int lacking = 0;
         bool lackingAllRaw = true;
         bool anyGood = false;
-        foreach (Resource r in goods)
+        foreach (Resource resource in goods)
         {
-            if (Need(r) > Available(r))
+            if (Need(resource) > Available(resource))
             {
                 lacking++;
-                lackingAllRaw &= IsRaw(r);
+                lackingAllRaw &= IsRaw(resource);
             }
-            anyGood |= IsGood(r);
+            anyGood |= IsGood(resource);
         }
 
         if (lacking > 0 && wonderResource != 0)
@@ -251,7 +251,7 @@ public sealed class HeuristicValues
         }
         if (_era == 2 && anyGood && !GoodsNearby())
         {
-            return _w.NoGoodsNearbyEra2;
+            return _weights.NoGoodsNearbyEra2;
         }
         return 0;
     }
@@ -260,13 +260,13 @@ public sealed class HeuristicValues
     private static int CountGoodsMade(Card card)
     {
         int count = 0;
-        for (int i = 0; i < card.Effects.Count; i++)
+        for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
         {
-            if (card.Effects[i] is Gain gain && gain.Resource <= Resource.Papyrus)
+            if (card.Effects[effectIndex] is Gain gain && gain.Resource <= Resource.Papyrus)
             {
                 count++;
             }
-            else if (card.Effects[i] is OneOf oneOf)
+            else if (card.Effects[effectIndex] is OneOf oneOf)
             {
                 count += oneOf.Choices.Length;
             }
@@ -277,20 +277,20 @@ public sealed class HeuristicValues
     /// <summary>Writes the goods the card makes into <paramref name="goods"/>, in effect order.</summary>
     private static void ListGoodsMade(Card card, Span<Resource> goods)
     {
-        int n = 0;
-        for (int i = 0; i < card.Effects.Count; i++)
+        int goodsCount = 0;
+        for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
         {
-            if (card.Effects[i] is Gain gain && gain.Resource <= Resource.Papyrus)
+            if (card.Effects[effectIndex] is Gain gain && gain.Resource <= Resource.Papyrus)
             {
-                goods[n] = gain.Resource;
-                n++;
+                goods[goodsCount] = gain.Resource;
+                goodsCount++;
             }
-            else if (card.Effects[i] is OneOf oneOf)
+            else if (card.Effects[effectIndex] is OneOf oneOf)
             {
-                foreach (Resource r in oneOf.Choices)
+                foreach (Resource resource in oneOf.Choices)
                 {
-                    goods[n] = r;
-                    n++;
+                    goods[goodsCount] = resource;
+                    goodsCount++;
                 }
             }
         }
@@ -299,9 +299,9 @@ public sealed class HeuristicValues
     /// <summary>Whether the card gives one resource of a choice (an either/or card).</summary>
     private static bool IsEitherOrCard(Card card)
     {
-        for (int i = 0; i < card.Effects.Count; i++)
+        for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
         {
-            if (card.Effects[i] is OneOf)
+            if (card.Effects[effectIndex] is OneOf)
             {
                 return true;
             }
@@ -318,9 +318,9 @@ public sealed class HeuristicValues
         switch (_era)
         {
             case 1:
-                return _w.WonderResourceEra1;
+                return _weights.WonderResourceEra1;
             case 2:
-                return _w.WonderResourceEra2;
+                return _weights.WonderResourceEra2;
             default:
                 return 0;
         }
@@ -335,11 +335,11 @@ public sealed class HeuristicValues
         double bonus = wonderResource;
         if (IsEitherOrCard(card))
         {
-            bonus += _w.PerUsefulChoice * CountUsefulChoices(goods);
+            bonus += _weights.PerUsefulChoice * CountUsefulChoices(goods);
         }
         if (lackingAllRaw && CheapRawTrade())
         {
-            bonus -= _w.CheapRawTradePenalty;
+            bonus -= _weights.CheapRawTradePenalty;
         }
         return bonus;
     }
@@ -348,9 +348,9 @@ public sealed class HeuristicValues
     private int CountUsefulChoices(Span<Resource> goods)
     {
         int useful = 0;
-        foreach (Resource r in goods)
+        foreach (Resource resource in goods)
         {
-            if (Need(r) > 0)
+            if (Need(resource) > 0)
             {
                 useful++;
             }
@@ -359,12 +359,12 @@ public sealed class HeuristicValues
     }
 
     /// <summary>The most of a resource that one of the wonder stages still to build needs.</summary>
-    private int Need(Resource r)
+    private int Need(Resource resource)
     {
         int need = 0;
-        for (int s = _p.Board.Stage; s < _p.Board.StageCount; s++)
+        for (int stageIndex = _player.Board.Stage; stageIndex < _player.Board.StageCount; stageIndex++)
         {
-            need = Math.Max(need, _p.Board.Stages[s].Cost.GetValueOrDefault(r));
+            need = Math.Max(need, _player.Board.Stages[stageIndex].Cost.GetValueOrDefault(resource));
         }
         return need;
     }
@@ -372,12 +372,12 @@ public sealed class HeuristicValues
     /// <summary>
     /// How much of what's needed the player and its neighbours (what they can sell) produce, up to the need each.
     /// </summary>
-    private int Available(Resource r)
+    private int Available(Resource resource)
     {
-        int need = Need(r);
-        int own = CountProducible(_p, r, need, false);
-        int fromWest = CountProducible(_p.PlayerWest, r, need, true);
-        int fromEast = CountProducible(_p.PlayerEast, r, need, true);
+        int need = Need(resource);
+        int own = CountProducible(_player, resource, need, false);
+        int fromWest = CountProducible(_player.PlayerWest, resource, need, true);
+        int fromEast = CountProducible(_player.PlayerEast, resource, need, true);
         return own + fromWest + fromEast;
     }
 
@@ -385,27 +385,27 @@ public sealed class HeuristicValues
     /// How much of <paramref name="needed"/> this player could produce of a resource: its fixed production plus
     /// every either/or source that can give it (for a neighbour, only the brown cards they could sell).
     /// </summary>
-    private static int CountProducible(PlayerState p, Resource resource, int needed, bool isNeighbor)
+    private static int CountProducible(PlayerState player, Resource resource, int needed, bool isNeighbor)
     {
-        int count = p.Resources[resource];
+        int count = player.Resources[resource];
         if (count >= needed)
         {
             return needed;
         }
 
         int resourceBit = 1 << (int)resource;
-        foreach (Card card in p.PlayedCards)
+        foreach (Card card in player.PlayedCards)
         {
             if ((ChoiceMaskOf(card, isNeighbor) & resourceBit) != 0)
             {
                 count++;
             }
         }
-        if (!isNeighbor && IsRaw(resource) && p.Has(Ability.AnyRaw))
+        if (!isNeighbor && IsRaw(resource) && player.Has(Ability.AnyRaw))
         {
             count++;
         }
-        if (!isNeighbor && IsGood(resource) && p.Has(Ability.AnyManufactured))
+        if (!isNeighbor && IsGood(resource) && player.Has(Ability.AnyManufactured))
         {
             count++;
         }
@@ -428,12 +428,12 @@ public sealed class HeuristicValues
     /// </summary>
     private bool CheapRawTrade()
     {
-        int west = RawCards(_p.PlayerWest);
-        int east = RawCards(_p.PlayerEast);
-        int plenty = _w.RawNeighbourPlenty;
-        bool cheapFromEast = _p.Has(Ability.RawCheapEast) && east >= plenty;
-        bool cheapFromWest = _p.Has(Ability.RawCheapWest) && west >= plenty;
-        bool cheapFromEither = _p.Has(Ability.WonderRawCheap) && Math.Max(west, east) >= plenty;
+        int west = RawCards(_player.PlayerWest);
+        int east = RawCards(_player.PlayerEast);
+        int plenty = _weights.RawNeighbourPlenty;
+        bool cheapFromEast = _player.Has(Ability.RawCheapEast) && east >= plenty;
+        bool cheapFromWest = _player.Has(Ability.RawCheapWest) && west >= plenty;
+        bool cheapFromEither = _player.Has(Ability.WonderRawCheap) && Math.Max(west, east) >= plenty;
         return cheapFromEast || cheapFromWest || cheapFromEither;
     }
 
@@ -443,15 +443,15 @@ public sealed class HeuristicValues
     private double TradingPostBonus(PlayerState neighbour)
     {
         int theirs = RawCards(neighbour);
-        return TradeDiscountBonus(RawCards(_p), _w.FewOwnRaw, theirs);
+        return TradeDiscountBonus(RawCards(_player), _weights.FewOwnRaw, theirs);
     }
 
     /// <summary>The Marketplace: worth it when the player has few goods and its neighbours have some.</summary>
     private double MarketplaceBonus()
     {
         // each neighbour's own board
-        int theirs = GoodsCards(_p.PlayerWest) + GoodsCards(_p.PlayerEast);
-        return TradeDiscountBonus(GoodsCards(_p), _w.FewOwnGoods, theirs);
+        int theirs = GoodsCards(_player.PlayerWest) + GoodsCards(_player.PlayerEast);
+        return TradeDiscountBonus(GoodsCards(_player), _weights.FewOwnGoods, theirs);
     }
 
     /// <summary>
@@ -461,7 +461,7 @@ public sealed class HeuristicValues
     {
         if (ownCards <= fewOwnCards && neighbourCards >= 1)
         {
-            return _w.TradeDiscount + _w.TradeDiscountPerCard * neighbourCards;
+            return _weights.TradeDiscount + _weights.TradeDiscountPerCard * neighbourCards;
         }
         return 0;
     }
@@ -469,19 +469,22 @@ public sealed class HeuristicValues
     /// <summary>Whether the player or a neighbour produces any manufactured good.</summary>
     private bool GoodsNearby()
     {
-        return MakesGoods(_p) || MakesGoods(_p.PlayerWest) || MakesGoods(_p.PlayerEast);
+        return MakesGoods(_player) || MakesGoods(_player.PlayerWest) || MakesGoods(_player.PlayerEast);
     }
 
-    private static bool MakesGoods(PlayerState q)
+    private static bool MakesGoods(PlayerState cityOwner)
     {
-        return q.Resources[Resource.Loom] + q.Resources[Resource.Glass] + q.Resources[Resource.Papyrus] > 0;
+        int goods = cityOwner.Resources[Resource.Loom]
+            + cityOwner.Resources[Resource.Glass]
+            + cityOwner.Resources[Resource.Papyrus];
+        return goods > 0;
     }
 
     /// <summary>Raw material cards, plus 1 for a board that makes a raw material.</summary>
-    private static int RawCards(PlayerState q)
+    private static int RawCards(PlayerState cityOwner)
     {
-        int count = q.AmountOfType(CardType.Materials);
-        if (IsRaw(q.Board.Production))
+        int count = cityOwner.AmountOfType(CardType.Materials);
+        if (IsRaw(cityOwner.Board.Production))
         {
             count++;
         }
@@ -489,23 +492,23 @@ public sealed class HeuristicValues
     }
 
     /// <summary>Manufactured good cards, plus 1 for a board that makes a good.</summary>
-    private static int GoodsCards(PlayerState q)
+    private static int GoodsCards(PlayerState cityOwner)
     {
-        int count = q.AmountOfType(CardType.Manufactured);
-        if (IsGood(q.Board.Production))
+        int count = cityOwner.AmountOfType(CardType.Manufactured);
+        if (IsGood(cityOwner.Board.Production))
         {
             count++;
         }
         return count;
     }
 
-    private static bool IsRaw(Resource r)
+    private static bool IsRaw(Resource resource)
     {
-        return r <= Resource.Stone;
+        return resource <= Resource.Stone;
     }
 
-    private static bool IsGood(Resource r)
+    private static bool IsGood(Resource resource)
     {
-        return r is >= Resource.Loom and <= Resource.Papyrus;
+        return resource is >= Resource.Loom and <= Resource.Papyrus;
     }
 }

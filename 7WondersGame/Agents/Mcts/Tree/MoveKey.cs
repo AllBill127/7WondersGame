@@ -22,9 +22,9 @@ internal readonly struct MoveKey : IEquatable<MoveKey>
         {
             return false;
         }
-        for (int i = 0; i < _moves.Length; i++)
+        for (int moveIndex = 0; moveIndex < _moves.Length; moveIndex++)
         {
-            if (!_moves[i].Equals(other._moves[i]))
+            if (!_moves[moveIndex].Equals(other._moves[moveIndex]))
             {
                 return false;
             }
@@ -35,16 +35,16 @@ internal readonly struct MoveKey : IEquatable<MoveKey>
     /// <inheritdoc/>
     public override bool Equals(object? obj)
     {
-        return obj is MoveKey k && Equals(k);
+        return obj is MoveKey otherKey && Equals(otherKey);
     }
 
     /// <inheritdoc/>
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        foreach (var m in _moves)
+        foreach (var move in _moves)
         {
-            hash.Add(m);
+            hash.Add(move);
         }
         return hash.ToHashCode();
     }

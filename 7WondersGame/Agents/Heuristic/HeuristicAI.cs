@@ -46,18 +46,18 @@ public sealed class HeuristicAI : IAgent
 
     /// <summary>
     /// The same choice without a <see cref="GameView"/>, for a search that plays its own copy of the game.
-    /// <paramref name="me"/> must be part of a whole table (neighbours set); nothing changes.
+    /// <paramref name="player"/> must be part of a whole table (neighbours set); nothing changes.
     /// </summary>
-    public Command Choose(PlayerState me, Phase phase, int era, List<Card> discardPile)
+    public Command Choose(PlayerState player, Phase phase, int era, List<Card> discardPile)
     {
-        var values = new HeuristicValues(me, era, Weights);
+        var values = new HeuristicValues(player, era, Weights);
 
         if (phase == Phase.DiscardBuild)
         {
-            return ChooseDiscardPileBuild(me, discardPile, values);
+            return ChooseDiscardPileBuild(player, discardPile, values);
         }
 
-        List<Card> hand = me.HandCards;
+        List<Card> hand = player.HandCards;
         if (hand.Count == 0)
         {
             return Skip;
@@ -69,16 +69,16 @@ public sealed class HeuristicAI : IAgent
         FillDeniedValues(denied, hand, values);
 
         var best = new BestMove();
-        ConsiderBuilds(ref best, me, values, denied);
-        if (phase == Phase.ChooseMoves && me.FreeCardOnce)
+        ConsiderBuilds(ref best, player, values, denied);
+        if (phase == Phase.ChooseMoves && player.FreeCardOnce)
         {
-            ConsiderOlympiaFreeBuilds(ref best, me, values, denied);
+            ConsiderOlympiaFreeBuilds(ref best, player, values, denied);
         }
 
         int giveUp = CardToGiveUp(hand, values, denied);
         Card giveUpCard = hand[giveUp];
         double giveUpDenied = denied[giveUp];
-        ConsiderWonderStage(ref best, me, values, giveUpCard, giveUpDenied);
+        ConsiderWonderStage(ref best, player, values, giveUpCard, giveUpDenied);
         double discardValue = values.DiscardGain() - Weights.DiscardPenalty + giveUpDenied;
         best.Consider(ActionType.Discard, giveUpCard, discardValue);
 
@@ -86,9 +86,9 @@ public sealed class HeuristicAI : IAgent
     }
 
     /// <summary>Halikarnassos: the build is free, so only the card's worth counts.</summary>
-    private static Command ChooseDiscardPileBuild(PlayerState me, List<Card> discardPile, HeuristicValues values)
+    private static Command ChooseDiscardPileBuild(PlayerState player, List<Card> discardPile, HeuristicValues values)
     {
-        List<Card> playable = me.GetPlayableCards(discardPile, playAllFree: true);
+        List<Card> playable = player.GetPlayableCards(discardPile, playAllFree: true);
         Card? pick = HighestValueCard(playable, values);
         return MoveOrSkip(ActionType.Build, pick);
     }
@@ -100,43 +100,43 @@ public sealed class HeuristicAI : IAgent
         {
             return;
         }
-        for (int i = 0; i < hand.Count; i++)
+        for (int cardIndex = 0; cardIndex < hand.Count; cardIndex++)
         {
-            denied[i] = Weights.Denial * values.NextPlayerGain(hand[i]);
+            denied[cardIndex] = Weights.Denial * values.NextPlayerGain(hand[cardIndex]);
         }
     }
 
     /// <summary>Building each hand card the player can build: its worth minus its price.</summary>
-    private void ConsiderBuilds(ref BestMove best, PlayerState me, HeuristicValues values, Span<double> denied)
+    private void ConsiderBuilds(ref BestMove best, PlayerState player, HeuristicValues values, Span<double> denied)
     {
-        List<Card> hand = me.HandCards;
-        for (int i = 0; i < hand.Count; i++)
+        List<Card> hand = player.HandCards;
+        for (int cardIndex = 0; cardIndex < hand.Count; cardIndex++)
         {
             // a price means the card can be built (the cards GetPlayableCards gives)
-            int? price = me.BuildPrice(hand[i]);
+            int? price = player.BuildPrice(hand[cardIndex]);
             if (price == null)
             {
                 continue;
             }
-            double value = values.Gain(hand[i]) - Weights.CoinValue * price.Value + denied[i];
-            best.Consider(ActionType.Build, hand[i], value);
+            double value = values.Gain(hand[cardIndex]) - Weights.CoinValue * price.Value + denied[cardIndex];
+            best.Consider(ActionType.Build, hand[cardIndex], value);
         }
     }
 
     /// <summary>Olympia A's free card on each hand card not built yet: its worth minus keeping the charge.</summary>
     private void ConsiderOlympiaFreeBuilds(
         ref BestMove best,
-        PlayerState me,
+        PlayerState player,
         HeuristicValues values,
         Span<double> denied)
     {
-        List<Card> hand = me.HandCards;
+        List<Card> hand = player.HandCards;
         double keep = FreeBuildKeepValue(hand);
-        foreach (Card c in me.GetPlayableCards(hand, playAllFree: true))
+        foreach (Card card in player.GetPlayableCards(hand, playAllFree: true))
         {
-            int handIndex = hand.IndexOf(c);
-            double value = values.Gain(c) - keep + denied[handIndex];
-            best.Consider(ActionType.BuildFreeOnce, c, value);
+            int handIndex = hand.IndexOf(card);
+            double value = values.Gain(card) - keep + denied[handIndex];
+            best.Consider(ActionType.BuildFreeOnce, card, value);
         }
     }
 
@@ -161,13 +161,13 @@ public sealed class HeuristicAI : IAgent
     {
         int giveUp = 0;
         double giveUpValue = denied[0] - values.Gain(hand[0]);
-        for (int i = 1; i < hand.Count; i++)
+        for (int cardIndex = 1; cardIndex < hand.Count; cardIndex++)
         {
-            double v = denied[i] - values.Gain(hand[i]);
-            if (v > giveUpValue)
+            double cardGiveUpValue = denied[cardIndex] - values.Gain(hand[cardIndex]);
+            if (cardGiveUpValue > giveUpValue)
             {
-                giveUp = i;
-                giveUpValue = v;
+                giveUp = cardIndex;
+                giveUpValue = cardGiveUpValue;
             }
         }
         return giveUp;
@@ -178,12 +178,12 @@ public sealed class HeuristicAI : IAgent
     /// </summary>
     private void ConsiderWonderStage(
         ref BestMove best,
-        PlayerState me,
+        PlayerState player,
         HeuristicValues values,
         Card giveUpCard,
         double giveUpDenied)
     {
-        int? stagePrice = WonderStagePrice(me);
+        int? stagePrice = WonderStagePrice(player);
         if (stagePrice == null)
         {
             return;
@@ -196,14 +196,14 @@ public sealed class HeuristicAI : IAgent
     /// The coins the next wonder stage costs, planned once; null when there is none or it can't be paid for (as
     /// <c>CanBuildWonder</c> says).
     /// </summary>
-    private static int? WonderStagePrice(PlayerState me)
+    private static int? WonderStagePrice(PlayerState player)
     {
-        IReadOnlyDictionary<Resource, int>? stageCost = me.Board.NextStageCost;
+        IReadOnlyDictionary<Resource, int>? stageCost = player.Board.NextStageCost;
         if (stageCost == null)
         {
             return null;
         }
-        PaymentPlan? stagePlan = PaymentPlanner.Plan(me, stageCost);
+        PaymentPlan? stagePlan = PaymentPlanner.Plan(player, stageCost);
         if (stagePlan == null)
         {
             return null;
@@ -216,13 +216,13 @@ public sealed class HeuristicAI : IAgent
     {
         Card? best = null;
         double bestValue = double.NegativeInfinity;
-        foreach (Card c in cards)
+        foreach (Card card in cards)
         {
-            double v = values.Gain(c);
-            if (best == null || v > bestValue)
+            double value = values.Gain(card);
+            if (best == null || value > bestValue)
             {
-                best = c;
-                bestValue = v;
+                best = card;
+                bestValue = value;
             }
         }
         return best;
