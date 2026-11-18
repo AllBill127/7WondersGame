@@ -47,9 +47,9 @@ public class PaymentPlannerTests
             new Wonder(WonderId.GizahA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
-        foreach (PlayerState p in players)
+        foreach (PlayerState player in players)
         {
-            p.Resources[Resource.Coins] = 0;
+            player.Resources[Resource.Coins] = 0;
         }
 
         players[1].Resources[Resource.Coins] = coins;
@@ -61,11 +61,11 @@ public class PaymentPlannerTests
         return parts.ToDictionary(part => part.Item1, part => part.Item2);
     }
 
-    private static void Build(PlayerState p, params CardId[] cards)
+    private static void Build(PlayerState player, params CardId[] cards)
     {
         foreach (CardId id in cards)
         {
-            p.PlayedCards.Add(CardsDataset.GameCards[id]);
+            player.PlayedCards.Add(CardsDataset.GameCards[id]);
         }
     }
 
@@ -253,10 +253,11 @@ public class PaymentPlannerTests
         var cost = Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1));
         Assert.IsNotNull(PaymentPlanner.Plan(buyer, cost));
 
-        for (int i = 0; i < 3; i++)
+        for (int seat = 0; seat < 3; seat++)
         {
-            CollectionAssert.AreEquivalent(resourcesBefore[i], ResourcesOf(players[i]), $"resources of player {i}");
-            CollectionAssert.AreEqual(cardsBefore[i], players[i].PlayedCards, $"cards of player {i}");
+            CollectionAssert.AreEquivalent(resourcesBefore[seat], ResourcesOf(players[seat]),
+                                           $"resources of player {seat}");
+            CollectionAssert.AreEqual(cardsBefore[seat], players[seat].PlayedCards, $"cards of player {seat}");
         }
     }
 
@@ -280,21 +281,21 @@ public class PaymentPlannerTests
     [TestMethod]
     public void MatchesBruteForce_OnRandomPositions()
     {
-        var rng = new Random(20261110);
+        var random = new Random(20261110);
         WonderId[] boards = { WonderId.GizahA, WonderId.AlexandriaA, WonderId.AlexandriaB };
 
         for (int test = 0; test < 3000; test++)
         {
-            Wonder buyerBoard = new Wonder(boards[rng.Next(boards.Length)]);
-            buyerBoard.Stage = rng.Next(0, 3);
-            var (west, buyer, east) = SetUp(coins: rng.Next(0, 9), buyerBoard);
-            foreach (PlayerState p in new[] { west, buyer, east })
+            Wonder buyerBoard = new Wonder(boards[random.Next(boards.Length)]);
+            buyerBoard.Stage = random.Next(0, 3);
+            var (west, buyer, east) = SetUp(coins: random.Next(0, 9), buyerBoard);
+            foreach (PlayerState player in new[] { west, buyer, east })
             {
-                GiveRandomResourcesAndCards(p, rng);
+                GiveRandomResourcesAndCards(player, random);
             }
 
-            GiveRandomDiscounts(buyer, rng);
-            Dictionary<Resource, int> cost = RandomCost(rng);
+            GiveRandomDiscounts(buyer, random);
+            Dictionary<Resource, int> cost = RandomCost(random);
 
             PaymentPlan? expected = BruteForcePayment.Plan(buyer, cost);
             PaymentPlan? actual = PaymentPlanner.Plan(buyer, cost);
@@ -304,71 +305,71 @@ public class PaymentPlannerTests
     }
 
     // a few goods of each kind, some brown either/or cards, sometimes a Caravansery or Forum
-    private static void GiveRandomResourcesAndCards(PlayerState p, Random rng)
+    private static void GiveRandomResourcesAndCards(PlayerState player, Random random)
     {
-        foreach (Resource r in GoodsList)
+        foreach (Resource resource in GoodsList)
         {
-            p.Resources[r] = 0;
-            if (rng.Next(4) == 0)
+            player.Resources[resource] = 0;
+            if (random.Next(4) == 0)
             {
-                p.Resources[r] = rng.Next(1, 3);
+                player.Resources[resource] = random.Next(1, 3);
             }
         }
 
         foreach (CardId id in BrownEitherOrCards)
         {
-            if (rng.Next(3) == 0)
+            if (random.Next(3) == 0)
             {
-                Build(p, id);
+                Build(player, id);
             }
         }
 
-        if (rng.Next(4) == 0)
+        if (random.Next(4) == 0)
         {
-            Build(p, CardId.Caravansery);
+            Build(player, CardId.Caravansery);
         }
 
-        if (rng.Next(4) == 0)
+        if (random.Next(4) == 0)
         {
-            Build(p, CardId.Forum);
+            Build(player, CardId.Forum);
         }
     }
 
-    private static void GiveRandomDiscounts(PlayerState buyer, Random rng)
+    private static void GiveRandomDiscounts(PlayerState buyer, Random random)
     {
-        if (rng.Next(3) == 0)
+        if (random.Next(3) == 0)
         {
             buyer.Abilities |= Ability.RawCheapWest;
         }
 
-        if (rng.Next(3) == 0)
+        if (random.Next(3) == 0)
         {
             buyer.Abilities |= Ability.RawCheapEast;
         }
 
-        if (rng.Next(5) == 0)
+        if (random.Next(5) == 0)
         {
             buyer.Abilities |= Ability.WonderRawCheap;
         }
 
-        if (rng.Next(3) == 0)
+        if (random.Next(3) == 0)
         {
             buyer.Abilities |= Ability.ManufCheap;
         }
     }
 
     // one to three kinds of goods, one to three of each, sometimes a coin
-    private static Dictionary<Resource, int> RandomCost(Random rng)
+    private static Dictionary<Resource, int> RandomCost(Random random)
     {
         var cost = new Dictionary<Resource, int>();
-        int kinds = rng.Next(1, 4);
-        for (int k = 0; k < kinds; k++)
+        int kinds = random.Next(1, 4);
+        for (int kindIndex = 0; kindIndex < kinds; kindIndex++)
         {
-            Resource good = GoodsList[rng.Next(GoodsList.Length)];
-            cost[good] = rng.Next(1, 4);
+            Resource good = GoodsList[random.Next(GoodsList.Length)];
+            cost[good] = random.Next(1, 4);
         }
 
-        if (rng.Next(5) == 0)
+        if (random.Next(5) == 0)
         {
             cost[Resource.Coins] = 1;
         }

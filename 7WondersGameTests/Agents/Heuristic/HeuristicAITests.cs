@@ -28,14 +28,14 @@ public class HeuristicAITests
     }
 
     /// <summary>Three players, seated in this order, each with its board's resource.</summary>
-    private static List<PlayerState> Table(WonderId me, WonderId east, WonderId west)
+    private static List<PlayerState> Table(WonderId playerWonder, WonderId east, WonderId west)
     {
         // MockPlayers seats them in a ring: seat 0's east is seat 1, its west seat 2
-        List<Wonder> wonders = new List<Wonder> { new Wonder(me), new Wonder(east), new Wonder(west) };
+        List<Wonder> wonders = new List<Wonder> { new Wonder(playerWonder), new Wonder(east), new Wonder(west) };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
-        foreach (PlayerState p in players)
+        foreach (PlayerState player in players)
         {
-            p.Resources[p.Board.Production] += 1;
+            player.Resources[player.Board.Production] += 1;
         }
 
         return players;
@@ -49,10 +49,10 @@ public class HeuristicAITests
         return new HeuristicAI { Weights = new HeuristicWeights { Denial = 0, CivilianEra1 = 0 } };
     }
 
-    private static Command ChooseEra1(HeuristicAI agent, PlayerState me, params CardId[] hand)
+    private static Command ChooseEra1(HeuristicAI agent, PlayerState player, params CardId[] hand)
     {
-        me.HandCards.AddRange(hand.Select(C));
-        return agent.Choose(me, Phase.ChooseMoves, 1, new List<Card>());
+        player.HandCards.AddRange(hand.Select(C));
+        return agent.Choose(player, Phase.ChooseMoves, 1, new List<Card>());
     }
 
     // =========== whole games ===========
@@ -64,9 +64,9 @@ public class HeuristicAITests
     [DataRow(7)]
     public void EveryChoice_IsLegal_AndChangesNothing(int players)
     {
-        for (int g = 0; g < 3; g++)
+        for (int gameIndex = 0; gameIndex < 3; gameIndex++)
         {
-            var game = new Game(Seeding.GameSeed(77, players * 10 + g));
+            var game = new Game(Seeding.GameSeed(77, players * 10 + gameIndex));
             for (int seat = 0; seat < players; seat++)
             {
                 game.Agents.Add(new HeuristicAI());
@@ -104,13 +104,13 @@ public class HeuristicAITests
         return string.Join(" | ", game.Players.Select(PlayerSnapshot)) + $" discarded={game.DiscardedCards.Count}";
     }
 
-    private static string PlayerSnapshot(PlayerState p)
+    private static string PlayerSnapshot(PlayerState player)
     {
-        string resources = string.Join(",", p.Resources.Select(resource => resource.Value));
-        string handCards = string.Join(",", p.HandCards.Select(card => card.Id));
-        string playedCards = string.Join(",", p.PlayedCards.Select(card => card.Id));
-        return $"{p.Id}: {resources} {p.Board.Stage} {p.Abilities} " +
-               $"{p.FreeCardOnce} {p.DiscardFree} {p.VictoryTokens}/{p.DefeatTokens} " +
+        string resources = string.Join(",", player.Resources.Select(resource => resource.Value));
+        string handCards = string.Join(",", player.HandCards.Select(card => card.Id));
+        string playedCards = string.Join(",", player.PlayedCards.Select(card => card.Id));
+        return $"{player.Id}: {resources} {player.Board.Stage} {player.Abilities} " +
+               $"{player.FreeCardOnce} {player.DiscardFree} {player.VictoryTokens}/{player.DefeatTokens} " +
                $"[{handCards}] [{playedCards}]";
     }
 
@@ -148,10 +148,10 @@ public class HeuristicAITests
     {
         var weights = new HeuristicWeights();
         // Gizah makes stone; Alexandria glass and Halikarnassos loom, which the Marketplace makes cheaper
-        PlayerState me = Table(WonderId.GizahA, WonderId.AlexandriaA, WonderId.HalikarnassosA)[0];
+        PlayerState player = Table(WonderId.GizahA, WonderId.AlexandriaA, WonderId.HalikarnassosA)[0];
         PlayerState rawNeighbours = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.OlympiaA)[0];
 
-        double withGoods = new HeuristicValues(me, 1, weights).Gain(C(CardId.Marketplace));
+        double withGoods = new HeuristicValues(player, 1, weights).Gain(C(CardId.Marketplace));
         double withoutGoods = new HeuristicValues(rawNeighbours, 1, weights).Gain(C(CardId.Marketplace));
 
         Assert.AreEqual(weights.TradeDiscount + 2 * weights.TradeDiscountPerCard, withGoods);
@@ -162,9 +162,9 @@ public class HeuristicAITests
     public void OfTwoCardsWorthTheSame_TheCheaperIsBuilt()
     {
         // Baths and Pawnshop are both 3 points; Baths needs stone, bought from the east neighbour (Gizah)
-        PlayerState me = Table(WonderId.RhodosA, WonderId.GizahA, WonderId.EphesosA)[0];
+        PlayerState player = Table(WonderId.RhodosA, WonderId.GizahA, WonderId.EphesosA)[0];
 
-        Command move = ChooseEra1(Plain(), me, CardId.Baths, CardId.Pawnshop);
+        Command move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Pawnshop);
 
         Assert.AreEqual(new Command(ActionType.Build, C(CardId.Pawnshop)), move);
     }
@@ -173,11 +173,11 @@ public class HeuristicAITests
     public void AWonderStage_BuriesTheCardWorthLeast()
     {
         // Gizah A's first stage needs 2 stone, which the player has: 3 points, more than any card here
-        PlayerState me = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
-        me.Resources[Resource.Stone] = 2;
+        PlayerState player = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
+        player.Resources[Resource.Stone] = 2;
 
         // Baths 3 points, Altar 2, Clay Pool nothing (Gizah A needs no clay)
-        Command move = ChooseEra1(Plain(), me, CardId.Baths, CardId.Altar, CardId.ClayPool);
+        Command move = ChooseEra1(Plain(), player, CardId.Baths, CardId.Altar, CardId.ClayPool);
 
         Assert.AreEqual(new Command(ActionType.BuildWonder, C(CardId.ClayPool)), move);
     }
@@ -185,10 +185,10 @@ public class HeuristicAITests
     [TestMethod]
     public void OlympiasFreeCard_IsKeptWhileACardCanBeBought()
     {
-        PlayerState me = OlympiaWithFreeCard();
+        PlayerState player = OlympiaWithFreeCard();
 
         // Baths needs stone, which nobody here makes: only the free card could build it
-        Command move = ChooseEra1(Plain(), me, CardId.Altar, CardId.Baths, CardId.Theater);
+        Command move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths, CardId.Theater);
 
         Assert.AreEqual(new Command(ActionType.Build, C(CardId.Altar)), move);
     }
@@ -196,29 +196,29 @@ public class HeuristicAITests
     [TestMethod]
     public void OlympiasFreeCard_IsUsedOnTheErasLastChoice()
     {
-        PlayerState me = OlympiaWithFreeCard();
+        PlayerState player = OlympiaWithFreeCard();
 
-        Command move = ChooseEra1(Plain(), me, CardId.Altar, CardId.Baths);
+        Command move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths);
 
         Assert.AreEqual(new Command(ActionType.BuildFreeOnce, C(CardId.Baths)), move);
     }
 
     private static PlayerState OlympiaWithFreeCard()
     {
-        PlayerState me = Table(WonderId.OlympiaA, WonderId.RhodosA, WonderId.EphesosA)[0];
-        me.Board.Stage = 2;
-        me.FreeCardOnce = true;
-        return me;
+        PlayerState player = Table(WonderId.OlympiaA, WonderId.RhodosA, WonderId.EphesosA)[0];
+        player.Board.Stage = 2;
+        player.FreeCardOnce = true;
+        return player;
     }
 
     [TestMethod]
     public void TheDiscardPileBuild_TakesTheCardWorthMost()
     {
         // the board doesn't matter for the choice; Gizah A needs no clay, so Clay Pool is worth nothing
-        PlayerState me = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
+        PlayerState player = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
         var pile = new List<Card> { C(CardId.Altar), C(CardId.Pawnshop), C(CardId.ClayPool) };
 
-        Command move = Plain().Choose(me, Phase.DiscardBuild, 1, pile);
+        Command move = Plain().Choose(player, Phase.DiscardBuild, 1, pile);
 
         Assert.AreEqual(new Command(ActionType.Build, C(CardId.Pawnshop)), move);
     }

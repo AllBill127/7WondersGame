@@ -67,17 +67,18 @@ public class CalculateScientificScoreTests
     [TestMethod]
     public void BestScienceScore_MatchesEveryPlacementByHand()
     {
-        for (int g = 0; g <= 4; g++)
+        for (int gears = 0; gears <= 4; gears++)
         {
-            for (int c = 0; c <= 4; c++)
+            for (int compasses = 0; compasses <= 4; compasses++)
             {
-                for (int t = 0; t <= 4; t++)
+                for (int tablets = 0; tablets <= 4; tablets++)
                 {
-                    int best1 = BestScoreWithOneWildcardByHand(g, c, t);
-                    Assert.AreEqual(best1, RulesClass.BestScienceScore(g, c, t, 1), $"{g},{c},{t} k=1");
+                    int bestWithOneWildcard = BestScoreWithOneWildcardByHand(gears, compasses, tablets);
+                    Assert.AreEqual(bestWithOneWildcard, RulesClass.BestScienceScore(gears, compasses, tablets, 1),
+                                    $"{gears},{compasses},{tablets} k=1");
                     Assert.IsTrue(
-                        RulesClass.BestScienceScore(g, c, t, 2) >= best1,
-                        $"{g},{c},{t} k=2 never worse than k=1");
+                        RulesClass.BestScienceScore(gears, compasses, tablets, 2) >= bestWithOneWildcard,
+                        $"{gears},{compasses},{tablets} k=2 never worse than k=1");
                 }
             }
         }

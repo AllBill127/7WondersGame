@@ -49,14 +49,14 @@ public class SeedingTests
     [TestMethod]
     public void AgentRandom_IsPerSeatAndSeeded()
     {
-        Game a = new Game(123);
-        Game b = new Game(123);
+        Game firstGame = new Game(123);
+        Game secondGame = new Game(123);
 
-        int[] seat0 = Draw(a.AgentRandom(0));
-        CollectionAssert.AreEqual(seat0, Draw(b.AgentRandom(0)), "same seed, same seat");
+        int[] seat0 = Draw(firstGame.AgentRandom(0));
+        CollectionAssert.AreEqual(seat0, Draw(secondGame.AgentRandom(0)), "same seed, same seat");
         CollectionAssert.AreNotEqual(seat0, Draw(new Game(123).AgentRandom(1)), "other seat");
         CollectionAssert.AreNotEqual(seat0, Draw(new Game(124).AgentRandom(0)), "other seed");
-        Assert.AreSame(a.AgentRandom(0), a.AgentRandom(0), "one stream per seat");
+        Assert.AreSame(firstGame.AgentRandom(0), firstGame.AgentRandom(0), "one stream per seat");
     }
 
     [TestMethod]
@@ -68,7 +68,7 @@ public class SeedingTests
         untouched.InitGame();
 
         // a search makes copies and draws from them
-        for (int n = 0; n < 5; n++)
+        for (int copyIndex = 0; copyIndex < 5; copyIndex++)
         {
             Game copy = searched.DeepCopy();
             Draw(copy.AgentRandom(0));
@@ -145,12 +145,12 @@ public class SeedingTests
         return $"{move.Action}:{cardName}";
     }
 
-    private static int[] Draw(Random rng)
+    private static int[] Draw(Random random)
     {
         int[] draws = new int[8];
         for (int drawIndex = 0; drawIndex < draws.Length; drawIndex++)
         {
-            draws[drawIndex] = rng.Next();
+            draws[drawIndex] = random.Next();
         }
 
         return draws;

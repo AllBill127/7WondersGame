@@ -21,9 +21,9 @@ namespace _7WondersGameTests.Engine.Games;
 [TestClass]
 public class KnowledgeTests
 {
-    private static Game NewGame(int players, int g)
+    private static Game NewGame(int players, int gameIndex)
     {
-        var game = new Game(Seeding.GameSeed(31, players * 100 + g));
+        var game = new Game(Seeding.GameSeed(31, players * 100 + gameIndex));
 
         // a mix, so wonder stages, discards, Babylon B and Halikarnassos all happen
         for (int seat = 0; seat < players; seat++)
@@ -77,9 +77,9 @@ public class KnowledgeTests
         return Count(part).All(cardCount => w.GetValueOrDefault(cardCount.Key) >= cardCount.Value);
     }
 
-    private static bool SameCards(IEnumerable<Card> a, IEnumerable<Card> b)
+    private static bool SameCards(IEnumerable<Card> first, IEnumerable<Card> second)
     {
-        return SubsetOf(a, b) && SubsetOf(b, a);
+        return SubsetOf(first, second) && SubsetOf(second, first);
     }
 
     // =========== knowledge ===========
@@ -91,9 +91,9 @@ public class KnowledgeTests
     public void Knowledge_IsTrue_AndGrowsAsHandsPass(int players)
     {
         int halikarnassosLooks = 0;
-        for (int g = 0; g < 8; g++)
+        for (int gameIndex = 0; gameIndex < 8; gameIndex++)
         {
-            Game game = NewGame(players, g);
+            Game game = NewGame(players, gameIndex);
             while (HasPendingPlayers(game))
             {
                 halikarnassosLooks += CheckEverySeatsKnowledge(game, players);
@@ -111,33 +111,34 @@ public class KnowledgeTests
     private static int CheckEverySeatsKnowledge(Game game, int players)
     {
         int halikarnassosLooks = 0;
-        for (int o = 0; o < players; o++)
+        for (int observerSeat = 0; observerSeat < players; observerSeat++)
         {
-            SeatKnowledge k = game.KnowledgeOf(o)!;
-            string where = $"observer {o}, {game.Phase}, turn {game.Turn}";
-            Assert.IsTrue(SameCards(k.InHand[o], game.Players[o].HandCards), where);
-            for (int h = 0; h < players; h++)
+            SeatKnowledge knowledge = game.KnowledgeOf(observerSeat)!;
+            string where = $"observer {observerSeat}, {game.Phase}, turn {game.Turn}";
+            Assert.IsTrue(SameCards(knowledge.InHand[observerSeat], game.Players[observerSeat].HandCards), where);
+            for (int handOwnerSeat = 0; handOwnerSeat < players; handOwnerSeat++)
             {
-                if (k.InHand[h].Count > 0)
+                if (knowledge.InHand[handOwnerSeat].Count > 0)
                 {
-                    Assert.IsTrue(SubsetOf(game.Players[h].HandCards, k.InHand[h]), $"{where}, hand of {h}");
+                    Assert.IsTrue(SubsetOf(game.Players[handOwnerSeat].HandCards, knowledge.InHand[handOwnerSeat]),
+                                  $"{where}, hand of {handOwnerSeat}");
                 }
             }
 
-            Assert.IsTrue(SubsetOf(k.InPile, game.DiscardedCards), where);
-            Assert.AreEqual(game.Players[o].Board.Stage, k.Buried.Count, where);
+            Assert.IsTrue(SubsetOf(knowledge.InPile, game.DiscardedCards), where);
+            Assert.AreEqual(game.Players[observerSeat].Board.Stage, knowledge.Buried.Count, where);
 
             if (game.Phase == Phase.ChooseMoves)
             {
                 // one more hand seen each turn, until every hand has been round
                 int seen = Enumerable.Range(0, players)
-                    .Count(handOwner => handOwner != o && k.InHand[handOwner].Count > 0);
+                    .Count(handOwner => handOwner != observerSeat && knowledge.InHand[handOwner].Count > 0);
                 Assert.AreEqual(Math.Min(game.Turn % 7, players - 1), seen, where);
             }
 
-            if (game.Phase == Phase.DiscardBuild && game.PendingPlayers().Contains(o))
+            if (game.Phase == Phase.DiscardBuild && game.PendingPlayers().Contains(observerSeat))
             {
-                Assert.IsTrue(SameCards(k.InPile, game.DiscardedCards), where);
+                Assert.IsTrue(SameCards(knowledge.InPile, game.DiscardedCards), where);
                 halikarnassosLooks++;
             }
         }
@@ -149,10 +150,10 @@ public class KnowledgeTests
     public void AHiddenMove_StaysHidden_ABuildDoesNot()
     {
         Game game = NewGame(3, 0);
-        PlayerState p0 = game.Players[0];
-        PlayerState p1 = game.Players[1];
-        Card discarded = p0.HandCards[0];
-        Card built = p1.GetPlayableCards(p1.HandCards).First();
+        PlayerState firstPlayer = game.Players[0];
+        PlayerState secondPlayer = game.Players[1];
+        Card discarded = firstPlayer.HandCards[0];
+        Card built = secondPlayer.GetPlayableCards(secondPlayer.HandCards).First();
 
         game.Submit(0, new Command(ActionType.Discard, discarded));
         game.Submit(1, new Command(ActionType.Build, built));
@@ -179,15 +180,15 @@ public class KnowledgeTests
     [DataRow(7)]
     public void ASample_KeepsWhatTheSeatKnows_AndEveryCardAddsUp(int players)
     {
-        var rng = new Random(1);
-        for (int g = 0; g < 4; g++)
+        var random = new Random(1);
+        for (int gameIndex = 0; gameIndex < 4; gameIndex++)
         {
-            Game game = NewGame(players, g);
+            Game game = NewGame(players, gameIndex);
             while (HasPendingPlayers(game))
             {
                 foreach (int seat in game.PendingPlayers())
                 {
-                    CheckASampleFor(game, seat, players, rng);
+                    CheckASampleFor(game, seat, players, random);
                 }
 
                 PlayOneStep(game);
@@ -196,53 +197,54 @@ public class KnowledgeTests
     }
 
     /// <summary>A guess at the hidden cards for <paramref name="seat"/> keeps everything the seat knows.</summary>
-    private static void CheckASampleFor(Game game, int seat, int players, Random rng)
+    private static void CheckASampleFor(Game game, int seat, int players, Random random)
     {
         SeatKnowledge known = game.KnowledgeOf(seat)!;
-        Game s = Determinization.Sample(game, seat, known, rng);
+        Game sample = Determinization.Sample(game, seat, known, random);
         string where = $"seat {seat}, {game.Phase}, turn {game.Turn}";
 
-        Assert.AreEqual(game.Phase, s.Phase, where);
-        CollectionAssert.AreEquivalent(game.PendingPlayers().ToList(), s.PendingPlayers().ToList(), where);
-        Assert.IsTrue(SameCards(game.Players[seat].HandCards, s.Players[seat].HandCards), where);
-        Assert.AreEqual(game.DiscardedCards.Count, s.DiscardedCards.Count, where);
-        Assert.IsTrue(SubsetOf(known.InPile, s.DiscardedCards), where);
+        Assert.AreEqual(game.Phase, sample.Phase, where);
+        CollectionAssert.AreEquivalent(game.PendingPlayers().ToList(), sample.PendingPlayers().ToList(), where);
+        Assert.IsTrue(SameCards(game.Players[seat].HandCards, sample.Players[seat].HandCards), where);
+        Assert.AreEqual(game.DiscardedCards.Count, sample.DiscardedCards.Count, where);
+        Assert.IsTrue(SubsetOf(known.InPile, sample.DiscardedCards), where);
         if (game.Phase == Phase.DiscardBuild)
         {
-            Assert.IsTrue(SameCards(game.DiscardedCards, s.DiscardedCards), where);
+            Assert.IsTrue(SameCards(game.DiscardedCards, sample.DiscardedCards), where);
         }
 
         // the seat's own legal moves don't depend on the guess
-        CollectionAssert.AreEquivalent(game.LegalMoves(seat), s.LegalMoves(seat), where);
+        CollectionAssert.AreEquivalent(game.LegalMoves(seat), sample.LegalMoves(seat), where);
 
-        for (int h = 0; h < players; h++)
+        for (int handOwnerSeat = 0; handOwnerSeat < players; handOwnerSeat++)
         {
-            PlayerState real = game.Players[h];
-            PlayerState guessed = s.Players[h];
+            PlayerState real = game.Players[handOwnerSeat];
+            PlayerState guessed = sample.Players[handOwnerSeat];
             Assert.AreEqual(real.HandCards.Count, guessed.HandCards.Count, where);
             Assert.AreEqual(real.PlayedCards.Count, guessed.PlayedCards.Count, where);
             Assert.AreEqual(real.Resources[Resource.Coins], guessed.Resources[Resource.Coins], where);
-            if (h != seat && known.InHand[h].Count > 0)
+            if (handOwnerSeat != seat && known.InHand[handOwnerSeat].Count > 0)
             {
-                Assert.IsTrue(SubsetOf(guessed.HandCards, known.InHand[h]), $"{where}, hand of {h}");
+                Assert.IsTrue(SubsetOf(guessed.HandCards, known.InHand[handOwnerSeat]),
+                              $"{where}, hand of {handOwnerSeat}");
             }
 
-            if (h != seat && game.Era == s.Era)
+            if (handOwnerSeat != seat && game.Era == sample.Era)
             {
                 Assert.IsTrue(guessed.HandCards.All(card => card.Era == game.Era), where);
             }
         }
 
-        CheckEveryCardAddsUp(s, players, where);
+        CheckEveryCardAddsUp(sample, players, where);
     }
 
     /// <summary>No card more often than it exists, players + 2 guilds in all, and full decks for later eras.</summary>
-    private static void CheckEveryCardAddsUp(Game s, int players, string where)
+    private static void CheckEveryCardAddsUp(Game sample, int players, string where)
     {
-        var everything = s.Players
+        var everything = sample.Players
             .SelectMany(player => player.PlayedCards.Concat(player.HandCards))
-            .Concat(s.DiscardedCards)
-            .Concat(s.Decks.SelectMany(deck => deck))
+            .Concat(sample.DiscardedCards)
+            .Concat(sample.Decks.SelectMany(deck => deck))
             .ToList();
         foreach (var (id, count) in Count(everything))
         {
@@ -252,10 +254,10 @@ public class KnowledgeTests
         }
 
         Assert.IsTrue(CountGuilds(everything) <= players + 2, where);
-        for (int e = s.Era + 1; e <= 3; e++)
+        for (int deckEra = sample.Era + 1; deckEra <= 3; deckEra++)
         {
-            int deckIndex = e - 1;
-            Assert.AreEqual(7 * players, s.Decks[deckIndex].Count, where);
+            int deckIndex = deckEra - 1;
+            Assert.AreEqual(7 * players, sample.Decks[deckIndex].Count, where);
         }
     }
 
@@ -283,7 +285,7 @@ public class KnowledgeTests
     {
         Game game = NewGame(4, 1);
         // a few turns in: seat 0 has seen some hands but not seat 1's
-        for (int t = 0; t < 2; t++)
+        for (int turn = 0; turn < 2; turn++)
         {
             foreach (int seat in game.PendingPlayers())
             {
@@ -302,11 +304,11 @@ public class KnowledgeTests
         other.Decks[2] = other.Decks[2].Skip(3).Concat(other.Decks[2].Take(3)).ToList();
         other.DiscardedCards = other.DiscardedCards.AsEnumerable().Reverse().ToList();
 
-        Game a = Determinization.Sample(game, 0, known, new Random(9));
-        Game b = Determinization.Sample(other, 0, known, new Random(9));
+        Game firstSample = Determinization.Sample(game, 0, known, new Random(9));
+        Game secondSample = Determinization.Sample(other, 0, known, new Random(9));
 
-        Assert.AreEqual(HiddenCards(a), HiddenCards(b));
-        Assert.AreNotEqual(HiddenCards(game), HiddenCards(a), "the guess re-deals what the seat can't see");
+        Assert.AreEqual(HiddenCards(firstSample), HiddenCards(secondSample));
+        Assert.AreNotEqual(HiddenCards(game), HiddenCards(firstSample), "the guess re-deals what the seat can't see");
     }
 
     // every hand, the discard pile (sorted: its order is hidden too) and the decks, as text
@@ -326,20 +328,20 @@ public class KnowledgeTests
     [TestMethod]
     public void ASample_PlaysToTheEnd()
     {
-        var rng = new Random(3);
+        var random = new Random(3);
         for (int players = 3; players <= 7; players += 2)
         {
             Game game = NewGame(players, 5);
-            Game s = Determinization.Sample(game, 0, game.KnowledgeOf(0), rng);
+            Game sample = Determinization.Sample(game, 0, game.KnowledgeOf(0), random);
             List<IAgent> heuristicAgents = new List<IAgent>();
             for (int seat = 0; seat < players; seat++)
             {
                 heuristicAgents.Add(new HeuristicAI());
             }
 
-            s.Agents = heuristicAgents;
-            s.Loop();
-            Assert.AreEqual(Phase.GameOver, s.Phase);
+            sample.Agents = heuristicAgents;
+            sample.Loop();
+            Assert.AreEqual(Phase.GameOver, sample.Phase);
         }
     }
 }

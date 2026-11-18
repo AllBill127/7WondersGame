@@ -13,7 +13,7 @@ public class ExperimentTests
     private const string ThreeRandom =
         "\"players\": \"RandomChoiceAI,RandomChoiceAI,RandomChoiceAI\", \"games\": 1, \"seed\": 1";
 
-    private string _dir = "";
+    private string _directory = "";
 
     /// <summary>Adds the test agent with settings to the catalog.</summary>
     [ClassInitialize]
@@ -26,20 +26,20 @@ public class ExperimentTests
     [TestInitialize]
     public void MakeFolder()
     {
-        _dir = Path.Combine(Path.GetTempPath(), $"experiment-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_dir);
+        _directory = Path.Combine(Path.GetTempPath(), $"experiment-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_directory);
     }
 
     /// <summary>Removes the test's folder.</summary>
     [TestCleanup]
     public void RemoveFolder()
     {
-        Directory.Delete(_dir, recursive: true);
+        Directory.Delete(_directory, recursive: true);
     }
 
     private string Write(string name, string text)
     {
-        string path = Path.Combine(_dir, name);
+        string path = Path.Combine(_directory, name);
         File.WriteAllText(path, text);
         return path;
     }
@@ -81,11 +81,11 @@ public class ExperimentTests
             "--seed", "1");
 
         Assert.AreEqual(12, plan.Total);
-        for (int i = 0; i < 12; i++)
+        for (int gameIndex = 0; gameIndex < 12; gameIndex++)
         {
-            GameSlot slot = plan.At(i);
-            Assert.AreEqual((i / 4, i % 4, 0), (slot.Step, slot.Deal, slot.Rotation));
-            Assert.AreEqual(plan.Sweep!.ValueAt(i / 4), slot.Value);
+            GameSlot slot = plan.At(gameIndex);
+            Assert.AreEqual((gameIndex / 4, gameIndex % 4, 0), (slot.Step, slot.Deal, slot.Rotation));
+            Assert.AreEqual(plan.Sweep!.ValueAt(gameIndex / 4), slot.Value);
         }
     }
 
@@ -133,7 +133,7 @@ public class ExperimentTests
             (fromCli.Games, fromCli.Seed, fromCli.Sweep, fromCli.Rotate),
             (fromFile.Games, fromFile.Seed, fromFile.Sweep, fromFile.Rotate));
         Assert.AreEqual(8, fromFile.Parallel, "the command line wins for --parallel");
-        Assert.AreEqual(Path.Combine(_dir, "deals.txt"), fromFile.Dataset, "a dataset next to the file");
+        Assert.AreEqual(Path.Combine(_directory, "deals.txt"), fromFile.Dataset, "a dataset next to the file");
         Assert.AreEqual("C sweep", fromFile.Description);
         Assert.AreEqual(file, fromFile.Experiment);
     }
@@ -144,7 +144,7 @@ public class ExperimentTests
         string ok = Write("ok.json", "{ " + ThreeRandom + " }");
         Assert.AreEqual(3, Plan("--experiment", ok).Players.Count);
 
-        string missing = Path.Combine(_dir, "missing.json");
+        string missing = Path.Combine(_directory, "missing.json");
         string notJson = Write("a.json", "{ \"players\": ");
         string notAnObject = Write("b.json", "[1]");
         string unknownKey = Write("c.json", "{ " + ThreeRandom + ", \"gmaes\": 2 }");
@@ -173,7 +173,7 @@ public class ExperimentTests
             "exp.json",
             "{ \"players\": [\"HeuristicAI\", \"RandomChoiceAI\", \"MctsAgent:Iterations=10\"], " +
             "\"games\": 2, \"seed\": 9, \"rotate\": true, \"log\": \"warning\" }");
-        string csv = Path.Combine(_dir, "out", "results.csv");
+        string csv = Path.Combine(_directory, "out", "results.csv");
 
         CliArgs cli = CliArgs.Parse(new[] { "run", "--experiment", file, "--out", csv });
         int exit = await Commands.Run(cli, Array.Empty<string>());
@@ -193,9 +193,9 @@ public class ExperimentTests
         }
 
         string runId = rows[0]["runId"];
-        string copiedFile = Path.Combine(_dir, "out", $"{runId}.experiment.json");
+        string copiedFile = Path.Combine(_directory, "out", $"{runId}.experiment.json");
         Assert.AreEqual(File.ReadAllText(file), File.ReadAllText(copiedFile));
-        RunManifest manifest = RunManifest.Load(Path.Combine(_dir, "out", $"{runId}.run.json"))!;
+        RunManifest manifest = RunManifest.Load(Path.Combine(_directory, "out", $"{runId}.run.json"))!;
         Assert.AreEqual(file, manifest.Settings["experiment"]);
         Assert.AreEqual(2 * 3, manifest.GamesCompleted);
         Assert.AreEqual(Environment.ProcessorCount, manifest.Machine.LogicalCores, "where it ran");

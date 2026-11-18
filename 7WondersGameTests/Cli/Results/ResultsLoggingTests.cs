@@ -13,23 +13,23 @@ namespace _7WondersGameTests.Cli.Results;
 [TestClass]
 public class ResultsLoggingTests
 {
-    private string _dir = "";
+    private string _directory = "";
 
     /// <summary>Makes an empty folder for the test's files.</summary>
     [TestInitialize]
     public void SetUp()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "7w-results-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _directory = Path.Combine(Path.GetTempPath(), "7w-results-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_directory);
     }
 
     /// <summary>Removes the test's folder.</summary>
     [TestCleanup]
     public void TearDown()
     {
-        if (Directory.Exists(_dir))
+        if (Directory.Exists(_directory))
         {
-            Directory.Delete(_dir, recursive: true);
+            Directory.Delete(_directory, recursive: true);
         }
     }
 
@@ -46,11 +46,11 @@ public class ResultsLoggingTests
         Assert.AreEqual(3, results.Count);
         for (int seat = 0; seat < 3; seat++)
         {
-            SeatResult r = results[seat];
-            Assert.AreEqual(seat, r.Seat);
-            Assert.AreEqual(scores[seat], r.VictoryPoints);
-            Assert.AreEqual(wonders[seat], r.Wonder + r.Side);
-            Assert.IsTrue(r.Side == "A" || r.Side == "B");
+            SeatResult seatResult = results[seat];
+            Assert.AreEqual(seat, seatResult.Seat);
+            Assert.AreEqual(scores[seat], seatResult.VictoryPoints);
+            Assert.AreEqual(wonders[seat], seatResult.Wonder + seatResult.Side);
+            Assert.IsTrue(seatResult.Side == "A" || seatResult.Side == "B");
         }
 
         Assert.AreEqual("RandomChoiceAI", results[0].Agent);
@@ -100,7 +100,7 @@ public class ResultsLoggingTests
     [TestMethod]
     public void Writer_WritesHeaderOnceAndAppendsAcrossRuns()
     {
-        string path = Path.Combine(_dir, "sub", "results.csv");
+        string path = Path.Combine(_directory, "sub", "results.csv");
         SeatResult[] game = Seats(3);
 
         using (var w = new ResultsCsvWriter(path))
@@ -123,7 +123,7 @@ public class ResultsLoggingTests
     [TestMethod]
     public void Writer_RefusesAFileWithADifferentHeader()
     {
-        string path = Path.Combine(_dir, "old.csv");
+        string path = Path.Combine(_directory, "old.csv");
         File.WriteAllText(path, "Player_0,Player_1\n1,2\n");
 
         Assert.ThrowsException<InvalidOperationException>(() => new ResultsCsvWriter(path));
@@ -132,7 +132,7 @@ public class ResultsLoggingTests
     [TestMethod]
     public void Writer_KeepsEachGamesRowsWholeUnderParallelWrites()
     {
-        string path = Path.Combine(_dir, "parallel.csv");
+        string path = Path.Combine(_directory, "parallel.csv");
         using (var w = new ResultsCsvWriter(path))
         {
             ParallelGameWriter gameWriter = new ParallelGameWriter(w);
@@ -143,13 +143,14 @@ public class ResultsLoggingTests
         Assert.AreEqual(600, rows.Count);
         Assert.IsTrue(rows.All(row => row.Length == ResultsCsvWriter.Columns.Length));
         // a game's 3 rows are written together
-        for (int k = 0; k < rows.Count; k += 3)
+        for (int firstRowIndex = 0; firstRowIndex < rows.Count; firstRowIndex += 3)
         {
-            int secondRowIndex = k + 1;
-            int thirdRowIndex = k + 2;
-            Assert.AreEqual(rows[k][1], rows[secondRowIndex][1]);
-            Assert.AreEqual(rows[k][1], rows[thirdRowIndex][1]);
-            CollectionAssert.AreEqual(new[] { "0", "1", "2" }, rows.Skip(k).Take(3).Select(row => row[4]).ToArray());
+            int secondRowIndex = firstRowIndex + 1;
+            int thirdRowIndex = firstRowIndex + 2;
+            Assert.AreEqual(rows[firstRowIndex][1], rows[secondRowIndex][1]);
+            Assert.AreEqual(rows[firstRowIndex][1], rows[thirdRowIndex][1]);
+            string[] seatsOfTheGame = rows.Skip(firstRowIndex).Take(3).Select(row => row[4]).ToArray();
+            CollectionAssert.AreEqual(new[] { "0", "1", "2" }, seatsOfTheGame);
         }
     }
 
@@ -164,15 +165,15 @@ public class ResultsLoggingTests
         return game;
     }
 
-    /// <summary>A made-up game's results for <paramref name="n"/> seats; the last seat wins.</summary>
-    internal static SeatResult[] Seats(int n)
+    /// <summary>A made-up game's results for <paramref name="seatCount"/> seats; the last seat wins.</summary>
+    internal static SeatResult[] Seats(int seatCount)
     {
-        SeatResult[] seats = new SeatResult[n];
-        int lastSeat = n - 1;
-        for (int seat = 0; seat < n; seat++)
+        SeatResult[] seats = new SeatResult[seatCount];
+        int lastSeat = seatCount - 1;
+        for (int seat = 0; seat < seatCount; seat++)
         {
             int victoryPoints = 40 + seat;
-            int rank = n - seat;
+            int rank = seatCount - seat;
             double winShare = 0;
             if (seat == lastSeat)
             {

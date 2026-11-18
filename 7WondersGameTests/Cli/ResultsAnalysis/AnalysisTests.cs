@@ -12,7 +12,7 @@ namespace _7WondersGameTests.Cli.ResultsAnalysis;
 [TestClass]
 public class AnalysisTests
 {
-    private string _dir = "";
+    private string _directory = "";
 
     /// <summary>Adds the test agent with settings to the catalog.</summary>
     [ClassInitialize]
@@ -25,15 +25,15 @@ public class AnalysisTests
     [TestInitialize]
     public void MakeFolder()
     {
-        _dir = Path.Combine(Path.GetTempPath(), $"analysis-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_dir);
+        _directory = Path.Combine(Path.GetTempPath(), $"analysis-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_directory);
     }
 
     /// <summary>Removes the test's folder.</summary>
     [TestCleanup]
     public void RemoveFolder()
     {
-        Directory.Delete(_dir, recursive: true);
+        Directory.Delete(_directory, recursive: true);
     }
 
     // a winner (any win share) is ranked first, everyone else second
@@ -42,9 +42,9 @@ public class AnalysisTests
         long game,
         int seat,
         string agent,
-        int vp,
+        int victoryPoints,
         double winShare,
-        string config = "{}")
+        string configJson = "{}")
     {
         int rank = 2;
         if (winShare > 0)
@@ -52,7 +52,7 @@ public class AnalysisTests
             rank = 1;
         }
 
-        return new ResultRow("run", game, seed, seat, agent, config, "GizahA", vp, rank, winShare, 3);
+        return new ResultRow("run", game, seed, seat, agent, configJson, "GizahA", victoryPoints, rank, winShare, 3);
     }
 
     [TestMethod]
@@ -98,12 +98,12 @@ public class AnalysisTests
         Assert.AreEqual(0.5, groups[0].WinRate, 1e-12);
         Assert.AreEqual(1.0 / 3, groups[0].FairShare, 1e-12);
 
-        PairStats ab = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
-        Assert.AreEqual(3, ab.Deals);
-        Assert.AreEqual(4, ab.VpDiff, 1e-12);
-        Assert.AreEqual(Analysis.MeanSe(new[] { 2.0, 4, 6 }).Se, ab.VpDiffSe, 1e-12);
-        Assert.AreEqual(0.5, ab.WinDiff, 1e-12);
-        Assert.IsTrue(ab.VpDiffers);
+        PairStats pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
+        Assert.AreEqual(3, pair.Deals);
+        Assert.AreEqual(4, pair.VpDiff, 1e-12);
+        Assert.AreEqual(Analysis.MeanSe(new[] { 2.0, 4, 6 }).Se, pair.VpDiffSe, 1e-12);
+        Assert.AreEqual(0.5, pair.WinDiff, 1e-12);
+        Assert.IsTrue(pair.VpDiffers);
 
         Assert.AreEqual(3, Analysis.Pairs(rows, GroupBy.Agent, groups, null).Count);
         List<PairStats> vsB = Analysis.Pairs(rows, GroupBy.Agent, groups, 2);
@@ -158,11 +158,11 @@ public class AnalysisTests
         }));
         var swept = new SweptSeat(plan.Sweep!.Seat, plan.Games, plan.Rotations);
 
-        for (int i = 0; i < plan.Total; i++)
+        for (int gameIndex = 0; gameIndex < plan.Total; gameIndex++)
         {
-            List<AgentSpec> seats = plan.SeatsFor(plan.At(i).Rotation);
-            int seat = swept.SeatIn(i, seats.Count);
-            Assert.AreEqual("SettingsTestAgent", seats[seat].Name, $"game {i}");
+            List<AgentSpec> seats = plan.SeatsFor(plan.At(gameIndex).Rotation);
+            int seat = swept.SeatIn(gameIndex, seats.Count);
+            Assert.AreEqual("SettingsTestAgent", seats[seat].Name, $"game {gameIndex}");
             Assert.AreEqual(1, seats.Count(agentSpec => agentSpec.Name == "SettingsTestAgent"));
         }
     }
@@ -170,7 +170,7 @@ public class AnalysisTests
     [TestMethod]
     public async Task Analyze_ASweepRun_GroupsTheValuesAndWritesTheTables()
     {
-        string csv = Path.Combine(_dir, "results.csv");
+        string csv = Path.Combine(_directory, "results.csv");
         int exit = await Commands.Run(CliArgs.Parse(new[]
         {
             "run", "--players", "SettingsTestAgent:c=0..1,SettingsTestAgent,RandomChoiceAI", "--steps", "2",
@@ -182,7 +182,7 @@ public class AnalysisTests
             CliArgs.Parse(new[] { "analyze", "--from", csv, "--out", "summary.csv", "--log", "warning" }));
 
         Assert.AreEqual(Commands.Ok, exit);
-        var groups = ResultsCsvWriter.ReadRows(Path.Combine(_dir, "summary.csv")).ToList();
+        var groups = ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.csv")).ToList();
         // the swept agent at c=0 and c=1 (C defaults to 1, so c=1 equals the opponent's settings), the opponent,
         // RandomChoiceAI
         CollectionAssert.AreEquivalent(
@@ -191,7 +191,7 @@ public class AnalysisTests
         Assert.IsTrue(
             groups.All(group => group["games"] == ExpectedGamesOf(group["label"])),
             "each value: 3 deals x 3 seatings; the others play in both values' games");
-        var pairs = ResultsCsvWriter.ReadRows(Path.Combine(_dir, "summary.pairs.csv")).ToList();
+        var pairs = ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.pairs.csv")).ToList();
         Assert.AreEqual(6, pairs.Count);
         Assert.IsTrue(pairs.All(pair => pair["deals"] == "3"));
     }
@@ -210,7 +210,7 @@ public class AnalysisTests
     [TestMethod]
     public void Analyze_AFileWithSeveralRuns_NeedsRun()
     {
-        string csv = Path.Combine(_dir, "two.csv");
+        string csv = Path.Combine(_directory, "two.csv");
         File.WriteAllLines(csv, new[]
         {
             ResultsCsvWriter.Header,

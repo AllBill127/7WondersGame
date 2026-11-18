@@ -45,10 +45,10 @@ public class WonderDataTests
     public void Board_HasRulebookStageCount(string wonder, int stages)
     {
         PlayerState player = SetUpPlayer(wonder);
-        for (int s = 0; s < stages; s++)
+        for (int stageIndex = 0; stageIndex < stages; stageIndex++)
         {
             GiveResources(player, 10);
-            Assert.IsTrue(player.Board.AddStage(player), $"stage {s + 1}");
+            Assert.IsTrue(player.Board.AddStage(player), $"stage {stageIndex + 1}");
         }
 
         GiveResources(player, 10);
@@ -110,19 +110,19 @@ public class WonderDataTests
         string effect)
     {
         PlayerState player = SetUpPlayer(wonder);
-        for (int s = 1; s < stage; s++)
+        for (int earlierStage = 1; earlierStage < stage; earlierStage++)
         {
             GiveResources(player, 10);
-            Assert.IsTrue(player.Board.AddStage(player), $"building earlier stage {s}");
+            Assert.IsTrue(player.Board.AddStage(player), $"building earlier stage {earlierStage}");
         }
 
         int builtStages = stage - 1;
-        Dictionary<Resource, int> costDict = ParseCost(cost);
+        Dictionary<Resource, int> stageCost = ParseCost(cost);
 
-        CheckExactlyTheCostIsEnough(player, wonder, builtStages, costDict);
+        CheckExactlyTheCostIsEnough(player, wonder, builtStages, stageCost);
 
         // Build it and check the rewards.
-        SetResources(player, costDict);
+        SetResources(player, stageCost);
         int vpBefore = player.Board.WonderPoints(player);
         int shieldsBefore = player.Resources[Resource.Shields];
         int scienceBefore = player.CalculateScientificScore();
@@ -150,22 +150,22 @@ public class WonderDataTests
         PlayerState player,
         string wonder,
         int builtStages,
-        Dictionary<Resource, int> costDict)
+        Dictionary<Resource, int> stageCost)
     {
-        SetResources(player, costDict);
+        SetResources(player, stageCost);
         Assert.IsTrue(player.CanBuildWonder(), "exact cost should be enough");
 
-        foreach (Resource r in costDict.Keys)
+        foreach (Resource resource in stageCost.Keys)
         {
-            if (WildcardCovers(r, wonder, builtStages))
+            if (WildcardCovers(resource, wonder, builtStages))
             {
                 continue;
             }
 
-            var lessOne = new Dictionary<Resource, int>(costDict);
-            lessOne[r]--;
+            var lessOne = new Dictionary<Resource, int>(stageCost);
+            lessOne[resource]--;
             SetResources(player, lessOne);
-            Assert.IsFalse(player.CanBuildWonder(), $"one {r} short should not be enough");
+            Assert.IsFalse(player.CanBuildWonder(), $"one {resource} short should not be enough");
         }
     }
 
@@ -223,11 +223,11 @@ public class WonderDataTests
 
     private static void CheckWildcardGivesEach(PlayerState player, Resource[] covered)
     {
-        foreach (Resource r in covered)
+        foreach (Resource resource in covered)
         {
             SetResources(player, new Dictionary<Resource, int>());
-            Dictionary<Resource, int> oneOfIt = new Dictionary<Resource, int> { { r, 1 } };
-            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(player, oneOfIt), $"wildcard gives {r}");
+            Dictionary<Resource, int> oneOfIt = new Dictionary<Resource, int> { { resource, 1 } };
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(player, oneOfIt), $"wildcard gives {resource}");
         }
     }
 
@@ -245,9 +245,9 @@ public class WonderDataTests
             new Wonder(WonderId.GizahA)
         };
         List<PlayerState> players = MockHelper.MockPlayers(wonders);
-        foreach (PlayerState p in players)
+        foreach (PlayerState player in players)
         {
-            p.Resources[Resource.Coins] = 0;
+            player.Resources[Resource.Coins] = 0;
         }
 
         return players[0];
@@ -255,9 +255,9 @@ public class WonderDataTests
 
     private static void GiveResources(PlayerState player, int amount)
     {
-        foreach (Resource r in Raw.Concat(Manufactured))
+        foreach (Resource resource in Raw.Concat(Manufactured))
         {
-            player.Resources[r] = amount;
+            player.Resources[resource] = amount;
         }
     }
 

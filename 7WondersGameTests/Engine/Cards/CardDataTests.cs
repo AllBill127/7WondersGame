@@ -236,15 +236,15 @@ public class CardDataTests
     {
         PlayerState player = BuildForFree(name);
         Resource expected = Enum.Parse<Resource>(symbol);
-        foreach (Resource r in new[] { Resource.Gear, Resource.Compass, Resource.Tablet })
+        foreach (Resource science in new[] { Resource.Gear, Resource.Compass, Resource.Tablet })
         {
             int expectedCount = 0;
-            if (r == expected)
+            if (science == expected)
             {
                 expectedCount = 1;
             }
 
-            Assert.AreEqual(expectedCount, player.Resources[r], r.ToString());
+            Assert.AreEqual(expectedCount, player.Resources[science], science.ToString());
         }
     }
 

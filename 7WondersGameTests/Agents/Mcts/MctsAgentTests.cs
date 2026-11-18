@@ -185,12 +185,13 @@ public class MctsAgentTests
         Game game = NewGame(9, Mcts(":n=25"), new HeuristicAI(), new HeuristicAI());
         game.Loop(record: true);
 
-        var stats = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
-        int searches = stats.GetProperty("searches").GetInt32();
+        var statistics = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+        int searches = statistics.GetProperty("searches").GetInt32();
         Assert.IsTrue(searches >= 15, game.Results[0].StatsJson);
-        Assert.AreEqual(25L * searches, stats.GetProperty("iterations").GetInt64());
+        Assert.AreEqual(25L * searches, statistics.GetProperty("iterations").GetInt64());
         Assert.AreEqual("{}", game.Results[1].StatsJson);
-        Assert.IsTrue(stats.GetProperty("allocatedMb").GetDouble() > 0, "it measures the memory its searches allocate");
+        Assert.IsTrue(statistics.GetProperty("allocatedMb").GetDouble() > 0,
+                      "it measures the memory its searches allocate");
     }
 
     // Root and Leaf give every worker its copy and stream before any thread starts, so threads change nothing
@@ -223,11 +224,11 @@ public class MctsAgentTests
         Game game = NewGame(9, searcher, new HeuristicAI(), new HeuristicAI());
         game.Loop(record: true);
 
-        var stats = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
-        int searches = stats.GetProperty("searches").GetInt32();
-        Assert.AreEqual(40L * searches, stats.GetProperty("iterations").GetInt64(), game.Results[0].StatsJson);
+        var statistics = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+        int searches = statistics.GetProperty("searches").GetInt32();
+        Assert.AreEqual(40L * searches, statistics.GetProperty("iterations").GetInt64(), game.Results[0].StatsJson);
         // one worker is the plain search, with the plain stats
-        Assert.AreEqual(workers > 1, stats.TryGetProperty("workers", out _), game.Results[0].StatsJson);
+        Assert.AreEqual(workers > 1, statistics.TryGetProperty("workers", out _), game.Results[0].StatsJson);
     }
 
     [TestMethod]
@@ -259,17 +260,20 @@ public class MctsAgentTests
     [TestMethod]
     public void AgainstRandomPlayers_ItScoresMore()
     {
-        var vp = new double[3];
-        for (int g = 0; g < 4; g++)
+        var averageVictoryPoints = new double[3];
+        for (int gameIndex = 0; gameIndex < 4; gameIndex++)
         {
-            Game game = NewGame(Seeding.GameSeed(21, g), Mcts(":n=30"), new RandomChoiceAI(), new RandomChoiceAI());
+            Game game = NewGame(Seeding.GameSeed(21, gameIndex), Mcts(":n=30"), new RandomChoiceAI(),
+                                new RandomChoiceAI());
             game.Loop();
-            for (int s = 0; s < 3; s++)
+            for (int seat = 0; seat < 3; seat++)
             {
-                vp[s] += game.Players[s].VictoryPoints / 4.0;
+                averageVictoryPoints[seat] += game.Players[seat].VictoryPoints / 4.0;
             }
         }
 
-        Assert.IsTrue(vp[0] > Math.Max(vp[1], vp[2]) + 5, $"average VP {string.Join(", ", vp)}");
+        double bestRandomAgent = Math.Max(averageVictoryPoints[1], averageVictoryPoints[2]);
+        Assert.IsTrue(averageVictoryPoints[0] > bestRandomAgent + 5,
+                      $"average VP {string.Join(", ", averageVictoryPoints)}");
     }
 }

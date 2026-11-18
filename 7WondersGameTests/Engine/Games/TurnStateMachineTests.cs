@@ -34,10 +34,12 @@ public class TurnStateMachineTests
     }
 
     /// <summary>Three players on these wonders; each holds the given cards.</summary>
-    private static Game ThreePlayers(WonderId w0, WonderId w1, WonderId w2, params CardId[][] hands)
+    private static Game ThreePlayers(WonderId seat0Wonder, WonderId seat1Wonder, WonderId seat2Wonder,
+                                     params CardId[][] hands)
     {
         Game game = new Game(seed: 0);
-        game.Players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(w0), new Wonder(w1), new Wonder(w2) });
+        var wonders = new List<Wonder> { new Wonder(seat0Wonder), new Wonder(seat1Wonder), new Wonder(seat2Wonder) };
+        game.Players = MockHelper.MockPlayers(wonders);
         for (int seat = 0; seat < hands.Length; seat++)
         {
             game.Players[seat].HandCards.AddRange(hands[seat].Select(C));
@@ -264,12 +266,12 @@ public class TurnStateMachineTests
     }
 
     // the line-up rotates by game, so every agent plays every seat
-    private static Game NewGame(int players, int k, int agentKindCount)
+    private static Game NewGame(int players, int gameIndex, int agentKindCount)
     {
-        var game = new Game(Seeding.GameSeed(0xE1, players * 1000 + k));
+        var game = new Game(Seeding.GameSeed(0xE1, players * 1000 + gameIndex));
         for (int seat = 0; seat < players; seat++)
         {
-            int agentKind = (k + seat) % agentKindCount;
+            int agentKind = (gameIndex + seat) % agentKindCount;
             game.Agents.Add(NewAgent(agentKind));
         }
 
@@ -297,11 +299,11 @@ public class TurnStateMachineTests
         return lines;
     }
 
-    private static string FinalStateOf(PlayerState p)
+    private static string FinalStateOf(PlayerState player)
     {
-        return $"seat={p.Id} {p.Board.Id} stage={p.Board.Stage} vp={p.VictoryPoints} " +
-               $"coins={p.Resources[Resource.Coins]} military=+{p.VictoryTokens}/-{p.DefeatTokens} " +
-               $"built={string.Join(",", p.PlayedCards.Select(card => card.Id))}";
+        return $"seat={player.Id} {player.Board.Id} stage={player.Board.Stage} vp={player.VictoryPoints} " +
+               $"coins={player.Resources[Resource.Coins]} military=+{player.VictoryTokens}/-{player.DefeatTokens} " +
+               $"built={string.Join(",", player.PlayedCards.Select(card => card.Id))}";
     }
 
     /// <summary>The agent's decision, asked the way <see cref="Game.Loop"/> asks it.</summary>
@@ -342,13 +344,14 @@ public class TurnStateMachineTests
         var phasesSeen = new HashSet<Phase>();
         for (int players = 3; players <= 7; players++)
         {
-            for (int k = 0; k < 16; k++)
+            for (int gameIndex = 0; gameIndex < 16; gameIndex++)
             {
-                Game looped = NewGame(players, k, HeuristicAndRandom);
+                Game looped = NewGame(players, gameIndex, HeuristicAndRandom);
                 looped.Loop(record: true);
-                Game stepped = StepThrough(NewGame(players, k, HeuristicAndRandom), copyEachStep: false, phasesSeen);
+                Game toStep = NewGame(players, gameIndex, HeuristicAndRandom);
+                Game stepped = StepThrough(toStep, copyEachStep: false, phasesSeen);
 
-                CollectionAssert.AreEqual(Final(looped), Final(stepped), $"{players} players, game {k}");
+                CollectionAssert.AreEqual(Final(looped), Final(stepped), $"{players} players, game {gameIndex}");
             }
         }
 
@@ -363,13 +366,13 @@ public class TurnStateMachineTests
         var phasesSeen = new HashSet<Phase>();
         for (int players = 3; players <= 7; players++)
         {
-            for (int k = 0; k < 8; k++)
+            for (int gameIndex = 0; gameIndex < 8; gameIndex++)
             {
-                Game looped = NewGame(players, k, HeuristicOnly);
+                Game looped = NewGame(players, gameIndex, HeuristicOnly);
                 looped.Loop(record: true);
-                Game stepped = StepThrough(NewGame(players, k, HeuristicOnly), copyEachStep: true, phasesSeen);
+                Game stepped = StepThrough(NewGame(players, gameIndex, HeuristicOnly), copyEachStep: true, phasesSeen);
 
-                CollectionAssert.AreEqual(Final(looped), Final(stepped), $"{players} players, game {k}");
+                CollectionAssert.AreEqual(Final(looped), Final(stepped), $"{players} players, game {gameIndex}");
             }
         }
     }

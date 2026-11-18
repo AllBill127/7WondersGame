@@ -70,14 +70,14 @@ internal sealed class BruteForcePayment
     private void CollectSourcesAndSupply()
     {
         PlayerState[] owners = { _buyer, _buyer.PlayerWest, _buyer.PlayerEast };
-        for (int o = 0; o < 3; o++)
+        for (int ownerIndex = 0; ownerIndex < 3; ownerIndex++)
         {
-            foreach (Card c in owners[o].PlayedCards)
+            foreach (Card card in owners[ownerIndex].PlayedCards)
             {
-                Resource[]? options = OptionsOf(c.Id, o == Buyer);
+                Resource[]? options = OptionsOf(card.Id, ownerIndex == Buyer);
                 if (options != null)
                 {
-                    AddSource(o, options);
+                    AddSource(ownerIndex, options);
                 }
             }
         }
@@ -94,11 +94,11 @@ internal sealed class BruteForcePayment
             AddSource(Buyer, Manufactured);
         }
 
-        for (int o = 0; o < 3; o++)
+        for (int ownerIndex = 0; ownerIndex < 3; ownerIndex++)
         {
-            foreach (Resource r in Goods)
+            foreach (Resource resource in Goods)
             {
-                _supply[o, (int)r] = owners[o].Resources[r];
+                _supply[ownerIndex, (int)resource] = owners[ownerIndex].Resources[resource];
             }
         }
     }
@@ -150,22 +150,22 @@ internal sealed class BruteForcePayment
     }
 
     // tries source i unused and with each of its options, then the sources after it
-    private void Assign(int i)
+    private void Assign(int sourceIndex)
     {
-        if (i == _sources.Count)
+        if (sourceIndex == _sources.Count)
         {
             SplitEveryPurchase();
             return;
         }
 
-        int nextSource = i + 1;
+        int nextSource = sourceIndex + 1;
         Assign(nextSource);   // unused
-        int owner = _sources[i].Owner;
-        foreach (Resource r in _sources[i].Options)
+        int owner = _sources[sourceIndex].Owner;
+        foreach (Resource resource in _sources[sourceIndex].Options)
         {
-            _supply[owner, (int)r]++;
+            _supply[owner, (int)resource]++;
             Assign(nextSource);
-            _supply[owner, (int)r]--;
+            _supply[owner, (int)resource]--;
         }
     }
 
@@ -182,27 +182,27 @@ internal sealed class BruteForcePayment
         return _cost.GetValueOrDefault(resource) > _supply[Buyer, (int)resource];
     }
 
-    private void Split(List<Resource> missing, int g, int total, int toEast)
+    private void Split(List<Resource> missing, int goodIndex, int total, int toEast)
     {
-        if (g == missing.Count)
+        if (goodIndex == missing.Count)
         {
             KeepIfCheaper(total, toEast);
             return;
         }
 
-        Resource r = missing[g];
-        int n = _cost[r] - _supply[Buyer, (int)r];
-        int nextGood = g + 1;
-        for (int fromWest = 0; fromWest <= n; fromWest++)
+        Resource resource = missing[goodIndex];
+        int missingCount = _cost[resource] - _supply[Buyer, (int)resource];
+        int nextGood = goodIndex + 1;
+        for (int fromWest = 0; fromWest <= missingCount; fromWest++)
         {
-            int fromEast = n - fromWest;
-            if (fromWest > _supply[West, (int)r] || fromEast > _supply[East, (int)r])
+            int fromEast = missingCount - fromWest;
+            if (fromWest > _supply[West, (int)resource] || fromEast > _supply[East, (int)resource])
             {
                 continue;
             }
 
-            int e = fromEast * Price(East, r);
-            Split(missing, nextGood, total + fromWest * Price(West, r) + e, toEast + e);
+            int paidToEast = fromEast * Price(East, resource);
+            Split(missing, nextGood, total + fromWest * Price(West, resource) + paidToEast, toEast + paidToEast);
         }
     }
 
@@ -216,10 +216,10 @@ internal sealed class BruteForcePayment
         }
     }
 
-    private int Price(int seller, Resource r)
+    private int Price(int seller, Resource resource)
     {
         bool cheap;
-        if (Raw.Contains(r))
+        if (Raw.Contains(resource))
         {
             cheap = _buyer.Has(Ability.WonderRawCheap) || HasRawDiscountWith(seller);
         }

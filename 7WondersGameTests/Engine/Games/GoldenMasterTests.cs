@@ -48,11 +48,12 @@ public class GoldenMasterTests
         Assert.IsTrue(File.Exists(path), $"No golden master at {path}. Record it with {RecordEnvVar}=1.");
         string[] expected = File.ReadAllLines(path).Where(line => line.Length > 0).ToArray();
 
-        for (int i = 0; i < Math.Min(expected.Length, actual.Count); i++)
+        for (int lineIndex = 0; lineIndex < Math.Min(expected.Length, actual.Count); lineIndex++)
         {
-            if (expected[i] != actual[i])
+            if (expected[lineIndex] != actual[lineIndex])
             {
-                Assert.Fail($"First difference at line {i + 1}:\nexpected: {expected[i]}\nactual:   {actual[i]}");
+                Assert.Fail($"First difference at line {lineIndex + 1}:\n" +
+                            $"expected: {expected[lineIndex]}\nactual:   {actual[lineIndex]}");
             }
         }
 
@@ -71,9 +72,9 @@ public class GoldenMasterTests
         var lines = new List<string>();
         for (int players = 3; players <= 7; players++)
         {
-            for (int k = 0; k < GamesPerPlayerCount; k++)
+            for (int gameIndex = 0; gameIndex < GamesPerPlayerCount; gameIndex++)
             {
-                lines.AddRange(PlayGame(players, k));
+                lines.AddRange(PlayGame(players, gameIndex));
             }
         }
 
@@ -81,15 +82,15 @@ public class GoldenMasterTests
     }
 
     /// <summary>One line per seat, then one for the discard pile.</summary>
-    private static List<string> PlayGame(int players, int k)
+    private static List<string> PlayGame(int players, int gameIndex)
     {
-        ulong seed = Seeding.GameSeed(RunSeed, players * 1000 + k);
+        ulong seed = Seeding.GameSeed(RunSeed, players * 1000 + gameIndex);
         var game = new Game(seed);
 
         // rotate the line-up so every agent plays every seat
         for (int seat = 0; seat < players; seat++)
         {
-            int agentKind = (k + seat) % AgentKindCount;
+            int agentKind = (gameIndex + seat) % AgentKindCount;
             game.Agents.Add(NewAgent(agentKind));
         }
 
@@ -97,13 +98,14 @@ public class GoldenMasterTests
         game.Loop(record: true);
 
         var lines = new List<string>();
-        string prefix = $"p{players} g{k} seed={seed}";
-        foreach (PlayerState p in game.Players)
+        string prefix = $"p{players} g{gameIndex} seed={seed}";
+        foreach (PlayerState player in game.Players)
         {
-            lines.Add($"{prefix} seat={p.Id} {game.Agents[p.Id].Name} {p.Board.Id} stage={p.Board.Stage} " +
-                      $"vp={p.VictoryPoints} coins={p.Resources[Resource.Coins]} " +
-                      $"military=+{p.VictoryTokens}/-{p.DefeatTokens} " +
-                      $"built={string.Join(",", p.PlayedCards.Select(card => card.Id))}");
+            lines.Add($"{prefix} seat={player.Id} {game.Agents[player.Id].Name} {player.Board.Id} " +
+                      $"stage={player.Board.Stage} " +
+                      $"vp={player.VictoryPoints} coins={player.Resources[Resource.Coins]} " +
+                      $"military=+{player.VictoryTokens}/-{player.DefeatTokens} " +
+                      $"built={string.Join(",", player.PlayedCards.Select(card => card.Id))}");
         }
 
         lines.Add($"{prefix} discarded={string.Join(",", game.DiscardedCards.Select(card => card.Id))}");

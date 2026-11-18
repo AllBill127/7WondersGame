@@ -33,17 +33,17 @@ public class DatasetFileTests
     private static string[] Lines(int players, params List<int>[][] deals)
     {
         var lines = new List<string> { $"Players: {players}" };
-        for (int i = 0; i < deals.Length; i++)
+        for (int dealIndex = 0; dealIndex < deals.Length; dealIndex++)
         {
-            lines.Add($"Game {i}:");
+            lines.Add($"Game {dealIndex}:");
             for (int era = 0; era < 3; era++)
             {
                 lines.Add($"Deck{era + 1}:");
-                lines.Add(string.Join(", ", deals[i][era]));
+                lines.Add(string.Join(", ", deals[dealIndex][era]));
             }
 
             lines.Add("Wonders:");
-            lines.Add(string.Join(", ", deals[i][3]));
+            lines.Add(string.Join(", ", deals[dealIndex][3]));
         }
 
         return lines.ToArray();
@@ -62,11 +62,11 @@ public class DatasetFileTests
 
             Assert.AreEqual(4, players);
             Assert.AreEqual(2, read.Count);
-            for (int i = 0; i < 2; i++)
+            for (int dealIndex = 0; dealIndex < 2; dealIndex++)
             {
                 for (int part = 0; part < 4; part++)
                 {
-                    CollectionAssert.AreEqual(deals[i][part], read[i][part]);
+                    CollectionAssert.AreEqual(deals[dealIndex][part], read[dealIndex][part]);
                 }
             }
         }
@@ -91,18 +91,18 @@ public class DatasetFileTests
     [TestMethod]
     public void TheCommittedDatasets_AreValid()
     {
-        DirectoryInfo dir = new(AppContext.BaseDirectory);
-        while (dir.GetFiles("7WondersGame.sln").Length == 0)
+        DirectoryInfo directory = new(AppContext.BaseDirectory);
+        while (directory.GetFiles("7WondersGame.sln").Length == 0)
         {
-            if (dir.Parent == null)
+            if (directory.Parent == null)
             {
                 throw new AssertInconclusiveException("repository root not found");
             }
 
-            dir = dir.Parent;
+            directory = directory.Parent;
         }
 
-        FileInfo[] files = dir.GetFiles("gameDataset_*.txt");
+        FileInfo[] files = directory.GetFiles("gameDataset_*.txt");
         Assert.IsTrue(files.Length > 0);
         foreach (FileInfo file in files)
         {
@@ -116,8 +116,8 @@ public class DatasetFileTests
     {
         string[] lines = Lines(3, Deal(3, 1));
         string[] linesWithoutHeader = lines.Skip(1).ToArray();
-        var ex = Assert.ThrowsException<InvalidDataException>(() => Filer.Parse(linesWithoutHeader, "old.txt"));
-        StringAssert.Contains(ex.Message, "Players:");
+        var exception = Assert.ThrowsException<InvalidDataException>(() => Filer.Parse(linesWithoutHeader, "old.txt"));
+        StringAssert.Contains(exception.Message, "Players:");
     }
 
     [TestMethod]

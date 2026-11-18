@@ -19,7 +19,7 @@ public class PlayerCopyTests
     /// <summary>A game played some way into era 2 by heuristic players.</summary>
     private static Game MidGame()
     {
-        var ai = new HeuristicAI();
+        var heuristicAgent = new HeuristicAI();
         var game = new Game(Seeding.GameSeed(77, 0));
         for (int seat = 0; seat < 4; seat++)
         {
@@ -34,7 +34,7 @@ public class PlayerCopyTests
             List<Command> moves = new List<Command>();
             foreach (int seat in pendingSeats)
             {
-                moves.Add(ai.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardedCards));
+                moves.Add(heuristicAgent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardedCards));
             }
 
             for (int pendingIndex = 0; pendingIndex < pendingSeats.Count; pendingIndex++)
@@ -47,15 +47,15 @@ public class PlayerCopyTests
     }
 
     /// <summary>Everything about a player, as text.</summary>
-    private static string Describe(PlayerState p)
+    private static string Describe(PlayerState player)
     {
-        string handCards = string.Join(",", p.HandCards.Select(card => card.Id));
-        string playedCards = string.Join(",", p.PlayedCards.Select(card => card.Id));
-        string resources = string.Join(",", p.Resources.Select(resource => $"{resource.Key}={resource.Value}"));
-        return $"{p.Id} {p.Board.Id} {p.Board.Stage} | {handCards} | {playedCards} | " +
-               $"{p.VictoryTokens} {p.DefeatTokens} {p.VictoryPoints} " +
-               $"{p.Abilities} {p.FreeCardOnce} {p.DiscardFree} | " +
-               $"{resources} | {p.PlayerWest.Id} {p.PlayerEast.Id}";
+        string handCards = string.Join(",", player.HandCards.Select(card => card.Id));
+        string playedCards = string.Join(",", player.PlayedCards.Select(card => card.Id));
+        string resources = string.Join(",", player.Resources.Select(resource => $"{resource.Key}={resource.Value}"));
+        return $"{player.Id} {player.Board.Id} {player.Board.Stage} | {handCards} | {playedCards} | " +
+               $"{player.VictoryTokens} {player.DefeatTokens} {player.VictoryPoints} " +
+               $"{player.Abilities} {player.FreeCardOnce} {player.DiscardFree} | " +
+               $"{resources} | {player.PlayerWest.Id} {player.PlayerEast.Id}";
     }
 
     [TestMethod]
@@ -93,10 +93,10 @@ public class PlayerCopyTests
     public void CopyFrom_UndoesEveryChange_AsAFreshClone()
     {
         Game game = MidGame();
-        foreach (PlayerState p in game.Players)
+        foreach (PlayerState player in game.Players)
         {
-            string before = Describe(p);
-            PlayerState scratch = p.Clone();
+            string before = Describe(player);
+            PlayerState scratch = player.Clone();
 
             // change everything a try can change
             scratch.PlayedCards.Add(scratch.HandCards[0]);
@@ -112,14 +112,14 @@ public class PlayerCopyTests
             scratch.DiscardFree = !scratch.DiscardFree;
             scratch.PlayerWest = scratch;
 
-            scratch.CopyFrom(p);
+            scratch.CopyFrom(player);
 
-            Assert.AreEqual(before, Describe(scratch), $"seat {p.Id}");
-            Assert.AreEqual(before, Describe(p), "the source doesn't change");
-            Assert.AreNotSame(p.HandCards, scratch.HandCards);
-            Assert.AreNotSame(p.PlayedCards, scratch.PlayedCards);
-            Assert.AreNotSame(p.Resources, scratch.Resources);
-            Assert.AreNotSame(p.Board, scratch.Board);
+            Assert.AreEqual(before, Describe(scratch), $"seat {player.Id}");
+            Assert.AreEqual(before, Describe(player), "the source doesn't change");
+            Assert.AreNotSame(player.HandCards, scratch.HandCards);
+            Assert.AreNotSame(player.PlayedCards, scratch.PlayedCards);
+            Assert.AreNotSame(player.Resources, scratch.Resources);
+            Assert.AreNotSame(player.Board, scratch.Board);
         }
     }
 

@@ -140,9 +140,9 @@ public class CommandLineTests
         double maxC = 2.1;
         int iterations = 7;
         var sweep = new Sweep(2, "c", minC, maxC, iterations + 1);
-        for (int k = 0; k <= iterations; k++)
+        for (int step = 0; step <= iterations; step++)
         {
-            Assert.AreEqual(minC + k * ((maxC - minC) / iterations), sweep.ValueAt(k));
+            Assert.AreEqual(minC + step * ((maxC - minC) / iterations), sweep.ValueAt(step));
         }
     }
 

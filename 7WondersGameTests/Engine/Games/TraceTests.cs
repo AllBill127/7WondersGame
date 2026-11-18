@@ -52,9 +52,9 @@ public class TraceTests
     [TestMethod]
     public void Tracing_DoesNotChangeTheGame()
     {
-        for (ulong i = 0; i < 20; i++)
+        for (ulong gameIndex = 0; gameIndex < 20; gameIndex++)
         {
-            ulong seed = Seeding.GameSeed(31, (long)i);
+            ulong seed = Seeding.GameSeed(31, (long)gameIndex);
             Game silent = NewGame(seed);
             silent.Loop(record: true);
 
