@@ -10,12 +10,12 @@ namespace _7WondersGame.Engine.Effects.Effects;
 public sealed class PointsPerCard : IEffect
 {
     /// <summary>
-    /// An effect worth <paramref name="vp"/> per card of <paramref name="types"/> in
+    /// An effect worth <paramref name="victoryPoints"/> per card of <paramref name="types"/> in
     /// <paramref name="who"/>'s cities.
     /// </summary>
-    public PointsPerCard(int vp, Who who, params CardType[] types)
+    public PointsPerCard(int victoryPoints, Who who, params CardType[] types)
     {
-        Vp = vp;
+        Vp = victoryPoints;
         Who = who;
         Types = types;
     }
@@ -30,12 +30,12 @@ public sealed class PointsPerCard : IEffect
     public CardType[] Types { get; }
 
     /// <inheritdoc/>
-    public int EndGameVp(PlayerState p)
+    public int EndGameVp(PlayerState owner)
     {
         int cardCount = 0;
         foreach (CardType type in Types)
         {
-            cardCount += Cities.CountCards(p, Who, type);
+            cardCount += Cities.CountCards(owner, Who, type);
         }
         return Vp * cardCount;
     }

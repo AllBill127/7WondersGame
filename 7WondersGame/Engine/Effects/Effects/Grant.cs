@@ -17,9 +17,9 @@ public sealed class Grant : IEffect
     public Ability Ability { get; }
 
     /// <inheritdoc/>
-    public void OnBuild(PlayerState p)
+    public void OnBuild(PlayerState owner)
     {
-        p.Abilities |= Ability;
+        owner.Abilities |= Ability;
     }
 
     /// <inheritdoc/>

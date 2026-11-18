@@ -10,12 +10,12 @@ namespace _7WondersGame.Engine.Effects.Interfaces;
 public interface IEffect
 {
     /// <summary>Changes the owner's city when the card or stage is built. Does nothing unless overridden.</summary>
-    void OnBuild(PlayerState p)
+    void OnBuild(PlayerState owner)
     {
     }
 
     /// <summary>The victory points it is worth to its owner at the end of the game; 0 unless overridden.</summary>
-    int EndGameVp(PlayerState p)
+    int EndGameVp(PlayerState owner)
     {
         return 0;
     }

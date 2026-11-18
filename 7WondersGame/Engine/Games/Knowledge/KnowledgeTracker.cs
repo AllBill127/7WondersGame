@@ -12,7 +12,7 @@ namespace _7WondersGame.Engine.Games.Knowledge;
 /// </summary>
 internal sealed class KnowledgeTracker
 {
-    private readonly int _n;
+    private readonly int _playerCount;
     // [observer, holder]: see SeatKnowledge.InHand
     private List<Card>[,] _inHand;
     private readonly List<Card>[] _inPile;
@@ -21,7 +21,7 @@ internal sealed class KnowledgeTracker
     /// <summary>A tracker for a game of this many players, before the deal: nobody knows anything yet.</summary>
     public KnowledgeTracker(int players)
     {
-        _n = players;
+        _playerCount = players;
         _inHand = NewHands();
         _inPile = NewCardListPerSeat();
         _buried = NewCardListPerSeat();
@@ -29,12 +29,12 @@ internal sealed class KnowledgeTracker
 
     private List<Card>[,] NewHands()
     {
-        var hands = new List<Card>[_n, _n];
-        for (int o = 0; o < _n; o++)
+        var hands = new List<Card>[_playerCount, _playerCount];
+        for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
         {
-            for (int h = 0; h < _n; h++)
+            for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)
             {
-                hands[o, h] = new List<Card>();
+                hands[observerSeat, holderSeat] = new List<Card>();
             }
         }
         return hands;
@@ -42,8 +42,8 @@ internal sealed class KnowledgeTracker
 
     private List<Card>[] NewCardListPerSeat()
     {
-        var lists = new List<Card>[_n];
-        for (int seat = 0; seat < _n; seat++)
+        var lists = new List<Card>[_playerCount];
+        for (int seat = 0; seat < _playerCount; seat++)
         {
             lists[seat] = new List<Card>();
         }
@@ -53,10 +53,10 @@ internal sealed class KnowledgeTracker
     /// <summary>A copy of what the seat knows now.</summary>
     public SeatKnowledge Of(int seat)
     {
-        var hands = new List<IReadOnlyList<Card>>(_n);
-        for (int h = 0; h < _n; h++)
+        var hands = new List<IReadOnlyList<Card>>(_playerCount);
+        for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)
         {
-            hands.Add(_inHand[seat, h].ToList());
+            hands.Add(_inHand[seat, holderSeat].ToList());
         }
         return new SeatKnowledge(hands, _inPile[seat].ToList(), _buried[seat].ToList());
     }
@@ -65,9 +65,9 @@ internal sealed class KnowledgeTracker
     public void Dealt(IReadOnlyList<PlayerState> players)
     {
         _inHand = NewHands();
-        foreach (PlayerState p in players)
+        foreach (PlayerState player in players)
         {
-            _inHand[p.Id, p.Id].AddRange(p.HandCards);
+            _inHand[player.Id, player.Id].AddRange(player.HandCards);
         }
     }
 
@@ -87,11 +87,11 @@ internal sealed class KnowledgeTracker
             case ActionType.Build:
             case ActionType.BuildFreeOnce:
                 // everyone sees the card built
-                for (int o = 0; o < _n; o++)
+                for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
                 {
-                    if (o != seat)
+                    if (observerSeat != seat)
                     {
-                        _inHand[o, seat].Remove(card);
+                        _inHand[observerSeat, seat].Remove(card);
                     }
                 }
                 break;
@@ -107,9 +107,9 @@ internal sealed class KnowledgeTracker
     /// <summary>Halikarnassos: a card built from the discard pile, in sight of everyone.</summary>
     public void BuiltFromPile(Card card)
     {
-        for (int o = 0; o < _n; o++)
+        for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
         {
-            _inPile[o].Remove(card);
+            _inPile[observerSeat].Remove(card);
         }
     }
 
@@ -123,9 +123,9 @@ internal sealed class KnowledgeTracker
     /// <summary>The era's last cards go to the discard pile; each seat knows its own.</summary>
     public void EraEndDiscards(IReadOnlyList<PlayerState> players)
     {
-        foreach (PlayerState p in players)
+        foreach (PlayerState player in players)
         {
-            _inPile[p.Id].AddRange(p.HandCards);
+            _inPile[player.Id].AddRange(player.HandCards);
         }
         // the hands are empty until the next era's deal
         _inHand = NewHands();
@@ -138,25 +138,25 @@ internal sealed class KnowledgeTracker
     public void HandsPassing(IReadOnlyList<PlayerState> players, bool west)
     {
         var next = NewHands();
-        for (int o = 0; o < _n; o++)
+        for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
         {
-            for (int h = 0; h < _n; h++)
+            for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)
             {
-                IEnumerable<Card> known = _inHand[o, h];
+                IEnumerable<Card> known = _inHand[observerSeat, holderSeat];
                 // a seat knows the hand it is passing on exactly
-                if (h == o)
+                if (holderSeat == observerSeat)
                 {
-                    known = players[o].HandCards;
+                    known = players[observerSeat].HandCards;
                 }
-                int receiverSeat = ReceiverOf(players, h, west);
-                next[o, receiverSeat].AddRange(known);
+                int receiverSeat = ReceiverOf(players, holderSeat, west);
+                next[observerSeat, receiverSeat].AddRange(known);
             }
         }
-        for (int h = 0; h < _n; h++)
+        for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)
         {
-            int r = ReceiverOf(players, h, west);
-            next[r, r].Clear();
-            next[r, r].AddRange(players[h].HandCards);
+            int receiverSeat = ReceiverOf(players, holderSeat, west);
+            next[receiverSeat, receiverSeat].Clear();
+            next[receiverSeat, receiverSeat].AddRange(players[holderSeat].HandCards);
         }
         _inHand = next;
     }

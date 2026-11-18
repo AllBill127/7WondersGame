@@ -17,13 +17,13 @@ public static class Seeding
     public const ulong CopyStreamBase = 1UL << 32;
 
     /// <summary>The SplitMix64 output function.</summary>
-    public static ulong Mix(ulong z)
+    public static ulong Mix(ulong value)
     {
         unchecked
         {
-            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
-            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
-            return z ^ (z >> 31);
+            value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9UL;
+            value = (value ^ (value >> 27)) * 0x94D049BB133111EBUL;
+            return value ^ (value >> 31);
         }
     }
 

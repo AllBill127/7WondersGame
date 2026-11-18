@@ -123,15 +123,15 @@ public sealed class Wonder
     /// <summary>The victory points of the built stages.</summary>
     public int WonderPoints(PlayerState owner)
     {
-        int vp = 0;
-        for (int s = 0; s < Stage; s++)
+        int victoryPoints = 0;
+        for (int stageIndex = 0; stageIndex < Stage; stageIndex++)
         {
-            foreach (IEffect effect in _board.Stages[s].Effects)
+            foreach (IEffect effect in _board.Stages[stageIndex].Effects)
             {
-                vp += effect.EndGameVp(owner);
+                victoryPoints += effect.EndGameVp(owner);
             }
         }
-        return vp;
+        return victoryPoints;
     }
 
     /// <summary>Only the stage counter changes during a game, so a shallow copy is a full copy.</summary>

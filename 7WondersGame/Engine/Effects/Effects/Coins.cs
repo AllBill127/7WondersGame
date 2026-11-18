@@ -17,8 +17,8 @@ public sealed class Coins : IEffect
     public int Amount { get; }
 
     /// <inheritdoc/>
-    public void OnBuild(PlayerState p)
+    public void OnBuild(PlayerState owner)
     {
-        p.Resources[Resource.Coins] += Amount;
+        owner.Resources[Resource.Coins] += Amount;
     }
 }

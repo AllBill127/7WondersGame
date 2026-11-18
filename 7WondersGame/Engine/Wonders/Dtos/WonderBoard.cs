@@ -39,21 +39,22 @@ public sealed class WonderBoard
         Stages = stages;
 
         var highest = new Dictionary<Resource, int>();
-        for (Resource r = Resource.Wood; r <= Resource.Papyrus; r++)
+        for (Resource resource = Resource.Wood; resource <= Resource.Papyrus; resource++)
         {
-            highest[r] = HighestCostOf(stages, r);
+            highest[resource] = HighestCostOf(stages, resource);
         }
         HighestCosts = highest;
 
-        // After s + 1 stages: what s stages gave plus what stage s gives.
+        // After stageIndex + 1 stages: what the stages before it gave plus what this stage gives.
         int builtStageCounts = stages.Length + 1; // 0 to every stage built
         AbilitiesAfter = new Ability[builtStageCounts];
         ScienceWildcardsAfter = new int[builtStageCounts];
-        for (int s = 0; s < stages.Length; s++)
+        for (int stageIndex = 0; stageIndex < stages.Length; stageIndex++)
         {
-            int builtStages = s + 1;
-            AbilitiesAfter[builtStages] = AbilitiesAfter[s] | AbilitiesGrantedBy(stages[s]);
-            ScienceWildcardsAfter[builtStages] = ScienceWildcardsAfter[s] + ScienceWildcardsIn(stages[s]);
+            int builtStages = stageIndex + 1;
+            WonderStage stage = stages[stageIndex];
+            AbilitiesAfter[builtStages] = AbilitiesAfter[stageIndex] | AbilitiesGrantedBy(stage);
+            ScienceWildcardsAfter[builtStages] = ScienceWildcardsAfter[stageIndex] + ScienceWildcardsIn(stage);
         }
     }
 

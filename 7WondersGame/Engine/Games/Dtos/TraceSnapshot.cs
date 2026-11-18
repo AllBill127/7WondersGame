@@ -26,24 +26,24 @@ internal sealed class TraceSnapshot
     public List<string> Flags { get; }
 
     /// <summary>The player's coins, wonder stage and flags now.</summary>
-    public static TraceSnapshot Of(PlayerState p)
+    public static TraceSnapshot Of(PlayerState player)
     {
         var flags = new List<string>();
         foreach (Ability ability in Enum.GetValues<Ability>())
         {
-            if (ability != Ability.None && p.Has(ability))
+            if (ability != Ability.None && player.Has(ability))
             {
                 flags.Add(ability.ToString());
             }
         }
-        if (p.DiscardFree)
+        if (player.DiscardFree)
         {
-            flags.Add(nameof(p.DiscardFree));
+            flags.Add(nameof(player.DiscardFree));
         }
-        if (p.FreeCardOnce)
+        if (player.FreeCardOnce)
         {
-            flags.Add(nameof(p.FreeCardOnce));
+            flags.Add(nameof(player.FreeCardOnce));
         }
-        return new TraceSnapshot(p.Resources[Resource.Coins], p.Board.Stage, flags);
+        return new TraceSnapshot(player.Resources[Resource.Coins], player.Board.Stage, flags);
     }
 }

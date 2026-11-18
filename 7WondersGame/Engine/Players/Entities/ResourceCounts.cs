@@ -5,7 +5,7 @@ namespace _7WondersGame.Engine.Players.Entities;
 
 /// <summary>
 /// A player's counts of each <see cref="Resource"/>: production, science symbols, coins and shields. Read and
-/// changed like a dictionary (<c>p.Resources[Resource.Coins] += 3</c>), but kept in an array, because a search
+/// changed like a dictionary (<c>player.Resources[Resource.Coins] += 3</c>), but kept in an array, because a search
 /// copies players thousands of times a second and reads these counts all the time (a dictionary made each copy
 /// and lookup several times dearer). Every resource is always there (0 if none).
 /// </summary>
@@ -61,9 +61,9 @@ public sealed class ResourceCounts : IReadOnlyCollection<KeyValuePair<Resource, 
     /// <summary>Each resource with its count, in the order of <see cref="Listed"/>.</summary>
     public IEnumerator<KeyValuePair<Resource, int>> GetEnumerator()
     {
-        foreach (Resource r in Listed)
+        foreach (Resource resource in Listed)
         {
-            yield return new KeyValuePair<Resource, int>(r, _counts[(int)r]);
+            yield return new KeyValuePair<Resource, int>(resource, _counts[(int)resource]);
         }
     }
 

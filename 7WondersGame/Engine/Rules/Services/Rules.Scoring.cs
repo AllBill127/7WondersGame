@@ -16,11 +16,11 @@ public static partial class Rules
     /// <see cref="VictoryTokensForWinningBattle"/> for each neighbour with fewer shields, a defeat token for each with
     /// more, nothing on a draw.
     /// </summary>
-    public static void Battle(this PlayerState p, int era)
+    public static void Battle(this PlayerState player, int era)
     {
         int tokensForWin = VictoryTokensForWinningBattle(era);
-        BattleWithNeighbour(p, p.PlayerEast, tokensForWin);
-        BattleWithNeighbour(p, p.PlayerWest, tokensForWin);
+        BattleWithNeighbour(player, player.PlayerEast, tokensForWin);
+        BattleWithNeighbour(player, player.PlayerWest, tokensForWin);
     }
 
     /// <summary>What winning one battle is worth: 1 in era I, 3 in era II, 5 in era III.</summary>
@@ -41,17 +41,17 @@ public static partial class Rules
     /// One battle: the player gains a victory or a defeat token against one neighbour (the neighbour's own tokens
     /// come from their own <see cref="Battle"/>).
     /// </summary>
-    private static void BattleWithNeighbour(PlayerState p, PlayerState neighbour, int tokensForWin)
+    private static void BattleWithNeighbour(PlayerState player, PlayerState neighbour, int tokensForWin)
     {
-        int shields = p.Resources[Resource.Shields];
+        int shields = player.Resources[Resource.Shields];
         int neighbourShields = neighbour.Resources[Resource.Shields];
         if (shields > neighbourShields)
         {
-            p.VictoryTokens += tokensForWin;
+            player.VictoryTokens += tokensForWin;
         }
         else if (shields < neighbourShields)
         {
-            p.DefeatTokens += 1;
+            player.DefeatTokens += 1;
         }
     }
 
@@ -66,19 +66,19 @@ public static partial class Rules
     ///          https://rules.dized.com/7-wonders/rule/symbols/guilds
     /// </summary>
     /// <returns>true if a guild was copied; otherwise false</returns>
-    public static bool CopyGuild(this PlayerState p)
+    public static bool CopyGuild(this PlayerState player)
     {
-        if (!p.Has(Ability.CopyGuild))
+        if (!player.Has(Ability.CopyGuild))
         {
             return false;
         }
 
-        Card? bestGuild = BestGuildToCopy(p);
+        Card? bestGuild = BestGuildToCopy(player);
         if (bestGuild == null)
         {
             return false;
         }
-        p.PlayedCards.Add(bestGuild);
+        player.PlayedCards.Add(bestGuild);
         return true;
     }
 
@@ -86,49 +86,49 @@ public static partial class Rules
     /// The neighbours' guild that scores the player the most, or null if there is none to copy. Leaves the player
     /// as it was.
     /// </summary>
-    private static Card? BestGuildToCopy(PlayerState p)
+    private static Card? BestGuildToCopy(PlayerState player)
     {
         // guilds only score at the end (none has an effect when built), so trying one is adding and removing it
-        int victoryPointsBeforeTrying = p.VictoryPoints;
+        int victoryPointsBeforeTrying = player.VictoryPoints;
         Card? bestGuild = null;
         int bestScore = int.MinValue;
 
-        foreach (Card guild in p.PlayerWest.PlayedCards)
+        foreach (Card guild in player.PlayerWest.PlayedCards)
         {
-            if (CanCopyGuild(p, guild))
+            if (CanCopyGuild(player, guild))
             {
-                KeepGuildIfBetter(p, guild, ref bestGuild, ref bestScore);
+                KeepGuildIfBetter(player, guild, ref bestGuild, ref bestScore);
             }
         }
-        foreach (Card guild in p.PlayerEast.PlayedCards)
+        foreach (Card guild in player.PlayerEast.PlayedCards)
         {
             // a guild both neighbours have is only tried once, from the west
-            bool alreadyTried = p.PlayerWest.PlayedCards.Contains(guild);
-            if (CanCopyGuild(p, guild) && !alreadyTried)
+            bool alreadyTried = player.PlayerWest.PlayedCards.Contains(guild);
+            if (CanCopyGuild(player, guild) && !alreadyTried)
             {
-                KeepGuildIfBetter(p, guild, ref bestGuild, ref bestScore);
+                KeepGuildIfBetter(player, guild, ref bestGuild, ref bestScore);
             }
         }
 
-        p.VictoryPoints = victoryPointsBeforeTrying;
+        player.VictoryPoints = victoryPointsBeforeTrying;
         return bestGuild;
     }
 
     /// <summary>Is the card a guild the player doesn't have yet?</summary>
-    private static bool CanCopyGuild(PlayerState p, Card card)
+    private static bool CanCopyGuild(PlayerState player, Card card)
     {
-        return card.Type == CardType.Guild && !p.HasPlayedCard(card);
+        return card.Type == CardType.Guild && !player.HasPlayedCard(card);
     }
 
     /// <summary>
     /// Scores the player with <paramref name="guild"/> added, and keeps it as the best guild if it scores more than
     /// <paramref name="bestScore"/> (the first of equal ones stays).
     /// </summary>
-    private static void KeepGuildIfBetter(PlayerState p, Card guild, ref Card? bestGuild, ref int bestScore)
+    private static void KeepGuildIfBetter(PlayerState player, Card guild, ref Card? bestGuild, ref int bestScore)
     {
-        p.PlayedCards.Add(guild);
-        int score = p.CalculateScore();
-        RemoveLastBuiltCard(p);
+        player.PlayedCards.Add(guild);
+        int score = player.CalculateScore();
+        RemoveLastBuiltCard(player);
         if (score > bestScore)
         {
             bestScore = score;
@@ -137,71 +137,71 @@ public static partial class Rules
     }
 
     /// <summary>Takes back the card added last to the player's city.</summary>
-    private static void RemoveLastBuiltCard(PlayerState p)
+    private static void RemoveLastBuiltCard(PlayerState player)
     {
-        int lastIndex = p.PlayedCards.Count - 1;
-        p.PlayedCards.RemoveAt(lastIndex);
+        int lastIndex = player.PlayedCards.Count - 1;
+        player.PlayedCards.RemoveAt(lastIndex);
     }
 
     // =========== End of game scoring related ===========
     /// <summary>The player's victory points from civilian (blue) cards.</summary>
-    public static int CalculateCivilianScore(this PlayerState p)
+    public static int CalculateCivilianScore(this PlayerState player)
     {
-        return p.CardPoints(CardType.Civilian);
+        return player.CardPoints(CardType.Civilian);
     }
 
     /// <summary>The player's victory points from commercial (yellow) cards.</summary>
-    public static int CalculateCommercialScore(this PlayerState p)
+    public static int CalculateCommercialScore(this PlayerState player)
     {
-        return p.CardPoints(CardType.Commercial);
+        return player.CardPoints(CardType.Commercial);
     }
 
     /// <summary>The player's victory points from coins: 1 for every 3 coins.</summary>
-    public static int CalculateMoneyScore(this PlayerState p)
+    public static int CalculateMoneyScore(this PlayerState player)
     {
-        return p.Resources[Resource.Coins] / CoinsPerVictoryPoint;
+        return player.Resources[Resource.Coins] / CoinsPerVictoryPoint;
     }
 
     /// <summary>
     /// The player's victory points from guild (purple) cards (the Scientists Guild's wildcard is in the science
     /// score).
     /// </summary>
-    public static int CalculateGuildScore(this PlayerState p)
+    public static int CalculateGuildScore(this PlayerState player)
     {
-        return p.CardPoints(CardType.Guild);
+        return player.CardPoints(CardType.Guild);
     }
 
     /// <summary>The end-game VP of the player's cards of one type.</summary>
-    private static int CardPoints(this PlayerState p, CardType type)
+    private static int CardPoints(this PlayerState player, CardType type)
     {
-        int vp = 0;
-        foreach (Card card in p.PlayedCards)
+        int victoryPoints = 0;
+        foreach (Card card in player.PlayedCards)
         {
             if (card.Type != type)
             {
                 continue;
             }
-            for (int i = 0; i < card.Effects.Count; i++)
+            for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
             {
-                vp += card.Effects[i].EndGameVp(p);
+                victoryPoints += card.Effects[effectIndex].EndGameVp(player);
             }
         }
-        return vp;
+        return victoryPoints;
     }
 
     /// <summary>The player's victory points from battles: victory tokens minus defeat tokens.</summary>
-    public static int CalculateMilitaryScore(this PlayerState p)
+    public static int CalculateMilitaryScore(this PlayerState player)
     {
-        return p.VictoryTokens - p.DefeatTokens;
+        return player.VictoryTokens - player.DefeatTokens;
     }
 
     /// <summary>The player's victory points from science symbols, with the wildcards placed best.</summary>
-    public static int CalculateScientificScore(this PlayerState p)
+    public static int CalculateScientificScore(this PlayerState player)
     {
-        int gear = p.Resources[Resource.Gear];
-        int tablet = p.Resources[Resource.Tablet];
-        int compass = p.Resources[Resource.Compass];
-        return BestScienceScore(gear, compass, tablet, p.ScienceWildcards());
+        int gear = player.Resources[Resource.Gear];
+        int tablet = player.Resources[Resource.Tablet];
+        int compass = player.Resources[Resource.Compass];
+        return BestScienceScore(gear, compass, tablet, player.ScienceWildcards());
     }
 
     /// <summary>
@@ -233,27 +233,27 @@ public static partial class Rules
     }
 
     /// <summary>The player's victory points from built wonder stages.</summary>
-    public static int CalculateWonderScore(this PlayerState p)
+    public static int CalculateWonderScore(this PlayerState player)
     {
-        return p.Board.WonderPoints(p);
+        return player.Board.WonderPoints(player);
     }
 
     /// <summary>
     /// Adds up the player's victory points from every category, stores the total in
     /// <see cref="PlayerState.VictoryPoints"/> and returns it.
     /// </summary>
-    public static int CalculateScore(this PlayerState p)
+    public static int CalculateScore(this PlayerState player)
     {
-        int civilian = p.CalculateCivilianScore();
-        int commercial = p.CalculateCommercialScore();
-        int money = p.CalculateMoneyScore();
-        int guilds = p.CalculateGuildScore();
-        int science = p.CalculateScientificScore();
-        int military = p.CalculateMilitaryScore();
-        int wonder = p.CalculateWonderScore();
+        int civilian = player.CalculateCivilianScore();
+        int commercial = player.CalculateCommercialScore();
+        int money = player.CalculateMoneyScore();
+        int guilds = player.CalculateGuildScore();
+        int science = player.CalculateScientificScore();
+        int military = player.CalculateMilitaryScore();
+        int wonder = player.CalculateWonderScore();
 
         int total = civilian + commercial + money + guilds + science + military + wonder;
-        p.VictoryPoints = total;
-        return p.VictoryPoints;
+        player.VictoryPoints = total;
+        return player.VictoryPoints;
     }
 }

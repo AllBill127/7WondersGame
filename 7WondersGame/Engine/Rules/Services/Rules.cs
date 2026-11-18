@@ -22,14 +22,14 @@ public static partial class Rules
 
     // =========== Wonder ===========
     /// <summary>Is there a next wonder stage, and can the player pay for it?</summary>
-    public static bool CanBuildWonder(this PlayerState p)
+    public static bool CanBuildWonder(this PlayerState player)
     {
-        IReadOnlyDictionary<Resource, int>? cost = p.Board.NextStageCost;
+        IReadOnlyDictionary<Resource, int>? cost = player.Board.NextStageCost;
         if (cost == null)
         {
             return false;
         }
-        return PaymentPlanner.Plan(p, cost) != null;
+        return PaymentPlanner.Plan(player, cost) != null;
     }
 
     // =========== Card related ===========
@@ -37,18 +37,18 @@ public static partial class Rules
     /// A new list of the cards in <paramref name="cardList"/> the player can build now (not a duplicate, and chained
     /// or affordable). With <paramref name="playAllFree"/> (Halikarnassos, Olympia A's free card) cost doesn't matter.
     /// </summary>
-    public static List<Card> GetPlayableCards(this PlayerState p, List<Card> cardList, bool playAllFree = false)
+    public static List<Card> GetPlayableCards(this PlayerState player, List<Card> cardList, bool playAllFree = false)
     {
         List<Card> playableCards = new List<Card>();
         foreach (Card card in cardList)
         {
             // the same card can't be built twice
-            if (p.HasPlayedCard(card))
+            if (player.HasPlayedCard(card))
             {
                 continue;
             }
 
-            if (playAllFree || p.CanChainBuildCard(card) || PaymentPlanner.Plan(p, card.Cost) != null)
+            if (playAllFree || player.CanChainBuildCard(card) || PaymentPlanner.Plan(player, card.Cost) != null)
             {
                 playableCards.Add(card);
             }
@@ -60,18 +60,18 @@ public static partial class Rules
     /// The coins building the card would cost the player now (trade plus the card's own coin cost; 0 when chained),
     /// or null if they can't build it. Changes nothing.
     /// </summary>
-    public static int? BuildPrice(this PlayerState p, Card card)
+    public static int? BuildPrice(this PlayerState player, Card card)
     {
-        if (p.HasPlayedCard(card))
+        if (player.HasPlayedCard(card))
         {
             return null;
         }
-        if (p.CanChainBuildCard(card))
+        if (player.CanChainBuildCard(card))
         {
             return 0;
         }
 
-        PaymentPlan? plan = PaymentPlanner.Plan(p, card.Cost);
+        PaymentPlan? plan = PaymentPlanner.Plan(player, card.Cost);
         if (plan == null)
         {
             return null;
@@ -84,18 +84,18 @@ public static partial class Rules
     /// Step 1: checks a move against the current state and works out what it costs, changing nothing.
     /// Null if the rules don't allow it. <paramref name="source"/> is where the card comes from.
     /// </summary>
-    public static PlannedMove? PlanMove(this PlayerState p, ActionType action, Card card, List<Card> source)
+    public static PlannedMove? PlanMove(this PlayerState player, ActionType action, Card card, List<Card> source)
     {
         switch (action)
         {
             case ActionType.Build:
-                return p.PlanBuild(action, card, source, free: false);
+                return player.PlanBuild(action, card, source, free: false);
             case ActionType.BuildFreeOnce:
-                return p.PlanFreeOnceBuild(card, source);
+                return player.PlanFreeOnceBuild(card, source);
             case ActionType.BuildWonder:
-                return p.PlanWonder(card, source);
+                return player.PlanWonder(card, source);
             case ActionType.Discard:
-                return p.PlanDiscard(card, source);
+                return player.PlanDiscard(card, source);
             default:
                 return null;
         }
@@ -104,13 +104,13 @@ public static partial class Rules
     /// <summary>
     /// Step 1 for Halikarnassos: a free build from the discard pile while <see cref="PlayerState.DiscardFree"/> is on.
     /// </summary>
-    public static PlannedMove? PlanDiscardPileBuild(this PlayerState p, Card card, List<Card> discardPile)
+    public static PlannedMove? PlanDiscardPileBuild(this PlayerState player, Card card, List<Card> discardPile)
     {
-        if (!p.DiscardFree)
+        if (!player.DiscardFree)
         {
             return null;
         }
-        PlannedMove? move = p.PlanBuild(ActionType.Build, card, discardPile, free: true);
+        PlannedMove? move = player.PlanBuild(ActionType.Build, card, discardPile, free: true);
         if (move == null)
         {
             return null;
@@ -122,63 +122,63 @@ public static partial class Rules
     /// A build of a card from <paramref name="source"/>, paid for unless <paramref name="free"/> or chained.
     /// </summary>
     private static PlannedMove? PlanBuild(
-        this PlayerState p,
+        this PlayerState player,
         ActionType action,
         Card card,
         List<Card> source,
         bool free)
     {
-        if (p.HasPlayedCard(card) || !source.Contains(card))
+        if (player.HasPlayedCard(card) || !source.Contains(card))
         {
             return null;
         }
-        if (free || p.CanChainBuildCard(card))
+        if (free || player.CanChainBuildCard(card))
         {
-            return new PlannedMove(p, action, card, source, PaymentPlan.Free, 0);
+            return new PlannedMove(player, action, card, source, PaymentPlan.Free, 0);
         }
 
-        PaymentPlan? plan = PaymentPlanner.Plan(p, card.Cost);
+        PaymentPlan? plan = PaymentPlanner.Plan(player, card.Cost);
         if (plan == null)
         {
             return null;
         }
-        return new PlannedMove(p, action, card, source, plan.Value, CoinCostOf(card));
+        return new PlannedMove(player, action, card, source, plan.Value, CoinCostOf(card));
     }
 
     /// <summary>Olympia A stage 2: one free card per era, while the era's charge is unused.</summary>
-    private static PlannedMove? PlanFreeOnceBuild(this PlayerState p, Card card, List<Card> source)
+    private static PlannedMove? PlanFreeOnceBuild(this PlayerState player, Card card, List<Card> source)
     {
-        if (!p.Has(Ability.FreeCardEachEra) || !p.FreeCardOnce)
+        if (!player.Has(Ability.FreeCardEachEra) || !player.FreeCardOnce)
         {
             return null;
         }
-        return p.PlanBuild(ActionType.BuildFreeOnce, card, source, free: true);
+        return player.PlanBuild(ActionType.BuildFreeOnce, card, source, free: true);
     }
 
     /// <summary>The next wonder stage, built with a card from <paramref name="source"/>.</summary>
-    private static PlannedMove? PlanWonder(this PlayerState p, Card card, List<Card> source)
+    private static PlannedMove? PlanWonder(this PlayerState player, Card card, List<Card> source)
     {
-        IReadOnlyDictionary<Resource, int>? cost = p.Board.NextStageCost;
+        IReadOnlyDictionary<Resource, int>? cost = player.Board.NextStageCost;
         if (cost == null)
         {
             return null;
         }
-        PaymentPlan? plan = PaymentPlanner.Plan(p, cost);
+        PaymentPlan? plan = PaymentPlanner.Plan(player, cost);
         if (plan == null || !source.Contains(card))
         {
             return null;
         }
-        return new PlannedMove(p, ActionType.BuildWonder, card, source, plan.Value, 0);
+        return new PlannedMove(player, ActionType.BuildWonder, card, source, plan.Value, 0);
     }
 
     /// <summary>Discarding a card from <paramref name="source"/> for coins; always allowed and free.</summary>
-    private static PlannedMove? PlanDiscard(this PlayerState p, Card card, List<Card> source)
+    private static PlannedMove? PlanDiscard(this PlayerState player, Card card, List<Card> source)
     {
         if (!source.Contains(card))
         {
             return null;
         }
-        return new PlannedMove(p, ActionType.Discard, card, source, PaymentPlan.Free, 0);
+        return new PlannedMove(player, ActionType.Discard, card, source, PaymentPlan.Free, 0);
     }
 
     /// <summary>The coins the card itself asks for (for example Tree Farm's 1 coin), 0 if none.</summary>
@@ -195,16 +195,16 @@ public static partial class Rules
     /// Step 2: the player pays their own coins (to the neighbours and the bank) and the card leaves where it came
     /// from. A built card goes into the city. Nobody receives anything yet.
     /// </summary>
-    public static void Place(this PlayerState p, PlannedMove move)
+    public static void Place(this PlayerState player, PlannedMove move)
     {
-        p.Resources[Resource.Coins] -= move.Payment.Total + move.CoinCost;
+        player.Resources[Resource.Coins] -= move.Payment.Total + move.CoinCost;
         move.Source.Remove(move.Card);
         // The card is in the city before its effect applies, so the Lighthouse counts itself.
         // Sources: https://rules.dized.com/7-wonders/rule/question/19075b63-591e-4e99-8dfc-5fa34b726973,
         //          https://rules.dized.com/7-wonders/rule/symbols/third-age-cards
         if (move.Action is ActionType.Build or ActionType.BuildFreeOnce)
         {
-            p.PlayedCards.Add(move.Card);
+            player.PlayedCards.Add(move.Card);
         }
     }
 
@@ -212,22 +212,22 @@ public static partial class Rules
     /// Step 3: the neighbours receive their trade coins and the move takes effect: the card's effect, the wonder
     /// stage, or 3 coins for a discard. A discarded card goes to the discard pile in <see cref="Game.ResolveMoves"/>.
     /// </summary>
-    public static void Settle(this PlayerState p, PlannedMove move)
+    public static void Settle(this PlayerState player, PlannedMove move)
     {
-        p.PlayerWest.Resources[Resource.Coins] += move.Payment.ToWest;
-        p.PlayerEast.Resources[Resource.Coins] += move.Payment.ToEast;
+        player.PlayerWest.Resources[Resource.Coins] += move.Payment.ToWest;
+        player.PlayerEast.Resources[Resource.Coins] += move.Payment.ToEast;
         switch (move.Action)
         {
             case ActionType.Build:
             case ActionType.BuildFreeOnce:
-                p.ApplyCardEffect(move.Card);
-                UseUpFreeBuildCharges(p, move);
+                player.ApplyCardEffect(move.Card);
+                UseUpFreeBuildCharges(player, move);
                 break;
             case ActionType.BuildWonder:
-                p.Board.AddStage(p);
+                player.Board.AddStage(player);
                 break;
             case ActionType.Discard:
-                p.Resources[Resource.Coins] += CoinsForDiscard;
+                player.Resources[Resource.Coins] += CoinsForDiscard;
                 break;
         }
     }
@@ -236,15 +236,15 @@ public static partial class Rules
     /// Turns off the one-use charge a free build used: Olympia A's free card (re-armed at the start of the next era)
     /// or Halikarnassos' discard pile build.
     /// </summary>
-    private static void UseUpFreeBuildCharges(PlayerState p, PlannedMove move)
+    private static void UseUpFreeBuildCharges(PlayerState player, PlannedMove move)
     {
         if (move.Action == ActionType.BuildFreeOnce)
         {
-            p.FreeCardOnce = false;
+            player.FreeCardOnce = false;
         }
         if (move.FromDiscardPile)
         {
-            p.DiscardFree = false;
+            player.DiscardFree = false;
         }
     }
 
@@ -252,18 +252,18 @@ public static partial class Rules
     /// A card's effects when it is built: production, coins, shields, science or an ability
     /// (see <see cref="Card.Effects"/>).
     /// </summary>
-    public static void ApplyCardEffect(this PlayerState p, Card card)
+    public static void ApplyCardEffect(this PlayerState player, Card card)
     {
-        for (int i = 0; i < card.Effects.Count; i++)
+        for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
         {
-            card.Effects[i].OnBuild(p);
+            card.Effects[effectIndex].OnBuild(player);
         }
     }
 
     /// <summary>The no-duplicates rule: true if the city already has a card with this name.</summary>
-    private static bool HasPlayedCard(this PlayerState p, Card card)
+    private static bool HasPlayedCard(this PlayerState player, Card card)
     {
-        foreach (Card playedCard in p.PlayedCards)
+        foreach (Card playedCard in player.PlayedCards)
         {
             if (playedCard.SameNameAs(card))
             {
@@ -274,7 +274,7 @@ public static partial class Rules
     }
 
     /// <summary>Is the card free because the city has the card it chains from?</summary>
-    private static bool CanChainBuildCard(this PlayerState p, Card card)
+    private static bool CanChainBuildCard(this PlayerState player, Card card)
     {
         CardId freeWithId = card.FreeWithId;
         if (freeWithId == CardId.None)
@@ -283,12 +283,12 @@ public static partial class Rules
         }
 
         // Forum is free with either trading post
-        if (freeWithId == CardId.AnyTradingPost && HasBuiltEitherTradingPost(p))
+        if (freeWithId == CardId.AnyTradingPost && HasBuiltEitherTradingPost(player))
         {
             return true;
         }
 
-        foreach (Card playedCard in p.PlayedCards)
+        foreach (Card playedCard in player.PlayedCards)
         {
             if (playedCard.Id == freeWithId)
             {
@@ -299,9 +299,9 @@ public static partial class Rules
     }
 
     /// <summary>Has the city the East or the West Trading Post?</summary>
-    private static bool HasBuiltEitherTradingPost(PlayerState p)
+    private static bool HasBuiltEitherTradingPost(PlayerState player)
     {
-        foreach (Card playedCard in p.PlayedCards)
+        foreach (Card playedCard in player.PlayedCards)
         {
             if (playedCard.Id is CardId.EastTradingPost or CardId.WestTradingPost)
             {
@@ -312,10 +312,10 @@ public static partial class Rules
     }
 
     /// <summary>How many cards of one type (colour) the player has built.</summary>
-    public static int AmountOfType(this PlayerState p, CardType cardType)
+    public static int AmountOfType(this PlayerState player, CardType cardType)
     {
         int amount = 0;
-        foreach (Card card in p.PlayedCards)
+        foreach (Card card in player.PlayedCards)
         {
             if (card.Type == cardType)
             {
@@ -327,17 +327,17 @@ public static partial class Rules
 
     // =========== Abilities ===========
     /// <summary>Does a built card or wonder stage give the player this ability?</summary>
-    public static bool Has(this PlayerState p, Ability ability)
+    public static bool Has(this PlayerState player, Ability ability)
     {
-        Ability allAbilities = p.Abilities | p.Board.Abilities;
+        Ability allAbilities = player.Abilities | player.Board.Abilities;
         return (allAbilities & ability) != 0;
     }
 
     /// <summary>Science symbols of the player's choice: Scientists Guild, Babylon.</summary>
-    public static int ScienceWildcards(this PlayerState p)
+    public static int ScienceWildcards(this PlayerState player)
     {
-        int wildcards = p.Board.ScienceWildcards;
-        foreach (Card card in p.PlayedCards)
+        int wildcards = player.Board.ScienceWildcards;
+        foreach (Card card in player.PlayedCards)
         {
             wildcards += card.ScienceWildcards;
         }

@@ -7,8 +7,8 @@ namespace _7WondersGame.Engine.Effects.Effects;
 public sealed class BuildFromDiscardPile : IEffect
 {
     /// <inheritdoc/>
-    public void OnBuild(PlayerState p)
+    public void OnBuild(PlayerState owner)
     {
-        p.DiscardFree = true;
+        owner.DiscardFree = true;
     }
 }

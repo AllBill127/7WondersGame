@@ -12,10 +12,10 @@ namespace _7WondersGame.Engine.Effects.Effects;
 public sealed class FreeCardEachEra : IEffect
 {
     /// <inheritdoc/>
-    public void OnBuild(PlayerState p)
+    public void OnBuild(PlayerState owner)
     {
-        p.Abilities |= Ability.FreeCardEachEra;
-        p.FreeCardOnce = true;
+        owner.Abilities |= Ability.FreeCardEachEra;
+        owner.FreeCardOnce = true;
     }
 
     /// <inheritdoc/>

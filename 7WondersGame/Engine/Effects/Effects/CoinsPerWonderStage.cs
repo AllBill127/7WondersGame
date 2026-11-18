@@ -17,8 +17,8 @@ public sealed class CoinsPerWonderStage : IEffect
     public int Coins { get; }
 
     /// <inheritdoc/>
-    public void OnBuild(PlayerState p)
+    public void OnBuild(PlayerState owner)
     {
-        p.Resources[Resource.Coins] += Coins * p.Board.Stage;
+        owner.Resources[Resource.Coins] += Coins * owner.Board.Stage;
     }
 }

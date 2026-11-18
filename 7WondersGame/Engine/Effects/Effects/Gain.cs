@@ -21,8 +21,8 @@ public sealed class Gain : IEffect
     public int Amount { get; }
 
     /// <inheritdoc/>
-    public void OnBuild(PlayerState p)
+    public void OnBuild(PlayerState owner)
     {
-        p.Resources[Resource] += Amount;
+        owner.Resources[Resource] += Amount;
     }
 }

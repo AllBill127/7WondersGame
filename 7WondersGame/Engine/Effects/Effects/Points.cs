@@ -6,17 +6,17 @@ namespace _7WondersGame.Engine.Effects.Effects;
 /// <summary>Victory points at the end of the game.</summary>
 public sealed class Points : IEffect
 {
-    /// <summary>An effect worth <paramref name="vp"/> victory points at the end.</summary>
-    public Points(int vp)
+    /// <summary>An effect worth <paramref name="victoryPoints"/> victory points at the end.</summary>
+    public Points(int victoryPoints)
     {
-        Vp = vp;
+        Vp = victoryPoints;
     }
 
     /// <summary>The victory points.</summary>
     public int Vp { get; }
 
     /// <inheritdoc/>
-    public int EndGameVp(PlayerState p)
+    public int EndGameVp(PlayerState owner)
     {
         return Vp;
     }

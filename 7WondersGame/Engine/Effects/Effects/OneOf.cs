@@ -28,12 +28,12 @@ public sealed class OneOf : IEffect
     {
         get
         {
-            int mask = 0;
+            int choiceMask = 0;
             foreach (Resource choice in Choices)
             {
-                mask |= 1 << (int)choice;
+                choiceMask |= 1 << (int)choice;
             }
-            return mask;
+            return choiceMask;
         }
     }
 }

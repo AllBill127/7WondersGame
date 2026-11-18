@@ -8,10 +8,12 @@ namespace _7WondersGame.Engine.Effects.Effects;
 /// <summary>Victory points for each built wonder stage in <see cref="Who"/>'s cities at the end.</summary>
 public sealed class PointsPerWonderStage : IEffect
 {
-    /// <summary>An effect worth <paramref name="vp"/> per wonder stage in <paramref name="who"/>'s cities.</summary>
-    public PointsPerWonderStage(int vp, Who who)
+    /// <summary>
+    /// An effect worth <paramref name="victoryPoints"/> per wonder stage in <paramref name="who"/>'s cities.
+    /// </summary>
+    public PointsPerWonderStage(int victoryPoints, Who who)
     {
-        Vp = vp;
+        Vp = victoryPoints;
         Who = who;
     }
 
@@ -22,8 +24,8 @@ public sealed class PointsPerWonderStage : IEffect
     public Who Who { get; }
 
     /// <inheritdoc/>
-    public int EndGameVp(PlayerState p)
+    public int EndGameVp(PlayerState owner)
     {
-        return Vp * Cities.CountWonderStages(p, Who);
+        return Vp * Cities.CountWonderStages(owner, Who);
     }
 }

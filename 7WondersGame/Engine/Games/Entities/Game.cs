@@ -74,8 +74,8 @@ public class Game
     // randomness: everything random in a game comes from its seed
     /// <summary>The seed every random draw of this game comes from.</summary>
     public ulong Seed { get; private set; }
-    private readonly Random _rng;
-    private readonly Dictionary<int, Random> _agentRngs = new();
+    private readonly Random _random;
+    private readonly Dictionary<int, Random> _agentRandoms = new();
     private ulong _copyCount = 0;
 
     // what each seat knows about the hidden cards; null in a copy (see DeepCopy)
@@ -120,13 +120,13 @@ public class Game
     public Game(ulong seed)
     {
         Seed = seed;
-        _rng = Seeding.CreateRandom(Seeding.Nth(seed, Seeding.GameStream));
+        _random = Seeding.CreateRandom(Seeding.Nth(seed, Seeding.GameStream));
 
         Players = new();
         Decks = new List<Card>[LastEra];
-        for (int i = 0; i < Decks.Length; ++i)
+        for (int deckIndex = 0; deckIndex < Decks.Length; ++deckIndex)
         {
-            Decks[i] = new List<Card>();
+            Decks[deckIndex] = new List<Card>();
         }
         DiscardedCards = new();
     }
@@ -136,12 +136,12 @@ public class Game
     /// </summary>
     public Random AgentRandom(int seat)
     {
-        if (!_agentRngs.TryGetValue(seat, out Random? rng))
+        if (!_agentRandoms.TryGetValue(seat, out Random? agentRandom))
         {
-            rng = Seeding.CreateRandom(Seeding.AgentSeed(Seed, seat));
-            _agentRngs[seat] = rng;
+            agentRandom = Seeding.CreateRandom(Seeding.AgentSeed(Seed, seat));
+            _agentRandoms[seat] = agentRandom;
         }
-        return rng;
+        return agentRandom;
     }
 
     /// <summary>
@@ -202,20 +202,20 @@ public class Game
     {
         CreatePlayers();
 
-        for (int i = 0; i < Decks.Length; i++)
+        for (int deckIndex = 0; deckIndex < Decks.Length; deckIndex++)
         {
-            foreach (var cardId in gameDataset[i])
+            foreach (var cardId in gameDataset[deckIndex])
             {
-                Decks[i].Add(CardsDataset.GameCards[(CardId)cardId]);
+                Decks[deckIndex].Add(CardsDataset.GameCards[(CardId)cardId]);
             }
         }
         GiveCards();
 
         // after the three decks comes the wonder of each seat
         List<int> wonderIds = gameDataset[LastEra];
-        for (int i = 0; i < Players.Count; i++)
+        for (int seat = 0; seat < Players.Count; seat++)
         {
-            AssignWonder(Players[i], wonderIds[i]);
+            AssignWonder(Players[seat], wonderIds[seat]);
         }
     }
 
@@ -240,12 +240,12 @@ public class Game
     /// </summary>
     public void SetPlayerNeighbors()
     {
-        for (int i = 0; i < NumPlayers; i++)
+        for (int seat = 0; seat < NumPlayers; seat++)
         {
-            int westSeat = SeatToTheWest(i);
-            int eastSeat = SeatToTheEast(i);
-            Players[i].PlayerWest = Players[westSeat];
-            Players[i].PlayerEast = Players[eastSeat];
+            int westSeat = SeatToTheWest(seat);
+            int eastSeat = SeatToTheEast(seat);
+            Players[seat].PlayerWest = Players[westSeat];
+            Players[seat].PlayerEast = Players[eastSeat];
         }
     }
 
@@ -279,7 +279,7 @@ public class Game
         foreach (var card in CardsDataset.Cards)
         {
             List<Card> deck = DeckOfEra(card.Value.Era);
-            for (int i = 0; i < card.Value.CopiesFor(NumPlayers); i++)
+            for (int copyIndex = 0; copyIndex < card.Value.CopiesFor(NumPlayers); copyIndex++)
             {
                 deck.Add(card.Value);
             }
@@ -287,9 +287,9 @@ public class Game
 
         List<Card> guildCards = Shuffled(CardsDataset.GuildCards.Values);
         int guildsInPlay = NumPlayers + 2;
-        for (int i = 0; i < guildsInPlay; i++)
+        for (int guildIndex = 0; guildIndex < guildsInPlay; guildIndex++)
         {
-            DeckOfEra(LastEra).Add(guildCards[i]);
+            DeckOfEra(LastEra).Add(guildCards[guildIndex]);
         }
 
         for (int deckIndex = 0; deckIndex < Decks.Length; deckIndex++)
@@ -301,7 +301,7 @@ public class Game
     /// <summary>A new list of the cards in random order (one draw from the game's stream per card).</summary>
     private List<Card> Shuffled(IEnumerable<Card> cards)
     {
-        return cards.OrderBy(card => _rng.Next()).ToList();
+        return cards.OrderBy(card => _random.Next()).ToList();
     }
 
     private List<Card> DeckOfEra(int era)
@@ -314,15 +314,15 @@ public class Game
     private void GiveCards()
     {
         List<Card> deck = DeckOfEra(Era);
-        int cardIdx = 0;
+        int deckPosition = 0;
 
         foreach (PlayerState player in Players)
         {
             List<Card> hand = new List<Card>(HandSize);
-            for (int i = 0; i < HandSize; i++)
+            for (int handPosition = 0; handPosition < HandSize; handPosition++)
             {
-                hand.Add(deck[cardIdx]);
-                cardIdx++;
+                hand.Add(deck[deckPosition]);
+                deckPosition++;
             }
             player.HandCards = hand;
         }
@@ -344,11 +344,11 @@ public class Game
     /// <summary>Gives each player a random board, a different one each, on a random side.</summary>
     private void GiveWonders()
     {
-        Random rng = _rng;
+        Random random = _random;
         bool[] available = new bool[Wonder.Boards];
-        for (int i = 0; i < Wonder.Boards; i++)
+        for (int boardIndex = 0; boardIndex < Wonder.Boards; boardIndex++)
         {
-            available[i] = true;
+            available[boardIndex] = true;
         }
 
         foreach (PlayerState player in Players)
@@ -356,11 +356,11 @@ public class Game
             while (true)
             {
                 // a board and a side
-                int n = rng.Next(2 * Wonder.Boards);
-                int board = Wonder.BoardOf(n);
+                int boardAndSide = random.Next(2 * Wonder.Boards);
+                int board = Wonder.BoardOf(boardAndSide);
                 if (available[board])
                 {
-                    AssignWonder(player, n);
+                    AssignWonder(player, boardAndSide);
                     available[board] = false;
                     break;
                 }
@@ -502,9 +502,9 @@ public class Game
     private List<(PlayerState, Command, List<Card>)> ChosenMovesOfAllPlayers()
     {
         var moves = new List<(PlayerState, Command, List<Card>)>(Players.Count);
-        foreach (PlayerState p in Players)
+        foreach (PlayerState player in Players)
         {
-            moves.Add((p, _chosen[p.Id]!, p.HandCards));
+            moves.Add((player, _chosen[player.Id]!, player.HandCards));
         }
         return moves;
     }
@@ -585,15 +585,15 @@ public class Game
     private bool StartPhase(Phase phase)
     {
         Phase = phase;
-        foreach (PlayerState p in Players)
+        foreach (PlayerState player in Players)
         {
-            _waiting![p.Id] = MustDecideIn(phase, p);
+            _waiting![player.Id] = MustDecideIn(phase, player);
             // Halikarnassos looks through the discard pile to choose
-            if (phase == Phase.DiscardBuild && p.DiscardFree)
+            if (phase == Phase.DiscardBuild && player.DiscardFree)
             {
                 if (_knowledge != null)
                 {
-                    _knowledge.LooksAtPile(p.Id, DiscardedCards);
+                    _knowledge.LooksAtPile(player.Id, DiscardedCards);
                 }
             }
         }
@@ -744,20 +744,20 @@ public class Game
             _knowledge.HandsPassing(Players, west: HandsPassWestThisEra());
         }
 
-        PlayerState p1 = Players[0];
-        PlayerState p = p1;
+        PlayerState firstPlayer = Players[0];
+        PlayerState player = firstPlayer;
         PlayerState neighbor;
-        List<Card> passedHand = p1.HandCards;
+        List<Card> passedHand = firstPlayer.HandCards;
         List<Card> neighborHand;
         do
         {
-            neighbor = ReceiverOfHandFrom(p);
+            neighbor = ReceiverOfHandFrom(player);
             // keep the receiver's hand to give on next
             neighborHand = neighbor.HandCards;
             neighbor.HandCards = passedHand;
-            p = neighbor;
+            player = neighbor;
             passedHand = neighborHand;
-        } while (p1 != p);
+        } while (firstPlayer != player);
     }
 
     private PlayerState ReceiverOfHandFrom(PlayerState player)
@@ -804,9 +804,9 @@ public class Game
         }
 
         var scores = new Dictionary<int, int>();
-        foreach (PlayerState p in Players)
+        foreach (PlayerState player in Players)
         {
-            scores.Add(p.Id, p.VictoryPoints);
+            scores.Add(player.Id, player.VictoryPoints);
         }
         return scores;
     }
@@ -909,9 +909,9 @@ public class Game
 
         if (before != null)
         {
-            for (int i = 0; i < moves.Count; i++)
+            for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
             {
-                TraceResult(moves[i].Player, planned[i], before[i]);
+                TraceResult(moves[moveIndex].Player, planned[moveIndex], before[moveIndex]);
             }
         }
     }
@@ -922,9 +922,9 @@ public class Game
     private PlannedMove?[] PlanAllMoves(IReadOnlyList<(PlayerState Player, Command Command, List<Card> Source)> moves)
     {
         var planned = new PlannedMove?[moves.Count];
-        for (int i = 0; i < moves.Count; i++)
+        for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
         {
-            var (player, command, source) = moves[i];
+            var (player, command, source) = moves[moveIndex];
             Card? card = command.Card;
             if (command.Action == ActionType.Skip || card == null)
             {
@@ -936,7 +936,7 @@ public class Game
             {
                 throw MoveFailed(player, command.Action.ToString(), card);
             }
-            planned[i] = move;
+            planned[moveIndex] = move;
         }
         return planned;
     }
@@ -981,9 +981,9 @@ public class Game
         IReadOnlyList<(PlayerState Player, Command Command, List<Card> Source)> moves)
     {
         var snapshots = new TraceSnapshot[moves.Count];
-        for (int i = 0; i < moves.Count; i++)
+        for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
         {
-            snapshots[i] = TraceSnapshot.Of(moves[i].Player);
+            snapshots[moveIndex] = TraceSnapshot.Of(moves[moveIndex].Player);
         }
         return snapshots;
     }
@@ -991,13 +991,13 @@ public class Game
     private void TraceSetup()
     {
         Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players", Seed, Seed.ToString("x16"), Players.Count);
-        foreach (PlayerState p in Players)
+        foreach (PlayerState player in Players)
         {
             Trace.Debug("Seat {Seat}: {Agent} {Config} on {Wonder}",
-                p.Id,
-                AgentName(p.Id),
-                AgentConfigJson(p.Id),
-                p.Board.Id);
+                player.Id,
+                AgentName(player.Id),
+                AgentConfigJson(player.Id),
+                player.Board.Id);
         }
         for (int era = 0; era < Decks.Length; era++)
         {
@@ -1030,27 +1030,27 @@ public class Game
     private void TraceTurnStart(IReadOnlyList<GameView> views)
     {
         Trace.Debug("--- Era {Era}, turn {Turn} ---", Era, Turn);
-        foreach (GameView v in views)
+        foreach (GameView view in views)
         {
-            PlayerState p = Players[v.Seat];
+            PlayerState player = Players[view.Seat];
             Trace.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
-                p.Id,
-                p.Resources[Resource.Coins],
-                p.Resources[Resource.Shields],
-                p.Board.Id,
-                p.Board.Stage,
-                Names(p.HandCards));
-            TracePlayable(v);
+                player.Id,
+                player.Resources[Resource.Coins],
+                player.Resources[Resource.Shields],
+                player.Board.Id,
+                player.Board.Stage,
+                Names(player.HandCards));
+            TracePlayable(view);
         }
     }
 
     // what the agent was shown (worked out for its view, so tracing it changes nothing)
-    private void TracePlayable(GameView v)
+    private void TracePlayable(GameView view)
     {
         Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
-            v.Seat,
-            Names(v.PlayableCards),
-            v.CanBuildWonder);
+            view.Seat,
+            Names(view.PlayableCards),
+            view.CanBuildWonder);
     }
 
     private void TracePhaseStart(IReadOnlyList<GameView> views)
@@ -1060,32 +1060,32 @@ public class Game
             TraceTurnStart(views);
             return;
         }
-        foreach (GameView v in views)
+        foreach (GameView view in views)
         {
-            PlayerState p = Players[v.Seat];
+            PlayerState player = Players[view.Seat];
             if (Phase == Phase.SeventhCard)
             {
                 Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}",
-                    p.Id,
-                    Names(p.HandCards));
+                    player.Id,
+                    Names(player.HandCards));
             }
             else
             {
-                Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", p.Id);
+                Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", player.Id);
                 Trace.Verbose("Discard pile: {Cards}", Names(DiscardedCards));
             }
-            TracePlayable(v);
+            TracePlayable(view);
         }
     }
 
-    private void TraceChoice(int seat, Command c)
+    private void TraceChoice(int seat, Command command)
     {
         string cardName = "-";
-        if (c.Card != null)
+        if (command.Card != null)
         {
-            cardName = c.Card.Name;
+            cardName = command.Card.Name;
         }
-        Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, c.Action, cardName);
+        Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, command.Action, cardName);
 
         // e.g. a search's top moves; the agent made the note when it chose, so reading it changes nothing
         string? note = LastChoiceNoteOf(seat);
@@ -1107,15 +1107,15 @@ public class Game
     /// <summary>
     /// What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.
     /// </summary>
-    private void TraceResult(PlayerState p, PlannedMove? m, TraceSnapshot before)
+    private void TraceResult(PlayerState player, PlannedMove? plannedMove, TraceSnapshot before)
     {
-        TraceSnapshot after = TraceSnapshot.Of(p);
-        string move = DescribeMove(m, after.Stage);
+        TraceSnapshot after = TraceSnapshot.Of(player);
+        string move = DescribeMove(plannedMove, after.Stage);
 
         var details = new List<string>();
-        if (m != null)
+        if (plannedMove != null)
         {
-            AddPaymentDetails(details, p, m);
+            AddPaymentDetails(details, player, plannedMove);
         }
         var gained = after.Flags.Except(before.Flags).ToList();
         var lost = before.Flags.Except(after.Flags).ToList();
@@ -1134,7 +1134,7 @@ public class Game
             detailsText = "; " + string.Join("; ", details);
         }
         Trace.Debug("Seat {Seat} {Move}: coins {Before} -> {After}{Details}",
-            p.Id,
+            player.Id,
             move,
             before.Coins,
             after.Coins,
@@ -1164,37 +1164,37 @@ public class Game
     }
 
     /// <summary>The coins the move paid to each neighbour and to the bank, the ones above zero.</summary>
-    private static void AddPaymentDetails(List<string> details, PlayerState p, PlannedMove m)
+    private static void AddPaymentDetails(List<string> details, PlayerState player, PlannedMove plannedMove)
     {
-        if (m.Payment.ToWest > 0)
+        if (plannedMove.Payment.ToWest > 0)
         {
-            details.Add($"paid {m.Payment.ToWest} to seat {p.PlayerWest.Id} (west)");
+            details.Add($"paid {plannedMove.Payment.ToWest} to seat {player.PlayerWest.Id} (west)");
         }
-        if (m.Payment.ToEast > 0)
+        if (plannedMove.Payment.ToEast > 0)
         {
-            details.Add($"paid {m.Payment.ToEast} to seat {p.PlayerEast.Id} (east)");
+            details.Add($"paid {plannedMove.Payment.ToEast} to seat {player.PlayerEast.Id} (east)");
         }
-        if (m.CoinCost > 0)
+        if (plannedMove.CoinCost > 0)
         {
-            details.Add($"paid {m.CoinCost} to the bank");
+            details.Add($"paid {plannedMove.CoinCost} to the bank");
         }
     }
 
     /// <summary>One player's two battles at the end of an era (after <see cref="Rules.Battle"/>; read-only).</summary>
-    private void TraceBattle(PlayerState p)
+    private void TraceBattle(PlayerState player)
     {
-        int mine = p.Resources[Resource.Shields];
+        int mine = player.Resources[Resource.Shields];
         int win = VictoryTokensForWinningBattle(Era);
-        int west = p.PlayerWest.Resources[Resource.Shields];
-        int east = p.PlayerEast.Resources[Resource.Shields];
+        int west = player.PlayerWest.Resources[Resource.Shields];
+        int east = player.PlayerEast.Resources[Resource.Shields];
         Trace.Debug("Seat {Seat} battles with {Shields} shields: vs seat {West} (west, {WestShields}) {WestResult}, " +
                     "vs seat {East} (east, {EastShields}) {EastResult}",
-            p.Id,
+            player.Id,
             mine,
-            p.PlayerWest.Id,
+            player.PlayerWest.Id,
             west,
             DescribeBattleOutcome(mine, west, win),
-            p.PlayerEast.Id,
+            player.PlayerEast.Id,
             east,
             DescribeBattleOutcome(mine, east, win));
     }
@@ -1215,22 +1215,22 @@ public class Game
 
     private void TraceScores()
     {
-        foreach (PlayerState p in Players)
+        foreach (PlayerState player in Players)
         {
             Trace.Debug("Seat {Seat} {Agent}: {Total} VP = military {Military} + coins {Money} + wonder {Wonder} + " +
                         "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; " +
                         "{Coins} coins left",
-                p.Id,
-                AgentName(p.Id),
-                p.VictoryPoints,
-                p.CalculateMilitaryScore(),
-                p.CalculateMoneyScore(),
-                p.CalculateWonderScore(),
-                p.CalculateCivilianScore(),
-                p.CalculateCommercialScore(),
-                p.CalculateGuildScore(),
-                p.CalculateScientificScore(),
-                p.Resources[Resource.Coins]);
+                player.Id,
+                AgentName(player.Id),
+                player.VictoryPoints,
+                player.CalculateMilitaryScore(),
+                player.CalculateMoneyScore(),
+                player.CalculateWonderScore(),
+                player.CalculateCivilianScore(),
+                player.CalculateCommercialScore(),
+                player.CalculateGuildScore(),
+                player.CalculateScientificScore(),
+                player.Resources[Resource.Coins]);
         }
     }
 
@@ -1347,7 +1347,7 @@ public class Game
 
     private Card RandomCardOf(List<Card> hand)
     {
-        int cardIndex = _rng.Next(hand.Count);
+        int cardIndex = _random.Next(hand.Count);
         return hand[cardIndex];
     }
 

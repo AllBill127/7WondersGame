@@ -137,9 +137,9 @@ public sealed class Card : IEquatable<Card>
     public override string ToString()
     {
         string copies = string.Join(' ', _copies);
-        StringBuilder cardStr = new StringBuilder();
-        cardStr.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  Copies (3-7 players): {copies}");
-        cardStr.AppendLine($"Type: {Type}   FreeWith: {FreeWithId}");
-        return cardStr.ToString();
+        StringBuilder description = new StringBuilder();
+        description.AppendLine($"Id: {Id}   Name: {Name}    Era: {Era}  Copies (3-7 players): {copies}");
+        description.AppendLine($"Type: {Type}   FreeWith: {FreeWithId}");
+        return description.ToString();
     }
 }
