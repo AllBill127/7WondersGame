@@ -8,6 +8,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Finding the playable cards and building one, with trade between neighbours.</summary>
 [TestClass]
 public class PlayerIntegrationTest
 {
@@ -126,28 +127,13 @@ public class PlayerIntegrationTest
         int expPlayer2Coins = 3;
 
         // Test
-        List<Card> playable0 = players[0].GetPlayableCards(players[0].HandCards);
-        bool canPlayCard = playable0.Contains<Card>(player0Card);
-        Assert.IsTrue(canPlayCard);
-        List<Card> playable1 = players[1].GetPlayableCards(players[1].HandCards);
-        canPlayCard = playable1.Contains<Card>(player1Card);
-        Assert.IsTrue(canPlayCard);
-        List<Card> playable2 = players[2].GetPlayableCards(players[2].HandCards);
-        canPlayCard = playable2.Contains<Card>(player2Card);
-        Assert.IsTrue(canPlayCard);
+        AssertCanPlay(players[0], player0Card);
+        AssertCanPlay(players[1], player1Card);
+        AssertCanPlay(players[2], player2Card);
 
-        bool build0Success = MoveTestHelper.BuildCard(players[0],
-            player0Card,
-            players[0].HandCards,
-            false);
-        bool build1Success = MoveTestHelper.BuildCard(players[1],
-            player1Card,
-            players[1].HandCards,
-            false);
-        bool build2Success = MoveTestHelper.BuildCard(players[2],
-            player2Card,
-            players[2].HandCards,
-            false);
+        bool build0Success = BuildFromHand(players[0], player0Card);
+        bool build1Success = BuildFromHand(players[1], player1Card);
+        bool build2Success = BuildFromHand(players[2], player2Card);
 
         // Evaluate
         Assert.IsTrue(build0Success);
@@ -157,5 +143,16 @@ public class PlayerIntegrationTest
         Assert.AreEqual(expPlayer0Coins, players[0].Resources[Resource.Coins]);
         Assert.AreEqual(expPlayer1Coins, players[1].Resources[Resource.Coins]);
         Assert.AreEqual(expPlayer2Coins, players[2].Resources[Resource.Coins]);
+    }
+    private static void AssertCanPlay(PlayerState player, Card card)
+    {
+        List<Card> playable = player.GetPlayableCards(player.HandCards);
+        Assert.IsTrue(playable.Contains<Card>(card));
+    }
+
+    // a paid build (not free) of a card from the player's own hand
+    private static bool BuildFromHand(PlayerState player, Card card)
+    {
+        return MoveTestHelper.BuildCard(player, card, player.HandCards, false);
     }
 }

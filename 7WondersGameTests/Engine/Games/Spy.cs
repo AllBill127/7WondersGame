@@ -3,6 +3,7 @@ using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Moves.Dtos;
+using _7WondersGame.Engine.Players.Entities;
 
 namespace _7WondersGameTests.Engine.Games;
 
@@ -13,14 +14,43 @@ namespace _7WondersGameTests.Engine.Games;
 internal sealed class Spy : IAgent
 {
     private readonly RandomChoiceAI _random = new();
-    public Game? Game;
-    public bool SawAnotherChoice;
-    public bool SawLiveState;
 
+    /// <summary>The live game the spy plays in, to compare its views with.</summary>
+    public Game? Game { get; set; }
+
+    /// <summary>Whether another player's move of the same step was already submitted when the spy was asked.</summary>
+    public bool SawAnotherChoice { get; private set; }
+
+    /// <summary>Whether a view held the live game's players or discard pile instead of copies.</summary>
+    public bool SawLiveState { get; private set; }
+
+    /// <summary>Records what the view shows, then chooses a random move.</summary>
     public Command Choose(GameView view)
     {
-        SawAnotherChoice |= Game!.MovesWaiting;
-        SawLiveState |= view.Players.Any(p => Game.Players.Contains(p)) || ReferenceEquals(view.DiscardPile, Game.DiscardedCards);
+        Game game = Game!;
+        if (game.MovesWaiting)
+        {
+            SawAnotherChoice = true;
+        }
+
+        if (ViewSharesLiveState(view, game))
+        {
+            SawLiveState = true;
+        }
+
         return _random.Choose(view);
+    }
+
+    private static bool ViewSharesLiveState(GameView view, Game game)
+    {
+        foreach (PlayerState player in view.Players)
+        {
+            if (game.Players.Contains(player))
+            {
+                return true;
+            }
+        }
+
+        return ReferenceEquals(view.DiscardPile, game.DiscardedCards);
     }
 }

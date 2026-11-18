@@ -12,7 +12,7 @@ using _7WondersGameTests.TestHelpers;
 namespace _7WondersGameTests.Engine.Games;
 
 /// <summary>
-/// R5: the moves of one turn happen at the same time. Every move is priced against the turn-start state, so coins
+/// The moves of one turn happen at the same time. Every move is priced against the turn-start state, so coins
 /// received this turn can't be spent this turn, and the order the seats are resolved in doesn't matter.
 /// </summary>
 [TestClass]
@@ -21,16 +21,32 @@ public class SimultaneousResolutionTests
     private static readonly Card Stockade = CardsDataset.GameCards[CardId.Stockade];   // 1 wood
     private static readonly Card Baths = CardsDataset.GameCards[CardId.Baths];         // 1 stone
 
+    /// <summary>Three Gizah A players without coins.</summary>
+    private static Game GameWithoutCoins()
+    {
+        Game game = new Game(seed: 0);
+        List<Wonder> wonders = new List<Wonder>
+        {
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.GizahA)
+        };
+        game.Players = MockHelper.MockPlayers(wonders);
+        foreach (PlayerState p in game.Players)
+        {
+            p.Resources[Resource.Coins] = 0;
+        }
+
+        return game;
+    }
+
     /// <summary>
     /// Three players, no resources or coins. Seat 0 builds Stockade with wood bought from seat 1 (its east);
     /// seat 1 builds Baths with stone bought from seat 2 (its east).
     /// </summary>
     private static Game TradingTurn(int seat0Coins, int seat1Coins)
     {
-        Game game = new Game(seed: 0);
-        game.Players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
-        foreach (PlayerState p in game.Players)
-            p.Resources[Resource.Coins] = 0;
+        Game game = GameWithoutCoins();
         game.Players[0].Resources[Resource.Coins] = seat0Coins;
         game.Players[1].Resources[Resource.Coins] = seat1Coins;
         game.Players[1].Resources[Resource.Wood] = 1;
@@ -40,14 +56,23 @@ public class SimultaneousResolutionTests
         return game;
     }
 
-    private static List<(PlayerState, Command, List<Card>)> Moves(Game game, params int[] seats) =>
-        seats.Select(s =>
+    /// <summary>Each of the seats builds the first card of its hand, listed in the given seat order.</summary>
+    private static List<(PlayerState, Command, List<Card>)> Moves(Game game, params int[] seats)
+    {
+        List<(PlayerState, Command, List<Card>)> moves = new List<(PlayerState, Command, List<Card>)>();
+        foreach (int seat in seats)
         {
-            PlayerState p = game.Players[s];
-            return (p, new Command(ActionType.Build, p.HandCards[0]), p.HandCards);
-        }).ToList();
+            PlayerState p = game.Players[seat];
+            moves.Add((p, new Command(ActionType.Build, p.HandCards[0]), p.HandCards));
+        }
 
-    private static int[] Coins(Game game) => game.Players.Select(p => p.Resources[Resource.Coins]).ToArray();
+        return moves;
+    }
+
+    private static int[] Coins(Game game)
+    {
+        return game.Players.Select(player => player.Resources[Resource.Coins]).ToArray();
+    }
 
     [TestMethod]
     public void TradeIncomeCantBeSpentTheSameTurn()
@@ -73,7 +98,8 @@ public class SimultaneousResolutionTests
         game.Players[2].HandCards.Add(lumberYard);
         game.Submit(0, new Command(ActionType.Build, Stockade));
         game.Submit(1, new Command(ActionType.Build, Baths));
-        Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, new Command(ActionType.Build, lumberYard)));
+        Command lastMove = new Command(ActionType.Build, lumberYard);
+        Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, lastMove));
     }
 
     [TestMethod]
@@ -96,10 +122,7 @@ public class SimultaneousResolutionTests
     {
         foreach (int[] order in new[] { new[] { 0, 1 }, new[] { 1, 0 } })
         {
-            Game game = new Game(seed: 0);
-            game.Players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
-            foreach (PlayerState p in game.Players)
-                p.Resources[Resource.Coins] = 0;
+            Game game = GameWithoutCoins();
             game.Players[0].HandCards.Add(CardsDataset.GameCards[CardId.Vineyard]);
             game.Players[1].HandCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
 

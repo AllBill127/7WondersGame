@@ -8,6 +8,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Building a wonder stage: the card leaves the hand and the trade is paid.</summary>
 [TestClass]
 public class BuildWonderTests
 {
@@ -22,7 +23,8 @@ public class BuildWonderTests
 
         // give resources for situation
         players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
-        players[0].Resources[Resource.Clay] += 1;    // manually add clay from clayPool card (building the card would add it; not done here)
+        // manually add clay from clayPool card (building the card would add it; not done here)
+        players[0].Resources[Resource.Clay] += 1;
         players[1].Resources[Resource.Coins] = 3;
         players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 

@@ -7,6 +7,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Building a card: paying for it, trading with neighbours, and refusing what can't be built.</summary>
 [TestClass]
 public class BuildCardTests
 {

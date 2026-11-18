@@ -1,5 +1,4 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.RandomChoice;
+﻿using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Datasets;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Enums;
@@ -7,19 +6,27 @@ using _7WondersGame.Engine.Games.Entities;
 
 namespace _7WondersGameTests.Cli.Datasets;
 
-/// <summary>Step 7 (X8): dataset files say their player count, and every deal is checked when read.</summary>
+/// <summary>Dataset files say their player count, and every deal is checked when read.</summary>
 [TestClass]
 public class DatasetFileTests
 {
     /// <summary>The deal <see cref="Game.InitGame"/> makes, as a dataset deal.</summary>
     private static List<int>[] Deal(int players, ulong seed)
     {
-        var game = new Game(seed) { Agents = Enumerable.Range(0, players).Select(_ => (IAgent)new RandomChoiceAI()).ToList() };
+        var game = new Game(seed);
+        for (int seat = 0; seat < players; seat++)
+        {
+            game.Agents.Add(new RandomChoiceAI());
+        }
+
         game.InitGame();
         var deal = new List<int>[4];
         for (int era = 0; era < 3; era++)
-            deal[era] = game.Decks[era].Select(c => (int)c.Id).ToList();
-        deal[3] = game.Players.Select(p => (int)p.Board.Id).ToList();
+        {
+            deal[era] = game.Decks[era].Select(card => (int)card.Id).ToList();
+        }
+
+        deal[3] = game.Players.Select(player => (int)player.Board.Id).ToList();
         return deal;
     }
 
@@ -34,9 +41,11 @@ public class DatasetFileTests
                 lines.Add($"Deck{era + 1}:");
                 lines.Add(string.Join(", ", deals[i][era]));
             }
+
             lines.Add("Wonders:");
             lines.Add(string.Join(", ", deals[i][3]));
         }
+
         return lines.ToArray();
     }
 
@@ -54,8 +63,12 @@ public class DatasetFileTests
             Assert.AreEqual(4, players);
             Assert.AreEqual(2, read.Count);
             for (int i = 0; i < 2; i++)
+            {
                 for (int part = 0; part < 4; part++)
+                {
                     CollectionAssert.AreEqual(deals[i][part], read[i][part]);
+                }
+            }
         }
         finally
         {
@@ -67,8 +80,12 @@ public class DatasetFileTests
     public void EveryDealTheGameMakes_IsValid()
     {
         for (int players = 3; players <= 7; players++)
+        {
             for (ulong seed = 0; seed < 20; seed++)
+            {
                 Filer.CheckDeal(Deal(players, seed), players, $"{players} players, seed {seed}");
+            }
+        }
     }
 
     [TestMethod]
@@ -76,7 +93,14 @@ public class DatasetFileTests
     {
         DirectoryInfo dir = new(AppContext.BaseDirectory);
         while (dir.GetFiles("7WondersGame.sln").Length == 0)
-            dir = dir.Parent ?? throw new AssertInconclusiveException("repository root not found");
+        {
+            if (dir.Parent == null)
+            {
+                throw new AssertInconclusiveException("repository root not found");
+            }
+
+            dir = dir.Parent;
+        }
 
         FileInfo[] files = dir.GetFiles("gameDataset_*.txt");
         Assert.IsTrue(files.Length > 0);
@@ -91,7 +115,8 @@ public class DatasetFileTests
     public void AFileWithoutTheHeader_IsRefused()
     {
         string[] lines = Lines(3, Deal(3, 1));
-        var ex = Assert.ThrowsException<InvalidDataException>(() => Filer.Parse(lines.Skip(1).ToArray(), "old.txt"));
+        string[] linesWithoutHeader = lines.Skip(1).ToArray();
+        var ex = Assert.ThrowsException<InvalidDataException>(() => Filer.Parse(linesWithoutHeader, "old.txt"));
         StringAssert.Contains(ex.Message, "Players:");
     }
 
@@ -113,15 +138,44 @@ public class DatasetFileTests
         List<int>[] deal = Deal(3, 5);
         switch (fault)
         {
-            case "duplicate card": deal[0][0] = deal[0][1]; break;
-            case "wrong era": (deal[0][0], deal[1][0]) = (deal[1][0], deal[0][0]); break;
-            case "unknown card": deal[2][0] = 999; break;
-            case "same wonder twice": deal[3][1] = deal[3][0] % 7 + 7; break;
+            case "duplicate card":
+                deal[0][0] = deal[0][1];
+                break;
+            case "wrong era":
+                SwapFirstCards(deal[0], deal[1]);
+                break;
+            case "unknown card":
+                deal[2][0] = 999;
+                break;
+            case "same wonder twice":
+                deal[3][1] = OtherSideOf(deal[3][0]);
+                break;
             case "one guild twice":
-                var guilds = deal[2].Where(id => CardsDataset.GuildCards.ContainsKey((CardId)id)).ToList();
-                deal[2][deal[2].IndexOf(guilds[0])] = guilds[1];
+                PutFirstGuildTwice(deal[2]);
                 break;
         }
+
         Assert.ThrowsException<InvalidDataException>(() => Filer.CheckDeal(deal, 3, fault));
+    }
+
+    private static void SwapFirstCards(List<int> deck, List<int> otherDeck)
+    {
+        int firstCard = deck[0];
+        deck[0] = otherDeck[0];
+        otherDeck[0] = firstCard;
+    }
+
+    // the wonder ids list the seven A sides, then the seven B sides
+    private static int OtherSideOf(int wonderId)
+    {
+        return wonderId % 7 + 7;
+    }
+
+    // the second guild of the deck replaces the first
+    private static void PutFirstGuildTwice(List<int> deck)
+    {
+        List<int> guilds = deck.Where(cardId => CardsDataset.GuildCards.ContainsKey((CardId)cardId)).ToList();
+        int firstGuildPosition = deck.IndexOf(guilds[0]);
+        deck[firstGuildPosition] = guilds[1];
     }
 }

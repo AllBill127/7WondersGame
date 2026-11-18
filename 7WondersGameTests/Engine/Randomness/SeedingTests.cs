@@ -1,12 +1,14 @@
 ﻿using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Randomness.Services;
 
 namespace _7WondersGameTests.Engine.Randomness;
 
 /// <summary>
-/// B1: the same seed gives the same game; nothing random depends on the clock.
+/// The same seed gives the same game; nothing random depends on the clock.
 /// </summary>
 [TestClass]
 public class SeedingTests
@@ -38,7 +40,7 @@ public class SeedingTests
     public void DifferentGameIndex_GivesDifferentDeal()
     {
         var setups = Enumerable.Range(0, 10)
-            .Select(i => PlayGame(Seeding.GameSeed(7, i)).setup)
+            .Select(gameIndex => PlayGame(Seeding.GameSeed(7, gameIndex)).setup)
             .ToList();
 
         Assert.AreEqual(10, setups.Distinct().Count());
@@ -75,8 +77,8 @@ public class SeedingTests
 
         CollectionAssert.AreEqual(Draw(untouched.AgentRandom(0)), Draw(searched.AgentRandom(0)), "agent stream");
         CollectionAssert.AreEqual(
-            untouched.LegalMovesPruned(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
-            searched.LegalMovesPruned(0).Select(m => $"{m.Action}:{m.Card?.Name}").ToList(),
+            untouched.LegalMovesPruned(0).Select(MoveText).ToList(),
+            searched.LegalMovesPruned(0).Select(MoveText).ToList(),
             "pruning stream");
     }
 
@@ -109,13 +111,48 @@ public class SeedingTests
         Game game = NewGame(seed);
         game.InitGame();
 
-        string setup = string.Join(" | ",
-            game.Decks.Select(d => string.Join(",", d.Select(c => (int)c.Id)))
-                .Append(string.Join(",", game.Players.Select(p => p.Board.Id))));
+        List<string> dealParts = new List<string>();
+        foreach (List<Card> deck in game.Decks)
+        {
+            dealParts.Add(DeckText(deck));
+        }
+
+        dealParts.Add(string.Join(",", game.Players.Select(player => player.Board.Id)));
+        string setup = string.Join(" | ", dealParts);
 
         Dictionary<int, int> scores = game.Loop();
-        return (setup, scores.OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList());
+        List<int> scoresInSeatOrder = scores
+            .OrderBy(seatScore => seatScore.Key)
+            .Select(seatScore => seatScore.Value)
+            .ToList();
+        return (setup, scoresInSeatOrder);
     }
 
-    private static int[] Draw(Random rng) => Enumerable.Range(0, 8).Select(_ => rng.Next()).ToArray();
+    private static string DeckText(List<Card> deck)
+    {
+        return string.Join(",", deck.Select(card => (int)card.Id));
+    }
+
+    // the move's action and card name, or an empty name for a move without a card
+    private static string MoveText(Command move)
+    {
+        string cardName = "";
+        if (move.Card != null)
+        {
+            cardName = move.Card.Name;
+        }
+
+        return $"{move.Action}:{cardName}";
+    }
+
+    private static int[] Draw(Random rng)
+    {
+        int[] draws = new int[8];
+        for (int drawIndex = 0; drawIndex < draws.Length; drawIndex++)
+        {
+            draws[drawIndex] = rng.Next();
+        }
+
+        return draws;
+    }
 }

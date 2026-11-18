@@ -1,5 +1,4 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.RandomChoice;
+﻿using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
@@ -25,76 +24,78 @@ public class CardDataTests
     // Guilds are not in the fixed deck (players + 2 are drawn at random), so their copies are 0.
     [DataTestMethod]
     // ===== Age I =====
-    [DataRow("Lumber Yard",         1, "Materials",    "",            "", "1 2 2 2 2")]
-    [DataRow("Stone Pit",           1, "Materials",    "",            "", "1 1 2 2 2")]
-    [DataRow("Clay Pool",           1, "Materials",    "",            "", "1 1 2 2 2")]
-    [DataRow("Ore Vein",            1, "Materials",    "",            "", "1 2 2 2 2")]
-    [DataRow("Tree Farm",           1, "Materials",    "1 Coin",      "", "0 0 0 1 1")]
-    [DataRow("Excavation",          1, "Materials",    "1 Coin",      "", "0 1 1 1 1")]
-    [DataRow("Clay Pit",            1, "Materials",    "1 Coin",      "", "1 1 1 1 1")]
-    [DataRow("Timber Yard",         1, "Materials",    "1 Coin",      "", "1 1 1 1 1")]
-    [DataRow("Forest Cave",         1, "Materials",    "1 Coin",      "", "0 0 1 1 1")]
-    [DataRow("Mine",                1, "Materials",    "1 Coin",      "", "0 0 0 1 1")]
-    [DataRow("Loom",                1, "Manufactured", "",            "", "1 1 1 2 2")]
-    [DataRow("Glassworks",          1, "Manufactured", "",            "", "1 1 1 2 2")]
-    [DataRow("Press",               1, "Manufactured", "",            "", "1 1 1 2 2")]
-    [DataRow("Pawnshop",            1, "Civilian",     "",            "", "0 1 1 1 2")]
-    [DataRow("Baths",               1, "Civilian",     "Stone",       "", "1 1 1 1 2")]
-    [DataRow("Altar",               1, "Civilian",     "",            "", "1 1 2 2 2")]
-    [DataRow("Theater",             1, "Civilian",     "",            "", "1 1 1 2 2")]
-    [DataRow("Tavern",              1, "Commercial",   "",            "", "0 1 2 2 3")]
-    [DataRow("East Trading Post",   1, "Commercial",   "",            "", "1 1 1 1 2")]
-    [DataRow("West Trading Post",   1, "Commercial",   "",            "", "1 1 1 1 2")]
-    [DataRow("Marketplace",         1, "Commercial",   "",            "", "1 1 1 2 2")]
-    [DataRow("Stockade",            1, "Military",     "Wood",        "", "1 1 1 1 2")]
-    [DataRow("Barracks",            1, "Military",     "Ore",         "", "1 1 2 2 2")]
-    [DataRow("Guard Tower",         1, "Military",     "Clay",        "", "1 2 2 2 2")]
-    [DataRow("Apothecary",          1, "Scientific",   "Loom",        "", "1 1 2 2 2")]
-    [DataRow("Workshop",            1, "Scientific",   "Glass",       "", "1 1 1 1 2")]
-    [DataRow("Scriptorium",         1, "Scientific",   "Papyrus",     "", "1 2 2 2 2")]
+    [DataRow("Lumber Yard",       1, "Materials",    "",        "", "1 2 2 2 2")]
+    [DataRow("Stone Pit",         1, "Materials",    "",        "", "1 1 2 2 2")]
+    [DataRow("Clay Pool",         1, "Materials",    "",        "", "1 1 2 2 2")]
+    [DataRow("Ore Vein",          1, "Materials",    "",        "", "1 2 2 2 2")]
+    [DataRow("Tree Farm",         1, "Materials",    "1 Coin",  "", "0 0 0 1 1")]
+    [DataRow("Excavation",        1, "Materials",    "1 Coin",  "", "0 1 1 1 1")]
+    [DataRow("Clay Pit",          1, "Materials",    "1 Coin",  "", "1 1 1 1 1")]
+    [DataRow("Timber Yard",       1, "Materials",    "1 Coin",  "", "1 1 1 1 1")]
+    [DataRow("Forest Cave",       1, "Materials",    "1 Coin",  "", "0 0 1 1 1")]
+    [DataRow("Mine",              1, "Materials",    "1 Coin",  "", "0 0 0 1 1")]
+    [DataRow("Loom",              1, "Manufactured", "",        "", "1 1 1 2 2")]
+    [DataRow("Glassworks",        1, "Manufactured", "",        "", "1 1 1 2 2")]
+    [DataRow("Press",             1, "Manufactured", "",        "", "1 1 1 2 2")]
+    [DataRow("Pawnshop",          1, "Civilian",     "",        "", "0 1 1 1 2")]
+    [DataRow("Baths",             1, "Civilian",     "Stone",   "", "1 1 1 1 2")]
+    [DataRow("Altar",             1, "Civilian",     "",        "", "1 1 2 2 2")]
+    [DataRow("Theater",           1, "Civilian",     "",        "", "1 1 1 2 2")]
+    [DataRow("Tavern",            1, "Commercial",   "",        "", "0 1 2 2 3")]
+    [DataRow("East Trading Post", 1, "Commercial",   "",        "", "1 1 1 1 2")]
+    [DataRow("West Trading Post", 1, "Commercial",   "",        "", "1 1 1 1 2")]
+    [DataRow("Marketplace",       1, "Commercial",   "",        "", "1 1 1 2 2")]
+    [DataRow("Stockade",          1, "Military",     "Wood",    "", "1 1 1 1 2")]
+    [DataRow("Barracks",          1, "Military",     "Ore",     "", "1 1 2 2 2")]
+    [DataRow("Guard Tower",       1, "Military",     "Clay",    "", "1 2 2 2 2")]
+    [DataRow("Apothecary",        1, "Scientific",   "Loom",    "", "1 1 2 2 2")]
+    [DataRow("Workshop",          1, "Scientific",   "Glass",   "", "1 1 1 1 2")]
+    [DataRow("Scriptorium",       1, "Scientific",   "Papyrus", "", "1 2 2 2 2")]
     // ===== Age II =====
-    [DataRow("Sawmill",             2, "Materials",    "1 Coin",      "", "1 2 2 2 2")]
-    [DataRow("Quarry",              2, "Materials",    "1 Coin",      "", "1 2 2 2 2")]
-    [DataRow("Brickyard",           2, "Materials",    "1 Coin",      "", "1 2 2 2 2")]
-    [DataRow("Foundry",             2, "Materials",    "1 Coin",      "", "1 2 2 2 2")]
-    [DataRow("Loom",                2, "Manufactured", "",            "", "1 1 2 2 2")]
-    [DataRow("Glassworks",          2, "Manufactured", "",            "", "1 1 2 2 2")]
-    [DataRow("Press",               2, "Manufactured", "",            "", "1 1 2 2 2")]
-    [DataRow("Aqueduct",            2, "Civilian",     "3 Stone",            "Baths",       "1 1 1 1 2")]
-    [DataRow("Temple",              2, "Civilian",     "Wood, Clay, Glass",  "Altar",       "1 1 1 2 2")]
-    [DataRow("Statue",              2, "Civilian",     "2 Ore, Wood",        "Theater",     "1 1 1 1 2")]
-    [DataRow("Courthouse",          2, "Civilian",     "2 Clay, Loom",       "Scriptorium", "1 1 2 2 2")]
-    [DataRow("Forum",               2, "Commercial",   "2 Clay",             "East Trading Post|West Trading Post", "1 1 1 2 3")]
-    [DataRow("Caravansery",         2, "Commercial",   "2 Wood",             "Marketplace", "1 1 2 3 3")]
-    [DataRow("Vineyard",            2, "Commercial",   "",                   "",            "1 1 1 2 2")]
-    [DataRow("Bazar",               2, "Commercial",   "",                   "",            "0 1 1 1 2")]
-    [DataRow("Walls",               2, "Military",     "3 Stone",            "",            "1 1 1 1 2")]
-    [DataRow("Training Ground",     2, "Military",     "2 Ore, Wood",        "",            "0 1 1 2 3")]
-    [DataRow("Stables",             2, "Military",     "Clay, Wood, Ore",    "Apothecary",  "1 1 2 2 2")]
-    [DataRow("Archery Range",       2, "Military",     "2 Wood, Ore",        "Workshop",    "1 1 1 2 2")]
-    [DataRow("Dispensary",          2, "Scientific",   "2 Ore, Glass",       "Apothecary",  "1 2 2 2 2")]
-    [DataRow("Laboratory",          2, "Scientific",   "2 Clay, Papyrus",    "Workshop",    "1 1 2 2 2")]
-    [DataRow("Library",             2, "Scientific",   "2 Stone, Loom",      "Scriptorium", "1 1 1 2 2")]
-    [DataRow("School",              2, "Scientific",   "Wood, Papyrus",      "",            "1 1 1 1 2")]
+    [DataRow("Sawmill",         2, "Materials",    "1 Coin",            "",                          "1 2 2 2 2")]
+    [DataRow("Quarry",          2, "Materials",    "1 Coin",            "",                          "1 2 2 2 2")]
+    [DataRow("Brickyard",       2, "Materials",    "1 Coin",            "",                          "1 2 2 2 2")]
+    [DataRow("Foundry",         2, "Materials",    "1 Coin",            "",                          "1 2 2 2 2")]
+    [DataRow("Loom",            2, "Manufactured", "",                  "",                          "1 1 2 2 2")]
+    [DataRow("Glassworks",      2, "Manufactured", "",                  "",                          "1 1 2 2 2")]
+    [DataRow("Press",           2, "Manufactured", "",                  "",                          "1 1 2 2 2")]
+    [DataRow("Aqueduct",        2, "Civilian",     "3 Stone",           "Baths",                     "1 1 1 1 2")]
+    [DataRow("Temple",          2, "Civilian",     "Wood, Clay, Glass", "Altar",                     "1 1 1 2 2")]
+    [DataRow("Statue",          2, "Civilian",     "2 Ore, Wood",       "Theater",                   "1 1 1 1 2")]
+    [DataRow("Courthouse",      2, "Civilian",     "2 Clay, Loom",      "Scriptorium",               "1 1 2 2 2")]
+    [DataRow("Forum",           2, "Commercial",   "2 Clay",            "East or West Trading Post", "1 1 1 2 3")]
+    [DataRow("Caravansery",     2, "Commercial",   "2 Wood",            "Marketplace",               "1 1 2 3 3")]
+    [DataRow("Vineyard",        2, "Commercial",   "",                  "",                          "1 1 1 2 2")]
+    [DataRow("Bazar",           2, "Commercial",   "",                  "",                          "0 1 1 1 2")]
+    [DataRow("Walls",           2, "Military",     "3 Stone",           "",                          "1 1 1 1 2")]
+    [DataRow("Training Ground", 2, "Military",     "2 Ore, Wood",       "",                          "0 1 1 2 3")]
+    [DataRow("Stables",         2, "Military",     "Clay, Wood, Ore",   "Apothecary",                "1 1 2 2 2")]
+    [DataRow("Archery Range",   2, "Military",     "2 Wood, Ore",       "Workshop",                  "1 1 1 2 2")]
+    [DataRow("Dispensary",      2, "Scientific",   "2 Ore, Glass",      "Apothecary",                "1 2 2 2 2")]
+    [DataRow("Laboratory",      2, "Scientific",   "2 Clay, Papyrus",   "Workshop",                  "1 1 2 2 2")]
+    [DataRow("Library",         2, "Scientific",   "2 Stone, Loom",     "Scriptorium",               "1 1 1 2 2")]
+    [DataRow("School",          2, "Scientific",   "Wood, Papyrus",     "",                          "1 1 1 1 2")]
     // ===== Age III =====
-    [DataRow("Pantheon",            3, "Civilian",     "2 Clay, Ore, Loom, Glass, Papyrus",             "Temple",          "1 1 1 2 2")]
-    [DataRow("Gardens",             3, "Civilian",     "2 Clay, Wood",                                  "Statue",          "1 2 2 2 2")]
-    [DataRow("Town Hall",           3, "Civilian",     "2 Stone, Ore, Glass",                           "",                "1 1 2 3 3")]
-    [DataRow("Palace",              3, "Civilian",     "Wood, Ore, Clay, Stone, Loom, Glass, Papyrus",  "",                "1 1 1 1 2")]
-    [DataRow("Senate",              3, "Civilian",     "2 Wood, Stone, Ore",                            "Library",         "1 1 2 2 2")]
-    [DataRow("Haven",               3, "Commercial",   "Wood, Ore, Loom",                               "Forum",           "1 2 2 2 2")]
-    [DataRow("Lighthouse",          3, "Commercial",   "Stone, Glass",                                  "Caravansery",     "1 1 1 2 2")]
-    [DataRow("Chamber of Commerce", 3, "Commercial",   "2 Clay, Papyrus",                               "",                "0 1 1 2 2")]
-    [DataRow("Arena",               3, "Commercial",   "2 Stone, Ore",                                  "Dispensary",      "1 1 2 2 3")]
-    [DataRow("Fortifications",      3, "Military",     "3 Ore, Stone",                                  "Walls",           "1 1 1 1 2")]
-    [DataRow("Circus",              3, "Military",     "3 Stone, Ore",                                  "Training Ground", "0 1 2 3 3")]
-    [DataRow("Arsenal",             3, "Military",     "2 Wood, Ore, Loom",                             "",                "1 2 2 2 3")]
-    [DataRow("Siege Workshop",      3, "Military",     "3 Clay, Wood",                                  "Laboratory",      "1 1 2 2 2")]
-    [DataRow("Lodge",               3, "Scientific",   "2 Clay, Loom, Papyrus",                         "Dispensary",      "1 1 1 2 2")]
-    [DataRow("Observatory",         3, "Scientific",   "2 Ore, Glass, Loom",                            "Laboratory",      "1 1 1 1 2")]
-    [DataRow("University",          3, "Scientific",   "2 Wood, Papyrus, Glass",                        "Library",         "1 2 2 2 2")]
-    [DataRow("Academy",             3, "Scientific",   "3 Stone, Glass",                                "School",          "1 1 1 1 2")]
-    [DataRow("Study",               3, "Scientific",   "Wood, Papyrus, Loom",                           "School",          "1 1 2 2 2")]
+    // civilian
+    [DataRow("Pantheon",  3, "Civilian", "2 Clay, Ore, Loom, Glass, Papyrus",            "Temple",  "1 1 1 2 2")]
+    [DataRow("Gardens",   3, "Civilian", "2 Clay, Wood",                                 "Statue",  "1 2 2 2 2")]
+    [DataRow("Town Hall", 3, "Civilian", "2 Stone, Ore, Glass",                          "",        "1 1 2 3 3")]
+    [DataRow("Palace",    3, "Civilian", "Wood, Ore, Clay, Stone, Loom, Glass, Papyrus", "",        "1 1 1 1 2")]
+    [DataRow("Senate",    3, "Civilian", "2 Wood, Stone, Ore",                           "Library", "1 1 2 2 2")]
+    // commercial, military and scientific
+    [DataRow("Haven",               3, "Commercial", "Wood, Ore, Loom",        "Forum",           "1 2 2 2 2")]
+    [DataRow("Lighthouse",          3, "Commercial", "Stone, Glass",           "Caravansery",     "1 1 1 2 2")]
+    [DataRow("Chamber of Commerce", 3, "Commercial", "2 Clay, Papyrus",        "",                "0 1 1 2 2")]
+    [DataRow("Arena",               3, "Commercial", "2 Stone, Ore",           "Dispensary",      "1 1 2 2 3")]
+    [DataRow("Fortifications",      3, "Military",   "3 Ore, Stone",           "Walls",           "1 1 1 1 2")]
+    [DataRow("Circus",              3, "Military",   "3 Stone, Ore",           "Training Ground", "0 1 2 3 3")]
+    [DataRow("Arsenal",             3, "Military",   "2 Wood, Ore, Loom",      "",                "1 2 2 2 3")]
+    [DataRow("Siege Workshop",      3, "Military",   "3 Clay, Wood",           "Laboratory",      "1 1 2 2 2")]
+    [DataRow("Lodge",               3, "Scientific", "2 Clay, Loom, Papyrus",  "Dispensary",      "1 1 1 2 2")]
+    [DataRow("Observatory",         3, "Scientific", "2 Ore, Glass, Loom",     "Laboratory",      "1 1 1 1 2")]
+    [DataRow("University",          3, "Scientific", "2 Wood, Papyrus, Glass", "Library",         "1 2 2 2 2")]
+    [DataRow("Academy",             3, "Scientific", "3 Stone, Glass",         "School",          "1 1 1 1 2")]
+    [DataRow("Study",               3, "Scientific", "Wood, Papyrus, Loom",    "School",          "1 1 2 2 2")]
     // ===== Guilds =====
     [DataRow("Workers Guild",       3, "Guild",        "2 Ore, Clay, Stone, Wood",  "", "0 0 0 0 0")]
     [DataRow("Craftsmens Guild",    3, "Guild",        "2 Ore, 2 Stone",            "", "0 0 0 0 0")]
@@ -111,19 +112,28 @@ public class CardDataTests
         Card card = FindCard(name, era);
 
         Assert.AreEqual(Enum.Parse<CardType>(type), card.Type, "type");
-        CollectionAssert.AreEquivalent(ParseCost(cost), card.Cost.Where(kvp => kvp.Value > 0).ToList(), "cost");
+        List<KeyValuePair<Resource, int>> paidCost = card.Cost.Where(resourceCost => resourceCost.Value > 0).ToList();
+        CollectionAssert.AreEquivalent(ParseCost(cost), paidCost, "cost");
 
         if (chainFrom == "")
+        {
             Assert.AreEqual(CardId.None, card.FreeWithId, "chained from");
-        else if (chainFrom == "East Trading Post|West Trading Post")
+        }
+        else if (chainFrom == "East or West Trading Post")
+        {
             Assert.AreEqual(CardId.AnyTradingPost, card.FreeWithId, "chained from");
+        }
         else
+        {
             Assert.AreEqual(chainFrom, CardsDataset.GameCards[card.FreeWithId].Name, "chained from");
+        }
 
+        // the copies column starts at 3 players
         int[] expectedCopies = copies.Split(' ').Select(int.Parse).ToArray();
         for (int players = 3; players <= 7; players++)
         {
-            Assert.AreEqual(expectedCopies[players - 3], card.CopiesFor(players), $"copies with {players} players");
+            int copiesIndex = players - 3;
+            Assert.AreEqual(expectedCopies[copiesIndex], card.CopiesFor(players), $"copies with {players} players");
         }
     }
 
@@ -146,17 +156,29 @@ public class CardDataTests
     [DataRow(7)]
     public void DeckSizes_MatchRulebook(int players)
     {
-        int CountEra(int era) => CardsDataset.Cards.Values.Where(c => c.Era == era).Sum(c => c.CopiesFor(players));
+        Assert.AreEqual(7 * players, CountCardsOfEra(1, players), "Age I");
+        Assert.AreEqual(7 * players, CountCardsOfEra(2, players), "Age II");
+        Assert.AreEqual(7 * players - (players + 2), CountCardsOfEra(3, players), "Age III without guilds");
 
-        Assert.AreEqual(7 * players, CountEra(1), "Age I");
-        Assert.AreEqual(7 * players, CountEra(2), "Age II");
-        Assert.AreEqual(7 * players - (players + 2), CountEra(3), "Age III without guilds");
+        // a real game builds its decks for its own player count, whatever count was used before
+        var game = new Game(1);
+        for (int seat = 0; seat < players; seat++)
+        {
+            game.Agents.Add(new RandomChoiceAI());
+        }
 
-        // a real game builds its decks for its own player count, whatever count was used before (E7)
-        var game = new Game(1) { Agents = Enumerable.Range(0, players).Select(_ => (IAgent)new RandomChoiceAI()).ToList() };
         game.InitGame();
         for (int era = 0; era < 3; era++)
+        {
             Assert.AreEqual(7 * players, game.Decks[era].Count, $"dealt deck for age {era + 1}");
+        }
+    }
+
+    private static int CountCardsOfEra(int era, int players)
+    {
+        return CardsDataset.Cards.Values
+            .Where(card => card.Era == era)
+            .Sum(card => card.CopiesFor(players));
     }
 
     [DataTestMethod]
@@ -215,7 +237,15 @@ public class CardDataTests
         PlayerState player = BuildForFree(name);
         Resource expected = Enum.Parse<Resource>(symbol);
         foreach (Resource r in new[] { Resource.Gear, Resource.Compass, Resource.Tablet })
-            Assert.AreEqual(r == expected ? 1 : 0, player.Resources[r], r.ToString());
+        {
+            int expectedCount = 0;
+            if (r == expected)
+            {
+                expectedCount = 1;
+            }
+
+            Assert.AreEqual(expectedCount, player.Resources[r], r.ToString());
+        }
     }
 
     [DataTestMethod]
@@ -248,25 +278,44 @@ public class CardDataTests
     [DataRow("Forum",       "Loom Glass Papyrus",  false)]
     public void EitherOrCard_OffersRulebookChoice(string name, string choices, bool sellable)
     {
-        Card card = CardsDataset.GameCards.Values.Single(c => c.Name == name);
-        int mask = choices.Split(' ').Aggregate(0, (m, r) => m | 1 << (int)Enum.Parse<Resource>(r));
+        Card card = CardsDataset.GameCards.Values.Single(gameCard => gameCard.Name == name);
+        int mask = MaskOf(choices);
+        int sellableMask = 0;
+        if (sellable)
+        {
+            sellableMask = mask;
+        }
 
         Assert.AreEqual(mask, card.ChoiceMask, "choices");
-        Assert.AreEqual(sellable ? mask : 0, card.SellableChoiceMask, "neighbours can buy");
+        Assert.AreEqual(sellableMask, card.SellableChoiceMask, "neighbours can buy");
+    }
+
+    // one bit per resource, at the resource's number
+    private static int MaskOf(string resourceNames)
+    {
+        int mask = 0;
+        foreach (string resourceName in resourceNames.Split(' '))
+        {
+            mask |= 1 << (int)Enum.Parse<Resource>(resourceName);
+        }
+
+        return mask;
     }
 
     [TestMethod]
     public void EveryCard_HasAnEffect()
     {
         foreach (Card card in CardsDataset.GameCards.Values)
+        {
             Assert.AreNotEqual(0, card.Effects.Count, card.Name);
+        }
     }
 
     // ===== helpers =====
 
     private static Card FindCard(string name, int era)
     {
-        var matches = CardsDataset.GameCards.Values.Where(c => c.Name == name && c.Era == era).ToList();
+        var matches = CardsDataset.GameCards.Values.Where(card => card.Name == name && card.Era == era).ToList();
         Assert.AreEqual(1, matches.Count, $"cards named '{name}' in age {era}");
         return matches[0];
     }
@@ -274,27 +323,58 @@ public class CardDataTests
     private static List<KeyValuePair<Resource, int>> ParseCost(string cost)
     {
         var result = new List<KeyValuePair<Resource, int>>();
-        if (cost == "") return result;
+        if (cost == "")
+        {
+            return result;
+        }
 
         foreach (string part in cost.Split(", "))
         {
             string[] words = part.Split(' ');
-            int amount = words.Length == 2 ? int.Parse(words[0]) : 1;
-            string name = words[^1];
-            Resource resource = name == "Coin" ? Resource.Coins : Enum.Parse<Resource>(name);
+            int amount = 1;
+            if (words.Length == 2)
+            {
+                amount = int.Parse(words[0]);
+            }
+
+            Resource resource = ResourceNamed(words.Last());
             result.Add(new KeyValuePair<Resource, int>(resource, amount));
         }
+
         return result;
+    }
+
+    // the rulebook says "Coin" where the resource is called Coins
+    private static Resource ResourceNamed(string name)
+    {
+        if (name == "Coin")
+        {
+            return Resource.Coins;
+        }
+
+        return Enum.Parse<Resource>(name);
     }
 
     private static PlayerState BuildForFree(string name, int era = 0)
     {
-        Card card = era == 0
-            ? CardsDataset.GameCards.Values.Single(c => c.Name == name)
-            : FindCard(name, era);
+        // era 0: the name is unique, look in every era
+        Card card;
+        if (era == 0)
+        {
+            card = CardsDataset.GameCards.Values.Single(gameCard => gameCard.Name == name);
+        }
+        else
+        {
+            card = FindCard(name, era);
+        }
 
-        List<PlayerState> players = MockHelper.MockPlayers(
-            new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.BabylonA), new Wonder(WonderId.OlympiaA) });
+        List<Wonder> wonders = new List<Wonder>
+        {
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.BabylonA),
+            new Wonder(WonderId.OlympiaA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         PlayerState player = players[0];
 
         Assert.IsTrue(MoveTestHelper.BuildCard(player, card, new List<Card> { card }, true));

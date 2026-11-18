@@ -10,12 +10,13 @@ using RulesClass = _7WondersGame.Engine.Rules.Services.Rules;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Science points, with wildcards placed on the symbol that gives the most.</summary>
 [TestClass]
 public class CalculateScientificScoreTests
 {
     /// <summary>
     /// Wildcards come from the Scientists Guild and Babylon A stage 2.
-    /// Each one must go on whichever symbol gives the most VP (R6).
+    /// Each one must go on whichever symbol gives the most VP.
     /// </summary>
     [DataTestMethod]
     // k = 0
@@ -32,16 +33,33 @@ public class CalculateScientificScoreTests
     [DataRow(2, 2, 0, 2, 26)]
     [DataRow(3, 1, 0, 2, 26)]   // both on gear
     [DataRow(2, 1, 0, 2, 18)]   // split: one gear, one tablet (old code gave 17)
-    public void CalculateScientificScore_PlacesWildcardsBest(int gear, int compass, int tablet, int wildcards, int expected)
+    public void CalculateScientificScore_PlacesWildcardsBest(
+        int gear,
+        int compass,
+        int tablet,
+        int wildcards,
+        int expected)
     {
-        List<PlayerState> players = MockHelper.MockPlayers(
-            new List<Wonder> { new Wonder(WonderId.BabylonA), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
+        List<Wonder> wonders = new List<Wonder>
+        {
+            new Wonder(WonderId.BabylonA),
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.GizahA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         PlayerState player = players[0];
         player.Resources[Resource.Gear] = gear;
         player.Resources[Resource.Compass] = compass;
         player.Resources[Resource.Tablet] = tablet;
-        if (wildcards >= 1) player.PlayedCards.Add(CardsDataset.GameCards[CardId.Scientists]);
-        if (wildcards >= 2) player.Board.Stage = 2;
+        if (wildcards >= 1)
+        {
+            player.PlayedCards.Add(CardsDataset.GameCards[CardId.Scientists]);
+        }
+
+        if (wildcards >= 2)
+        {
+            player.Board.Stage = 2;
+        }
 
         Assert.AreEqual(expected, player.CalculateScientificScore());
     }
@@ -50,12 +68,30 @@ public class CalculateScientificScoreTests
     public void BestScienceScore_MatchesEveryPlacementByHand()
     {
         for (int g = 0; g <= 4; g++)
+        {
             for (int c = 0; c <= 4; c++)
+            {
                 for (int t = 0; t <= 4; t++)
                 {
-                    int best1 = new[] { RulesClass.ScienceScore(g + 1, c, t), RulesClass.ScienceScore(g, c + 1, t), RulesClass.ScienceScore(g, c, t + 1) }.Max();
+                    int best1 = BestScoreWithOneWildcardByHand(g, c, t);
                     Assert.AreEqual(best1, RulesClass.BestScienceScore(g, c, t, 1), $"{g},{c},{t} k=1");
-                    Assert.IsTrue(RulesClass.BestScienceScore(g, c, t, 2) >= best1, $"{g},{c},{t} k=2 never worse than k=1");
+                    Assert.IsTrue(
+                        RulesClass.BestScienceScore(g, c, t, 2) >= best1,
+                        $"{g},{c},{t} k=2 never worse than k=1");
                 }
+            }
+        }
+    }
+
+    // the wildcard tried on each symbol in turn
+    private static int BestScoreWithOneWildcardByHand(int gear, int compass, int tablet)
+    {
+        int moreGears = gear + 1;
+        int moreCompasses = compass + 1;
+        int moreTablets = tablet + 1;
+        int onGear = RulesClass.ScienceScore(moreGears, compass, tablet);
+        int onCompass = RulesClass.ScienceScore(gear, moreCompasses, tablet);
+        int onTablet = RulesClass.ScienceScore(gear, compass, moreTablets);
+        return Math.Max(onGear, Math.Max(onCompass, onTablet));
     }
 }

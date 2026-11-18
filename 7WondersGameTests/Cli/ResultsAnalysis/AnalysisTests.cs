@@ -8,23 +8,52 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Cli.ResultsAnalysis;
 
-/// <summary>The 'analyze' command (step 9 tooling): Wilson intervals, paired differences, groups.</summary>
+/// <summary>The 'analyze' command: Wilson intervals, paired differences, groups.</summary>
 [TestClass]
 public class AnalysisTests
 {
-    [ClassInitialize]
-    public static void RegisterTestAgent(TestContext _) => SettingsTestAgent.Register();
-
     private string _dir = "";
 
+    /// <summary>Adds the test agent with settings to the catalog.</summary>
+    [ClassInitialize]
+    public static void RegisterTestAgent(TestContext context)
+    {
+        SettingsTestAgent.Register();
+    }
+
+    /// <summary>Makes an empty folder for the test's files.</summary>
     [TestInitialize]
-    public void MakeFolder() => Directory.CreateDirectory(_dir = Path.Combine(Path.GetTempPath(), $"analysis-{Guid.NewGuid():N}"));
+    public void MakeFolder()
+    {
+        _dir = Path.Combine(Path.GetTempPath(), $"analysis-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_dir);
+    }
 
+    /// <summary>Removes the test's folder.</summary>
     [TestCleanup]
-    public void RemoveFolder() => Directory.Delete(_dir, recursive: true);
+    public void RemoveFolder()
+    {
+        Directory.Delete(_dir, recursive: true);
+    }
 
-    private static ResultRow Row(string seed, long game, int seat, string agent, int vp, double winShare, string config = "{}") =>
-        new("run", game, seed, seat, agent, config, "GizahA", vp, winShare > 0 ? 1 : 2, winShare, 3);
+    // a winner (any win share) is ranked first, everyone else second
+    private static ResultRow Row(
+        string seed,
+        long game,
+        int seat,
+        string agent,
+        int vp,
+        double winShare,
+        string config = "{}")
+    {
+        int rank = 2;
+        if (winShare > 0)
+        {
+            rank = 1;
+        }
+
+        return new ResultRow("run", game, seed, seat, agent, config, "GizahA", vp, rank, winShare, 3);
+    }
 
     [TestMethod]
     public void Wilson_MatchesTheTextbookValues()
@@ -64,7 +93,7 @@ public class AnalysisTests
 
         List<GroupStats> groups = Analysis.Groups(rows, GroupBy.Agent);
 
-        CollectionAssert.AreEqual(new[] { "A", "B", "C" }, groups.Select(g => g.Label).ToArray());
+        CollectionAssert.AreEqual(new[] { "A", "B", "C" }, groups.Select(group => group.Label).ToArray());
         Assert.AreEqual(1.5, groups[0].Wins, 1e-12);
         Assert.AreEqual(0.5, groups[0].WinRate, 1e-12);
         Assert.AreEqual(1.0 / 3, groups[0].FairShare, 1e-12);
@@ -78,7 +107,8 @@ public class AnalysisTests
 
         Assert.AreEqual(3, Analysis.Pairs(rows, GroupBy.Agent, groups, null).Count);
         List<PairStats> vsB = Analysis.Pairs(rows, GroupBy.Agent, groups, 2);
-        CollectionAssert.AreEqual(new[] { "A-B", "C-B" }, vsB.Select(p => $"{p.A.Label}-{p.B.Label}").ToArray());
+        string[] pairLabels = vsB.Select(pair => $"{pair.A.Label}-{pair.B.Label}").ToArray();
+        CollectionAssert.AreEqual(new[] { "A-B", "C-B" }, pairLabels);
     }
 
     [TestMethod]
@@ -133,7 +163,7 @@ public class AnalysisTests
             List<AgentSpec> seats = plan.SeatsFor(plan.At(i).Rotation);
             int seat = swept.SeatIn(i, seats.Count);
             Assert.AreEqual("SettingsTestAgent", seats[seat].Name, $"game {i}");
-            Assert.AreEqual(1, seats.Count(s => s.Name == "SettingsTestAgent"));
+            Assert.AreEqual(1, seats.Count(agentSpec => agentSpec.Name == "SettingsTestAgent"));
         }
     }
 
@@ -148,18 +178,33 @@ public class AnalysisTests
         }), Array.Empty<string>());
         Assert.AreEqual(Commands.Ok, exit);
 
-        exit = Commands.Analyze(CliArgs.Parse(new[] { "analyze", "--from", csv, "--out", "summary.csv", "--log", "warning" }));
+        exit = Commands.Analyze(
+            CliArgs.Parse(new[] { "analyze", "--from", csv, "--out", "summary.csv", "--log", "warning" }));
 
         Assert.AreEqual(Commands.Ok, exit);
         var groups = ResultsCsvWriter.ReadRows(Path.Combine(_dir, "summary.csv")).ToList();
-        // the swept agent at c=0 and c=1 (C defaults to 1, so c=1 equals the opponent's settings), the opponent, RandomChoiceAI
-        CollectionAssert.AreEquivalent(new[] { "SettingsTestAgent C=0", "SettingsTestAgent C=1", "SettingsTestAgent", "RandomChoiceAI" },
-            groups.Select(g => g["label"]).ToArray());
-        Assert.IsTrue(groups.All(g => g["games"] == (g["label"].StartsWith("SettingsTestAgent C=") ? "9" : "18")),
+        // the swept agent at c=0 and c=1 (C defaults to 1, so c=1 equals the opponent's settings), the opponent,
+        // RandomChoiceAI
+        CollectionAssert.AreEquivalent(
+            new[] { "SettingsTestAgent C=0", "SettingsTestAgent C=1", "SettingsTestAgent", "RandomChoiceAI" },
+            groups.Select(group => group["label"]).ToArray());
+        Assert.IsTrue(
+            groups.All(group => group["games"] == ExpectedGamesOf(group["label"])),
             "each value: 3 deals x 3 seatings; the others play in both values' games");
         var pairs = ResultsCsvWriter.ReadRows(Path.Combine(_dir, "summary.pairs.csv")).ToList();
         Assert.AreEqual(6, pairs.Count);
-        Assert.IsTrue(pairs.All(p => p["deals"] == "3"));
+        Assert.IsTrue(pairs.All(pair => pair["deals"] == "3"));
+    }
+
+    // a swept value plays 3 deals in 3 seatings; the other players play in both values' games
+    private static string ExpectedGamesOf(string label)
+    {
+        if (label.StartsWith("SettingsTestAgent C="))
+        {
+            return "9";
+        }
+
+        return "18";
     }
 
     [TestMethod]
@@ -169,14 +214,24 @@ public class AnalysisTests
         File.WriteAllLines(csv, new[]
         {
             ResultsCsvWriter.Header,
-            "r1,0,0,1,0,A,{},GizahA,A,50,3,1,1,{}", "r1,0,0,1,1,B,{},RhodosA,A,40,3,2,0,{}", "r1,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
-            "r2,0,0,1,0,A,{},GizahA,A,50,3,1,1,{}", "r2,0,0,1,1,B,{},RhodosA,A,40,3,2,0,{}", "r2,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
+            "r1,0,0,1,0,A,{},GizahA,A,50,3,1,1,{}",
+            "r1,0,0,1,1,B,{},RhodosA,A,40,3,2,0,{}",
+            "r1,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
+            "r2,0,0,1,0,A,{},GizahA,A,50,3,1,1,{}",
+            "r2,0,0,1,1,B,{},RhodosA,A,40,3,2,0,{}",
+            "r2,0,0,1,2,B,{},EphesosA,A,30,3,3,0,{}",
         });
 
-        Assert.ThrowsException<UsageException>(() => Commands.Analyze(CliArgs.Parse(new[] { "analyze", "--from", csv })));
-        Assert.ThrowsException<UsageException>(() => Commands.Analyze(CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r3" })));
-        Assert.ThrowsException<UsageException>(() => Commands.Analyze(CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r1", "--by", "x" })));
-        Assert.AreEqual(Commands.Ok, Commands.Analyze(CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r1" })));
-        Assert.AreEqual(Commands.Ok, Commands.Analyze(CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "all", "--by", "seat" })));
+        CliArgs noRun = CliArgs.Parse(new[] { "analyze", "--from", csv });
+        CliArgs unknownRun = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r3" });
+        CliArgs unknownGrouping = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r1", "--by", "x" });
+        CliArgs oneRun = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "r1" });
+        CliArgs allRunsBySeat = CliArgs.Parse(new[] { "analyze", "--from", csv, "--run", "all", "--by", "seat" });
+
+        Assert.ThrowsException<UsageException>(() => Commands.Analyze(noRun));
+        Assert.ThrowsException<UsageException>(() => Commands.Analyze(unknownRun));
+        Assert.ThrowsException<UsageException>(() => Commands.Analyze(unknownGrouping));
+        Assert.AreEqual(Commands.Ok, Commands.Analyze(oneRun));
+        Assert.AreEqual(Commands.Ok, Commands.Analyze(allRunsBySeat));
     }
 }

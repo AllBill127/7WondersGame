@@ -8,6 +8,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Olympia B copying a neighbour's guild at the end of the game.</summary>
 [TestClass]
 public class CopyGuildTests
 {
@@ -106,13 +107,18 @@ public class CopyGuildTests
         Assert.AreEqual(expP1PlayedCardsLen, players[1].PlayedCards.Count);
     }
 
-    // ===== R4: score candidates with the real CalculateScore() =====
+    // ===== the guild to copy is chosen by the real CalculateScore() =====
     // Seats: players[1] is Olympia B; its west neighbour is players[0], its east neighbour players[2].
 
     private static List<PlayerState> OlympiaBWithStage3()
     {
-        List<PlayerState> players = MockHelper.MockPlayers(
-            new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.OlympiaB), new Wonder(WonderId.BabylonA) });
+        List<Wonder> wonders = new List<Wonder>
+        {
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.OlympiaB),
+            new Wonder(WonderId.BabylonA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         players[1].Board.Stage = 3;
         return players;
     }

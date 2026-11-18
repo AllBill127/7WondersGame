@@ -1,16 +1,17 @@
 ﻿using System.Reflection;
-using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Effects.Enums;
 using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 
 namespace _7WondersGameTests.Engine.Players;
 
 /// <summary>
-/// <see cref="PlayerState.CopyFrom"/> (the heuristic's reusable copy) must copy what <see cref="PlayerState.Clone"/> copies.
+/// <see cref="PlayerState.CopyFrom"/> (the heuristic's reusable copy) must copy what
+/// <see cref="PlayerState.Clone"/> copies.
 /// </summary>
 [TestClass]
 public class PlayerCopyTests
@@ -19,36 +20,73 @@ public class PlayerCopyTests
     private static Game MidGame()
     {
         var ai = new HeuristicAI();
-        var game = new Game(Seeding.GameSeed(77, 0)) { Agents = Enumerable.Range(0, 4).Select(_ => (IAgent)new HeuristicAI()).ToList() };
+        var game = new Game(Seeding.GameSeed(77, 0));
+        for (int seat = 0; seat < 4; seat++)
+        {
+            game.Agents.Add(new HeuristicAI());
+        }
+
         game.InitGame();
         while (game.Era < 2 || game.Turn % Game.TurnsPerEra < 3)
         {
-            var moves = game.PendingPlayers().Select(s => (s, ai.Choose(game.Players[s], game.Phase, game.Era, game.DiscardedCards))).ToList();
-            foreach (var (seat, move) in moves)
-                game.Submit(seat, move);
+            // every pending player chooses from the same state, then all moves are submitted
+            List<int> pendingSeats = new List<int>(game.PendingPlayers());
+            List<Command> moves = new List<Command>();
+            foreach (int seat in pendingSeats)
+            {
+                moves.Add(ai.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardedCards));
+            }
+
+            for (int pendingIndex = 0; pendingIndex < pendingSeats.Count; pendingIndex++)
+            {
+                game.Submit(pendingSeats[pendingIndex], moves[pendingIndex]);
+            }
         }
+
         return game;
     }
 
     /// <summary>Everything about a player, as text.</summary>
-    private static string Describe(PlayerState p) =>
-        $"{p.Id} {p.Board.Id} {p.Board.Stage} | {string.Join(",", p.HandCards.Select(c => c.Id))} | {string.Join(",", p.PlayedCards.Select(c => c.Id))} | " +
-        $"{p.VictoryTokens} {p.DefeatTokens} {p.VictoryPoints} {p.Abilities} {p.FreeCardOnce} {p.DiscardFree} | " +
-        $"{string.Join(",", p.Resources.Select(r => $"{r.Key}={r.Value}"))} | {p.PlayerWest.Id} {p.PlayerEast.Id}";
+    private static string Describe(PlayerState p)
+    {
+        string handCards = string.Join(",", p.HandCards.Select(card => card.Id));
+        string playedCards = string.Join(",", p.PlayedCards.Select(card => card.Id));
+        string resources = string.Join(",", p.Resources.Select(resource => $"{resource.Key}={resource.Value}"));
+        return $"{p.Id} {p.Board.Id} {p.Board.Stage} | {handCards} | {playedCards} | " +
+               $"{p.VictoryTokens} {p.DefeatTokens} {p.VictoryPoints} " +
+               $"{p.Abilities} {p.FreeCardOnce} {p.DiscardFree} | " +
+               $"{resources} | {p.PlayerWest.Id} {p.PlayerEast.Id}";
+    }
 
     [TestMethod]
     public void EveryFieldIsKnown_SoCopyFromCopiesIt()
     {
         string[] fields = typeof(PlayerState)
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .Select(f => f.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            .Select(field => field.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
 
-        CollectionAssert.AreEqual(new[]
+        string[] knownFields =
         {
-            "<Board>k__BackingField", "<HandCards>k__BackingField", "<Id>k__BackingField", "<PlayedCards>k__BackingField",
-            "<PlayerEast>k__BackingField", "<PlayerWest>k__BackingField",
-            "Abilities", "DefeatTokens", "DiscardFree", "FreeCardOnce", "Resources", "VictoryPoints", "VictoryTokens",
-        }, fields, "PlayerState has a new field: copy it in PlayerState.CopyFrom too (and check Clone), then list it here.");
+            "<Board>k__BackingField",
+            "<HandCards>k__BackingField",
+            "<Id>k__BackingField",
+            "<PlayedCards>k__BackingField",
+            "<PlayerEast>k__BackingField",
+            "<PlayerWest>k__BackingField",
+            "Abilities",
+            "DefeatTokens",
+            "DiscardFree",
+            "FreeCardOnce",
+            "Resources",
+            "VictoryPoints",
+            "VictoryTokens",
+        };
+        CollectionAssert.AreEqual(
+            knownFields,
+            fields,
+            "PlayerState has a new field: copy it in PlayerState.CopyFrom too (and check Clone), then list it here.");
     }
 
     [TestMethod]

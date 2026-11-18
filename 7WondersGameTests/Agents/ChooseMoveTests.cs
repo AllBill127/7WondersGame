@@ -13,6 +13,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Agents;
 
+/// <summary>The moves the random and heuristic agents choose when Olympia A's free build is available.</summary>
 [TestClass]
 public class ChooseMoveTests
 {
@@ -23,7 +24,8 @@ public class ChooseMoveTests
     // TODO:    test ChooseMoveCommand when
     //          - build_structure -> PlayableCards contains player command argument
     //          - any other command -> HandCards contain player command argumnt
-    //          - no PlayableCards -> player command is skip_move (check also when using OlympiaA stage2 (playableCards should be hand cards and action = discard))
+    //          - no PlayableCards -> player command is skip_move (check also when using OlympiaA stage2
+    //            (playableCards should be hand cards and action = discard))
 
     [TestMethod]
     public void ChooseMoveCommand_WhenOlympiaA2_AndPlayableCardsViolateNoDuplicateRule_SetCommandToDiscard()

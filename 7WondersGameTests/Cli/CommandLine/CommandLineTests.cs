@@ -11,13 +11,17 @@ using Serilog.Events;
 namespace _7WondersGameTests.Cli.CommandLine;
 
 /// <summary>
-/// Step 3b: the command line (options, agent text, ranges, log levels).
+/// The command line (options, agent text, ranges, log levels).
 /// </summary>
 [TestClass]
 public class CommandLineTests
 {
+    /// <summary>Adds the test agent with settings to the catalog.</summary>
     [ClassInitialize]
-    public static void RegisterTestAgent(TestContext _) => SettingsTestAgent.Register();
+    public static void RegisterTestAgent(TestContext context)
+    {
+        SettingsTestAgent.Register();
+    }
 
     [TestMethod]
     public void NoArguments_MeansHelp()
@@ -38,12 +42,19 @@ public class CommandLineTests
     [TestMethod]
     public void BadOptions_AreUsageErrors()
     {
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(new[] { "run", "--games" }));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(new[] { "run", "--games", "1", "--games", "2" }));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(new[] { "run", "games" }));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(new[] { "run", "--gmaes", "1" }).AllowOnly("games"));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(new[] { "run", "--games", "0" }).RequireInt("games", 1));
-        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(new[] { "run" }).Require("players"));
+        string[] noValue = { "run", "--games" };
+        string[] twice = { "run", "--games", "1", "--games", "2" };
+        string[] noDashes = { "run", "games" };
+        CliArgs unknownOption = CliArgs.Parse(new[] { "run", "--gmaes", "1" });
+        CliArgs noGames = CliArgs.Parse(new[] { "run", "--games", "0" });
+        CliArgs noPlayers = CliArgs.Parse(new[] { "run" });
+
+        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(noValue));
+        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(twice));
+        Assert.ThrowsException<UsageException>(() => CliArgs.Parse(noDashes));
+        Assert.ThrowsException<UsageException>(() => unknownOption.AllowOnly("games"));
+        Assert.ThrowsException<UsageException>(() => noGames.RequireInt("games", 1));
+        Assert.ThrowsException<UsageException>(() => noPlayers.Require("players"));
     }
 
     [TestMethod]
@@ -58,7 +69,8 @@ public class CommandLineTests
     [TestMethod]
     public void AgentSpec_Settings()
     {
-        List<AgentSpec> specs = AgentSpec.ParseList("HeuristicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
+        List<AgentSpec> specs =
+            AgentSpec.ParseList("HeuristicAI, RandomChoiceAI ,SettingsTestAgent:c=1.5:ITERATIONS=500");
 
         Assert.AreEqual(3, specs.Count);
         var agent = AgentCatalog.Create(specs[2]);
@@ -76,10 +88,15 @@ public class CommandLineTests
     [TestMethod]
     public void AgentSpec_Mistakes_AreUsageErrors()
     {
-        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("Nobody")));
-        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:x=1")));
-        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("SettingsTestAgent:c=abc")));
-        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(AgentSpec.Parse("RandomChoiceAI:c=1")));
+        AgentSpec unknownAgent = AgentSpec.Parse("Nobody");
+        AgentSpec unknownSetting = AgentSpec.Parse("SettingsTestAgent:x=1");
+        AgentSpec notANumber = AgentSpec.Parse("SettingsTestAgent:c=abc");
+        AgentSpec agentWithoutSettings = AgentSpec.Parse("RandomChoiceAI:c=1");
+
+        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(unknownAgent));
+        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(unknownSetting));
+        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(notANumber));
+        Assert.ThrowsException<UsageException>(() => AgentCatalog.Create(agentWithoutSettings));
         Assert.ThrowsException<UsageException>(() => AgentSpec.Parse("SettingsTestAgent:c"));
     }
 
@@ -110,7 +127,8 @@ public class CommandLineTests
 
         Assert.IsNotNull(sweep);
         Assert.AreEqual(2, sweep.Seat);
-        CollectionAssert.AreEqual(new[] { 0, 0.5, 1, 1.5, 2 }, Enumerable.Range(0, 5).Select(sweep.ValueAt).ToArray());
+        double[] values = Enumerable.Range(0, 5).Select(sweep.ValueAt).ToArray();
+        CollectionAssert.AreEqual(new[] { 0, 0.5, 1, 1.5, 2 }, values);
         StringAssert.Contains(AgentCatalog.Create(specs[2], sweep.ValueAt(3)).ConfigJson(), "\"C\":1.5");
     }
 
@@ -118,22 +136,26 @@ public class CommandLineTests
     public void Range_MatchesTheOldCSweepValues()
     {
         // old SearchOptimalCParallel: c = minC + k * ((maxC - minC) / iterations), iterations + 1 values
-        double minC = 0.3, maxC = 2.1;
+        double minC = 0.3;
+        double maxC = 2.1;
         int iterations = 7;
         var sweep = new Sweep(2, "c", minC, maxC, iterations + 1);
         for (int k = 0; k <= iterations; k++)
+        {
             Assert.AreEqual(minC + k * ((maxC - minC) / iterations), sweep.ValueAt(k));
+        }
     }
 
     [TestMethod]
     public void Range_Mistakes_AreUsageErrors()
     {
         var oneRange = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,SettingsTestAgent:c=0..2");
+        var noRange = AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,RandomChoiceAI");
+        var twoRanges = AgentSpec.ParseList("SettingsTestAgent:c=0..1,RandomChoiceAI,SettingsTestAgent:c=0..2");
+
         Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(oneRange, null), "range without --steps");
-        Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(
-            AgentSpec.ParseList("HeuristicAI,RandomChoiceAI,RandomChoiceAI"), 3), "--steps without a range");
-        Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(
-            AgentSpec.ParseList("SettingsTestAgent:c=0..1,RandomChoiceAI,SettingsTestAgent:c=0..2"), 3), "two ranges");
+        Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(noRange, 3), "--steps without a range");
+        Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(twoRanges, 3), "two ranges");
     }
 
     [TestMethod]

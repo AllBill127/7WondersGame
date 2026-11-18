@@ -7,6 +7,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Checking whether a player can build its next wonder stage.</summary>
 [TestClass]
 public class CheckCanBuildWonderTests
 {
@@ -21,7 +22,8 @@ public class CheckCanBuildWonderTests
 
         // give resources for situation
         players[0].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
-        players[0].Resources[Resource.Clay] += 1;    // manually add clay from clayPool card (building the card would add it; not done here)
+        // manually add clay from clayPool card (building the card would add it; not done here)
+        players[0].Resources[Resource.Clay] += 1;
         players[1].Resources[Resource.Coins] = 3;
         players[1].PlayedCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 

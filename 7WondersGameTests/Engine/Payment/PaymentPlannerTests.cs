@@ -13,33 +13,67 @@ using _7WondersGameTests.TestHelpers;
 namespace _7WondersGameTests.Engine.Payment;
 
 /// <summary>
-/// The payment planner (E2): the cheapest way to pay, R7 (either/or cards used the best way) and
-/// R8 (purchases split between neighbours), and that planning changes nothing.
+/// The payment planner: the cheapest way to pay, with either/or cards used the best way and purchases split
+/// between the neighbours, and that planning changes nothing.
 /// </summary>
 [TestClass]
 public class PaymentPlannerTests
 {
     private static readonly Resource[] GoodsList =
-        { Resource.Wood, Resource.Ore, Resource.Clay, Resource.Stone, Resource.Loom, Resource.Glass, Resource.Papyrus };
+    {
+        Resource.Wood, Resource.Ore, Resource.Clay, Resource.Stone, Resource.Loom, Resource.Glass, Resource.Papyrus
+    };
 
-    /// <summary>Three players, all resources 0. Returns (west, buyer, east); the buyer has the given coins, the others 0.</summary>
+    private static readonly CardId[] BrownEitherOrCards =
+    {
+        CardId.TreeFarm, CardId.ForestCave, CardId.TimberYard, CardId.Excavation, CardId.ClayPit, CardId.Mine
+    };
+
+    /// <summary>
+    /// Three players, all resources 0. Returns (west, buyer, east); the buyer has the given coins, the others 0.
+    /// </summary>
     private static (PlayerState West, PlayerState Buyer, PlayerState East) SetUp(int coins, Wonder? buyerWonder = null)
     {
-        List<PlayerState> players = MockHelper.MockPlayers(
-            new List<Wonder> { new Wonder(WonderId.GizahA), buyerWonder ?? new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
+        Wonder buyersBoard = new Wonder(WonderId.GizahA);
+        if (buyerWonder != null)
+        {
+            buyersBoard = buyerWonder;
+        }
+
+        List<Wonder> wonders = new List<Wonder>
+        {
+            new Wonder(WonderId.GizahA),
+            buyersBoard,
+            new Wonder(WonderId.GizahA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState p in players)
+        {
             p.Resources[Resource.Coins] = 0;
+        }
+
         players[1].Resources[Resource.Coins] = coins;
         return (players[0], players[1], players[2]);
     }
 
-    private static Dictionary<Resource, int> Cost(params (Resource, int)[] parts) =>
-        parts.ToDictionary(p => p.Item1, p => p.Item2);
+    private static Dictionary<Resource, int> Cost(params (Resource, int)[] parts)
+    {
+        return parts.ToDictionary(part => part.Item1, part => part.Item2);
+    }
 
     private static void Build(PlayerState p, params CardId[] cards)
     {
         foreach (CardId id in cards)
+        {
             p.PlayedCards.Add(CardsDataset.GameCards[id]);
+        }
+    }
+
+    private static Dictionary<Resource, int> ResourcesOf(PlayerState player)
+    {
+        return player.Resources.ToDictionary(
+            resourceAmount => resourceAmount.Key,
+            resourceAmount => resourceAmount.Value);
     }
 
     [TestMethod]
@@ -57,7 +91,9 @@ public class PaymentPlannerTests
         Build(west, CardId.TreeFarm);
         Build(east, CardId.ClayPit);
         // west's Tree Farm is the only wood, so the clay has to come from east's Clay Pit
-        Assert.AreEqual(new PaymentPlan(2, 2), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
+        Assert.AreEqual(
+            new PaymentPlan(2, 2),
+            PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
     }
 
     [TestMethod]
@@ -93,7 +129,9 @@ public class PaymentPlannerTests
     {
         var (west, buyer, _) = SetUp(coins: 4);
         Build(west, CardId.TreeFarm, CardId.ForestCave);
-        Assert.AreEqual(new PaymentPlan(4, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
+        Assert.AreEqual(
+            new PaymentPlan(4, 0),
+            PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
     }
 
     [TestMethod]
@@ -163,7 +201,9 @@ public class PaymentPlannerTests
         buyer.Abilities |= Ability.ManufCheap;
         west.Resources[Resource.Glass] = 1;
         west.Resources[Resource.Wood] = 1;
-        Assert.AreEqual(new PaymentPlan(3, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Glass, 1), (Resource.Wood, 1))));
+        Assert.AreEqual(
+            new PaymentPlan(3, 0),
+            PaymentPlanner.Plan(buyer, Cost((Resource.Glass, 1), (Resource.Wood, 1))));
     }
 
     [TestMethod]
@@ -173,7 +213,9 @@ public class PaymentPlannerTests
         west.Resources[Resource.Wood] = 1;
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Coins, 1))));
         buyer.Resources[Resource.Coins] = 3;
-        Assert.AreEqual(new PaymentPlan(2, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Coins, 1))));
+        Assert.AreEqual(
+            new PaymentPlan(2, 0),
+            PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Coins, 1))));
         buyer.Resources[Resource.Coins] = 0;
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Coins, 1))));
     }
@@ -199,15 +241,22 @@ public class PaymentPlannerTests
         Build(east, CardId.ClayPit);
         Build(buyer, CardId.ForestCave);
         east.Resources[Resource.Stone] = 1;
-        var before = new[] { west, buyer, east }.Select(p => (p.Resources.ToDictionary(kv => kv.Key, kv => kv.Value), p.PlayedCards.ToList())).ToList();
+        PlayerState[] players = { west, buyer, east };
+        var resourcesBefore = new List<Dictionary<Resource, int>>();
+        var cardsBefore = new List<List<Card>>();
+        foreach (PlayerState player in players)
+        {
+            resourcesBefore.Add(ResourcesOf(player));
+            cardsBefore.Add(new List<Card>(player.PlayedCards));
+        }
 
-        Assert.IsNotNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1))));
+        var cost = Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1));
+        Assert.IsNotNull(PaymentPlanner.Plan(buyer, cost));
 
-        var after = new[] { west, buyer, east };
         for (int i = 0; i < 3; i++)
         {
-            CollectionAssert.AreEquivalent(before[i].Item1, after[i].Resources.ToDictionary(kv => kv.Key, kv => kv.Value), $"resources of player {i}");
-            CollectionAssert.AreEqual(before[i].Item2, after[i].PlayedCards, $"cards of player {i}");
+            CollectionAssert.AreEquivalent(resourcesBefore[i], ResourcesOf(players[i]), $"resources of player {i}");
+            CollectionAssert.AreEqual(cardsBefore[i], players[i].PlayedCards, $"cards of player {i}");
         }
     }
 
@@ -232,140 +281,98 @@ public class PaymentPlannerTests
     public void MatchesBruteForce_OnRandomPositions()
     {
         var rng = new Random(20261110);
-        CardId[] brown = { CardId.TreeFarm, CardId.ForestCave, CardId.TimberYard, CardId.Excavation, CardId.ClayPit, CardId.Mine };
-        Func<Wonder>[] boards = { () => new Wonder(WonderId.GizahA), () => new Wonder(WonderId.AlexandriaA), () => new Wonder(WonderId.AlexandriaB) };
+        WonderId[] boards = { WonderId.GizahA, WonderId.AlexandriaA, WonderId.AlexandriaB };
 
         for (int test = 0; test < 3000; test++)
         {
-            Wonder buyerBoard = boards[rng.Next(boards.Length)]();
+            Wonder buyerBoard = new Wonder(boards[rng.Next(boards.Length)]);
             buyerBoard.Stage = rng.Next(0, 3);
             var (west, buyer, east) = SetUp(coins: rng.Next(0, 9), buyerBoard);
             foreach (PlayerState p in new[] { west, buyer, east })
             {
-                foreach (Resource r in GoodsList)
-                    p.Resources[r] = rng.Next(4) == 0 ? rng.Next(1, 3) : 0;
-                foreach (CardId id in brown)
-                    if (rng.Next(3) == 0)
-                        Build(p, id);
-                if (rng.Next(4) == 0) Build(p, CardId.Caravansery);
-                if (rng.Next(4) == 0) Build(p, CardId.Forum);
+                GiveRandomResourcesAndCards(p, rng);
             }
-            if (rng.Next(3) == 0) buyer.Abilities |= Ability.RawCheapWest;
-            if (rng.Next(3) == 0) buyer.Abilities |= Ability.RawCheapEast;
-            if (rng.Next(5) == 0) buyer.Abilities |= Ability.WonderRawCheap;
-            if (rng.Next(3) == 0) buyer.Abilities |= Ability.ManufCheap;
 
-            var cost = new Dictionary<Resource, int>();
-            int kinds = rng.Next(1, 4);
-            for (int k = 0; k < kinds; k++)
-                cost[GoodsList[rng.Next(GoodsList.Length)]] = rng.Next(1, 4);
-            if (rng.Next(5) == 0)
-                cost[Resource.Coins] = 1;
+            GiveRandomDiscounts(buyer, rng);
+            Dictionary<Resource, int> cost = RandomCost(rng);
 
-            PaymentPlan? expected = BruteForce(buyer, cost);
+            PaymentPlan? expected = BruteForcePayment.Plan(buyer, cost);
             PaymentPlan? actual = PaymentPlanner.Plan(buyer, cost);
-            Assert.AreEqual(expected, actual,
-                $"case {test}: cost {string.Join(",", cost.Select(kv => $"{kv.Value} {kv.Key}"))}, coins {buyer.Resources[Resource.Coins]}");
+            string costText = string.Join(",", cost.Select(resourceCost => $"{resourceCost.Value} {resourceCost.Key}"));
+            Assert.AreEqual(expected, actual, $"case {test}: cost {costText}, coins {buyer.Resources[Resource.Coins]}");
         }
     }
 
-    /// <summary>
-    /// Tries every choice (including "unused") for every either/or source, then every split of every
-    /// purchase between the neighbours. Written from the rules, independently of the planner.
-    /// </summary>
-    private static PaymentPlan? BruteForce(PlayerState buyer, Dictionary<Resource, int> cost)
+    // a few goods of each kind, some brown either/or cards, sometimes a Caravansery or Forum
+    private static void GiveRandomResourcesAndCards(PlayerState p, Random rng)
     {
-        int budget = buyer.Resources[Resource.Coins] - cost.GetValueOrDefault(Resource.Coins);
-        if (budget < 0)
-            return null;
-
-        Resource[] raw = { Resource.Wood, Resource.Ore, Resource.Clay, Resource.Stone };
-        Resource[] manufactured = { Resource.Loom, Resource.Glass, Resource.Papyrus };
-        Resource[]? Options(CardId id, bool own) => id switch
+        foreach (Resource r in GoodsList)
         {
-            CardId.TreeFarm => new[] { Resource.Wood, Resource.Clay },
-            CardId.ForestCave => new[] { Resource.Wood, Resource.Ore },
-            CardId.TimberYard => new[] { Resource.Wood, Resource.Stone },
-            CardId.Excavation => new[] { Resource.Clay, Resource.Stone },
-            CardId.ClayPit => new[] { Resource.Clay, Resource.Ore },
-            CardId.Mine => new[] { Resource.Ore, Resource.Stone },
-            CardId.Caravansery when own => raw,
-            CardId.Forum when own => manufactured,
-            _ => null,
-        };
-
-        // every source: (owner 0 = buyer, 1 = west, 2 = east, options)
-        var sources = new List<(int Owner, Resource[] Options)>();
-        PlayerState[] owners = { buyer, buyer.PlayerWest, buyer.PlayerEast };
-        for (int o = 0; o < 3; o++)
-            foreach (Card c in owners[o].PlayedCards)
-                if (Options(c.Id, o == 0) is { } opts)
-                    sources.Add((o, opts));
-        WonderId board = buyer.Board.Id;
-        int stage = buyer.Board.Stage;
-        if (board == WonderId.AlexandriaA && stage >= 2 || board == WonderId.AlexandriaB && stage >= 1)
-            sources.Add((0, raw));
-        if (board == WonderId.AlexandriaB && stage >= 2)
-            sources.Add((0, manufactured));
-        // giving a source a resource the cost doesn't need is the same as leaving it unused
-        sources = sources.Select(s => (s.Owner, s.Options.Where(r => cost.GetValueOrDefault(r) > 0).ToArray()))
-            .Where(s => s.Item2.Length > 0).ToList();
-
-        int bestTotal = int.MaxValue, bestEast = int.MaxValue;
-        var supply = new int[3, 7];
-        for (int o = 0; o < 3; o++)
-            foreach (Resource r in GoodsList)
-                supply[o, (int)r] = owners[o].Resources[r];
-
-        int Price(int seller, Resource r)
-        {
-            bool isRaw = raw.Contains(r);
-            bool cheap = isRaw
-                ? buyer.Has(Ability.WonderRawCheap) || (seller == 1 ? buyer.Has(Ability.RawCheapWest) : buyer.Has(Ability.RawCheapEast))
-                : buyer.Has(Ability.ManufCheap);
-            return cheap ? 1 : 2;
+            p.Resources[r] = 0;
+            if (rng.Next(4) == 0)
+            {
+                p.Resources[r] = rng.Next(1, 3);
+            }
         }
 
-        void Assign(int i)
+        foreach (CardId id in BrownEitherOrCards)
         {
-            if (i < sources.Count)
+            if (rng.Next(3) == 0)
             {
-                Assign(i + 1);   // unused
-                foreach (Resource r in sources[i].Options)
-                {
-                    supply[sources[i].Owner, (int)r]++;
-                    Assign(i + 1);
-                    supply[sources[i].Owner, (int)r]--;
-                }
-                return;
+                Build(p, id);
             }
-            // every split of every missing resource
-            var goods = GoodsList.Where(r => cost.GetValueOrDefault(r) > supply[0, (int)r]).ToList();
-            void Split(int g, int total, int toEast)
-            {
-                if (g == goods.Count)
-                {
-                    if (total < bestTotal || total == bestTotal && toEast < bestEast)
-                        (bestTotal, bestEast) = (total, toEast);
-                    return;
-                }
-                Resource r = goods[g];
-                int n = cost[r] - supply[0, (int)r];
-                for (int fromWest = 0; fromWest <= n; fromWest++)
-                {
-                    int fromEast = n - fromWest;
-                    if (fromWest > supply[1, (int)r] || fromEast > supply[2, (int)r])
-                        continue;
-                    int e = fromEast * Price(2, r);
-                    Split(g + 1, total + fromWest * Price(1, r) + e, toEast + e);
-                }
-            }
-            Split(0, 0, 0);
         }
-        Assign(0);
 
-        if (bestTotal == int.MaxValue || bestTotal > budget)
-            return null;
-        return new PaymentPlan(bestTotal - bestEast, bestEast);
+        if (rng.Next(4) == 0)
+        {
+            Build(p, CardId.Caravansery);
+        }
+
+        if (rng.Next(4) == 0)
+        {
+            Build(p, CardId.Forum);
+        }
+    }
+
+    private static void GiveRandomDiscounts(PlayerState buyer, Random rng)
+    {
+        if (rng.Next(3) == 0)
+        {
+            buyer.Abilities |= Ability.RawCheapWest;
+        }
+
+        if (rng.Next(3) == 0)
+        {
+            buyer.Abilities |= Ability.RawCheapEast;
+        }
+
+        if (rng.Next(5) == 0)
+        {
+            buyer.Abilities |= Ability.WonderRawCheap;
+        }
+
+        if (rng.Next(3) == 0)
+        {
+            buyer.Abilities |= Ability.ManufCheap;
+        }
+    }
+
+    // one to three kinds of goods, one to three of each, sometimes a coin
+    private static Dictionary<Resource, int> RandomCost(Random rng)
+    {
+        var cost = new Dictionary<Resource, int>();
+        int kinds = rng.Next(1, 4);
+        for (int k = 0; k < kinds; k++)
+        {
+            Resource good = GoodsList[rng.Next(GoodsList.Length)];
+            cost[good] = rng.Next(1, 4);
+        }
+
+        if (rng.Next(5) == 0)
+        {
+            cost[Resource.Coins] = 1;
+        }
+
+        return cost;
     }
 }

@@ -1,4 +1,5 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
+﻿using System.Text.RegularExpressions;
+using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Results;
@@ -12,11 +13,16 @@ using Serilog.Events;
 namespace _7WondersGameTests.Engine.Games;
 
 /// <summary>
-/// Step 3b: the game trace (Debug/Verbose) only reads state, and only real games write it.
+/// The game trace (Debug/Verbose) only reads state, and only real games write it.
 /// </summary>
 [TestClass]
 public class TraceTests
 {
+    private const string ScoreBreakdownPattern =
+        @"(military|coins|wonder|civilian|commercial|guilds|science) (-?\d+)";
+
+    private const string SearchNotePattern =
+        @"^Seat 1 MctsAgent: 40 iterations in \d+ ms; \w+ .+ \d+ visits, reward [\d.]+, wins \d+%";
 
     private static (ILogger Logger, ListSink Sink) Capture(LogEventLevel level)
     {
@@ -35,7 +41,10 @@ public class TraceTests
             },
         };
         if (trace != null)
+        {
             game.Trace = trace;
+        }
+
         game.InitGame();
         return game;
     }
@@ -61,30 +70,42 @@ public class TraceTests
     [TestMethod]
     public void ASearchersTrace_SaysWhyItChose_AndChangesNothing()
     {
-        Game Play(ILogger? trace)
+        var (logger, sink) = Capture(LogEventLevel.Debug);
+        Assert.AreEqual(Outcome(PlayWithSearcher(null)), Outcome(PlayWithSearcher(logger)));
+
+        List<string> notes = sink.Messages.Where(message => message.StartsWith("Seat 1 MctsAgent: ")).ToList();
+        Assert.IsTrue(notes.Count >= 15, string.Join(" / ", notes));
+        StringAssert.Matches(notes[0], new Regex(SearchNotePattern));
+        Assert.IsTrue(
+            sink.Messages
+                .Where(message => message.Contains(" iterations in "))
+                .All(message => message.StartsWith("Seat 1 ")),
+            "agents without a note write none");
+    }
+
+    // a game with an MctsAgent at seat 1, traced if a logger is given
+    private static Game PlayWithSearcher(ILogger? trace)
+    {
+        var game = new Game(5)
         {
-            var game = new Game(5)
-            {
-                Agents = new List<IAgent> { new HeuristicAI(), MctsAgentTests.Mcts(":n=40"), new HeuristicAI() },
-            };
-            if (trace != null)
-                game.Trace = trace;
-            game.InitGame();
-            game.Loop(record: true);
-            return game;
+            Agents = new List<IAgent> { new HeuristicAI(), MctsAgentTests.Mcts(":n=40"), new HeuristicAI() },
+        };
+        if (trace != null)
+        {
+            game.Trace = trace;
         }
 
-        var (logger, sink) = Capture(LogEventLevel.Debug);
-        // the stats column holds search times, which differ between any two runs; the game itself doesn't
-        static string Outcome(Game g) => string.Join(" | ", g.Results!.Select(r => $"{r.VictoryPoints} {r.Coins} {r.Rank}"));
-        Assert.AreEqual(Outcome(Play(null)), Outcome(Play(logger)));
+        game.InitGame();
+        game.Loop(record: true);
+        return game;
+    }
 
-        List<string> notes = sink.Messages.Where(m => m.StartsWith("Seat 1 MctsAgent: ")).ToList();
-        Assert.IsTrue(notes.Count >= 15, string.Join(" / ", notes));
-        StringAssert.Matches(notes[0], new System.Text.RegularExpressions.Regex(
-            @"^Seat 1 MctsAgent: 40 iterations in \d+ ms; \w+ .+ \d+ visits, reward [\d.]+, wins \d+%"));
-        Assert.IsTrue(sink.Messages.Where(m => m.Contains(" iterations in ")).All(m => m.StartsWith("Seat 1 ")),
-            "agents without a note write none");
+    // the stats column holds search times, which differ between any two runs; the game itself doesn't
+    private static string Outcome(Game game)
+    {
+        IEnumerable<string> seatOutcomes = game.Results!
+            .Select(result => $"{result.VictoryPoints} {result.Coins} {result.Rank}");
+        return string.Join(" | ", seatOutcomes);
     }
 
     [TestMethod]
@@ -106,25 +127,36 @@ public class TraceTests
         game.Loop(record: true);
         List<string> lines = sink.Messages.ToList();
 
-        Assert.AreEqual(1, lines.Count(l => l.StartsWith("Game seed")));
-        Assert.AreEqual(3, lines.Count(l => l.Contains(" on ") && l.StartsWith("Seat")), "one setup line per seat");
-        Assert.AreEqual(3 * 3, lines.Count(l => l.Contains("battles with")), "each seat's battles, each era");
-        Assert.AreEqual(3, lines.Count(l => l.StartsWith("End of era")));
-        Assert.IsTrue(lines.Any(l => l.StartsWith("Hands passed west")));
-        Assert.IsTrue(lines.Any(l => l.StartsWith("Hands passed east")));
-        Assert.IsTrue(lines.Count(l => l.Contains(" chooses ")) >= 18 * 3, "a choice per seat per turn");
-        Assert.AreEqual(0, sink.Events.Count(e => e.Level == LogEventLevel.Verbose), "Debug hides Verbose");
+        Assert.AreEqual(1, lines.Count(line => line.StartsWith("Game seed")));
+        Assert.AreEqual(
+            3,
+            lines.Count(line => line.Contains(" on ") && line.StartsWith("Seat")),
+            "one setup line per seat");
+        Assert.AreEqual(3 * 3, lines.Count(line => line.Contains("battles with")), "each seat's battles, each era");
+        Assert.AreEqual(3, lines.Count(line => line.StartsWith("End of era")));
+        Assert.IsTrue(lines.Any(line => line.StartsWith("Hands passed west")));
+        Assert.IsTrue(lines.Any(line => line.StartsWith("Hands passed east")));
+        Assert.IsTrue(lines.Count(line => line.Contains(" chooses ")) >= 18 * 3, "a choice per seat per turn");
+        Assert.AreEqual(
+            0,
+            sink.Events.Count(logEvent => logEvent.Level == LogEventLevel.Verbose),
+            "Debug hides Verbose");
 
         // the score breakdown adds up to the final VP
         foreach (SeatResult seat in game.Results!)
         {
-            string line = lines.Single(l => l.StartsWith($"Seat {seat.Seat} ") && l.Contains(" VP = military"));
+            string line = ScoreLineOf(seat, lines);
             int total = int.Parse(line.Split(':')[1].Trim().Split(' ')[0]);
-            int sum = System.Text.RegularExpressions.Regex.Matches(line, @"(military|coins|wonder|civilian|commercial|guilds|science) (-?\d+)")
-                .Sum(m => int.Parse(m.Groups[2].Value));
+            int sum = Regex.Matches(line, ScoreBreakdownPattern).Sum(match => int.Parse(match.Groups[2].Value));
             Assert.AreEqual(seat.VictoryPoints, total);
             Assert.AreEqual(total, sum, line);
         }
+    }
+
+    private static string ScoreLineOf(SeatResult seat, List<string> lines)
+    {
+        string seatPrefix = $"Seat {seat.Seat} ";
+        return lines.Single(traceLine => traceLine.StartsWith(seatPrefix) && traceLine.Contains(" VP = military"));
     }
 
     [TestMethod]

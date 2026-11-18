@@ -11,15 +11,20 @@ namespace _7WondersGameTests.Engine.Rules;
 
 /// <summary>
 /// The Lighthouse counts itself: it gives 1 coin (when built) and 1 VP (at the end)
-/// per yellow card in the city, including the Lighthouse (R9).
+/// per yellow card in the city, including the Lighthouse.
 /// </summary>
 [TestClass]
 public class LighthouseTests
 {
     private static PlayerState PlayerWithTwoYellowCards()
     {
-        List<PlayerState> players = MockHelper.MockPlayers(
-            new List<Wonder> { new Wonder(WonderId.GizahA), new Wonder(WonderId.BabylonA), new Wonder(WonderId.OlympiaA) });
+        List<Wonder> wonders = new List<Wonder>
+        {
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.BabylonA),
+            new Wonder(WonderId.OlympiaA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         PlayerState player = players[0];
         player.PlayedCards.Add(CardsDataset.GameCards[CardId.Marketplace]);
         player.PlayedCards.Add(CardsDataset.GameCards[CardId.Tavern]);

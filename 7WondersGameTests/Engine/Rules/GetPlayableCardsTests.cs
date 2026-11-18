@@ -8,6 +8,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Rules;
 
+/// <summary>Which hand cards a player can build: paid, chained, traded for, or not at all.</summary>
 [TestClass]
 public class GetPlayableCardsTests
 {

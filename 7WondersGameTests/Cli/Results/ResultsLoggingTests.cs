@@ -8,13 +8,14 @@ using _7WondersGameTests.TestHelpers;
 namespace _7WondersGameTests.Cli.Results;
 
 /// <summary>
-/// B2: one CSV row per (game, seat), written by a single appending writer.
+/// One CSV row per (game, seat), written by a single appending writer.
 /// </summary>
 [TestClass]
 public class ResultsLoggingTests
 {
     private string _dir = "";
 
+    /// <summary>Makes an empty folder for the test's files.</summary>
     [TestInitialize]
     public void SetUp()
     {
@@ -22,11 +23,14 @@ public class ResultsLoggingTests
         Directory.CreateDirectory(_dir);
     }
 
+    /// <summary>Removes the test's folder.</summary>
     [TestCleanup]
     public void TearDown()
     {
         if (Directory.Exists(_dir))
+        {
             Directory.Delete(_dir, recursive: true);
+        }
     }
 
     [TestMethod]
@@ -34,7 +38,7 @@ public class ResultsLoggingTests
     {
         Game game = NewGame(3);
         game.InitGame();
-        var wonders = game.Players.Select(p => p.Board.Id.ToString()).ToList();
+        var wonders = game.Players.Select(player => player.Board.Id.ToString()).ToList();
 
         Dictionary<int, int> scores = game.Loop(record: true);
 
@@ -48,10 +52,11 @@ public class ResultsLoggingTests
             Assert.AreEqual(wonders[seat], r.Wonder + r.Side);
             Assert.IsTrue(r.Side == "A" || r.Side == "B");
         }
+
         Assert.AreEqual("RandomChoiceAI", results[0].Agent);
         Assert.AreEqual("HeuristicAI", results[1].Agent);
-        Assert.AreEqual(1.0, results.Sum(r => r.WinShare), 1e-9, "win shares add up to 1");
-        Assert.IsTrue(results.Any(r => r.Rank == 1));
+        Assert.AreEqual(1.0, results.Sum(result => result.WinShare), 1e-9, "win shares add up to 1");
+        Assert.IsTrue(results.Any(result => result.Rank == 1));
     }
 
     [TestMethod]
@@ -73,12 +78,23 @@ public class ResultsLoggingTests
     [TestMethod]
     public void FormatRow_QuotesJsonAndUsesInvariantNumbers()
     {
-        var seat = new SeatResult(2, "SomeAgent", "{\"c\":1.5,\"n\":2}", "Gizah", "B", 51, 7, 1, 0.5, "{\"searches\":3,\"iterations\":30}");
+        var seat = new SeatResult(
+            2,
+            "SomeAgent",
+            "{\"c\":1.5,\"n\":2}",
+            "Gizah",
+            "B",
+            51,
+            7,
+            1,
+            0.5,
+            "{\"searches\":3,\"iterations\":30}");
 
         string row = ResultsCsvWriter.FormatRow("run1", 4, 1, 18446744073709551615UL, seat);
 
-        Assert.AreEqual("run1,4,1,18446744073709551615,2,SomeAgent,\"{\"\"c\"\":1.5,\"\"n\"\":2}\",Gizah,B,51,7,1,0.5," +
-                        "\"{\"\"searches\"\":3,\"\"iterations\"\":30}\"", row);
+        string expected = "run1,4,1,18446744073709551615,2,SomeAgent,\"{\"\"c\"\":1.5,\"\"n\"\":2}\"," +
+                          "Gizah,B,51,7,1,0.5,\"{\"\"searches\"\":3,\"\"iterations\"\":30}\"";
+        Assert.AreEqual(expected, row);
     }
 
     [TestMethod]
@@ -88,15 +104,20 @@ public class ResultsLoggingTests
         SeatResult[] game = Seats(3);
 
         using (var w = new ResultsCsvWriter(path))
+        {
             w.WriteGame("runA", 0, 0, 11, game);
+        }
+
         using (var w = new ResultsCsvWriter(path))
+        {
             w.WriteGame("runB", 0, 0, 12, game);
+        }
 
         string[] lines = File.ReadAllLines(path);
         Assert.AreEqual(ResultsCsvWriter.Header, lines[0]);
         Assert.AreEqual(1 + 6, lines.Length);
-        Assert.AreEqual(3, lines.Count(l => l.StartsWith("runA,")));
-        Assert.AreEqual(3, lines.Count(l => l.StartsWith("runB,")));
+        Assert.AreEqual(3, lines.Count(line => line.StartsWith("runA,")));
+        Assert.AreEqual(3, lines.Count(line => line.StartsWith("runB,")));
     }
 
     [TestMethod]
@@ -113,17 +134,22 @@ public class ResultsLoggingTests
     {
         string path = Path.Combine(_dir, "parallel.csv");
         using (var w = new ResultsCsvWriter(path))
-            Parallel.For(0, 200, i => w.WriteGame("run", i, i, (ulong)i, Seats(3)));
+        {
+            ParallelGameWriter gameWriter = new ParallelGameWriter(w);
+            Parallel.For(0, 200, gameWriter.WriteGame);
+        }
 
-        var rows = File.ReadAllLines(path).Skip(1).Select(l => l.Split(',')).ToList();
+        var rows = File.ReadAllLines(path).Skip(1).Select(line => line.Split(',')).ToList();
         Assert.AreEqual(600, rows.Count);
-        Assert.IsTrue(rows.All(r => r.Length == ResultsCsvWriter.Columns.Length));
+        Assert.IsTrue(rows.All(row => row.Length == ResultsCsvWriter.Columns.Length));
         // a game's 3 rows are written together
         for (int k = 0; k < rows.Count; k += 3)
         {
-            Assert.AreEqual(rows[k][1], rows[k + 1][1]);
-            Assert.AreEqual(rows[k][1], rows[k + 2][1]);
-            CollectionAssert.AreEqual(new[] { "0", "1", "2" }, rows.Skip(k).Take(3).Select(r => r[4]).ToArray());
+            int secondRowIndex = k + 1;
+            int thirdRowIndex = k + 2;
+            Assert.AreEqual(rows[k][1], rows[secondRowIndex][1]);
+            Assert.AreEqual(rows[k][1], rows[thirdRowIndex][1]);
+            CollectionAssert.AreEqual(new[] { "0", "1", "2" }, rows.Skip(k).Take(3).Select(row => row[4]).ToArray());
         }
     }
 
@@ -138,8 +164,24 @@ public class ResultsLoggingTests
         return game;
     }
 
-    private static SeatResult[] Seats(int n) =>
-        Enumerable.Range(0, n)
-            .Select(s => new SeatResult(s, "RandomChoiceAI", "{}", "Rhodos", "A", 40 + s, 3, n - s, s == n - 1 ? 1 : 0))
-            .ToArray();
+    /// <summary>A made-up game's results for <paramref name="n"/> seats; the last seat wins.</summary>
+    internal static SeatResult[] Seats(int n)
+    {
+        SeatResult[] seats = new SeatResult[n];
+        int lastSeat = n - 1;
+        for (int seat = 0; seat < n; seat++)
+        {
+            int victoryPoints = 40 + seat;
+            int rank = n - seat;
+            double winShare = 0;
+            if (seat == lastSeat)
+            {
+                winShare = 1;
+            }
+
+            seats[seat] = new SeatResult(seat, "RandomChoiceAI", "{}", "Rhodos", "A", victoryPoints, 3, rank, winShare);
+        }
+
+        return seats;
+    }
 }

@@ -100,7 +100,14 @@ public class WonderDataTests
     [DataRow("HalikarnassosB", 1, "2 Ore",      2, 0, 0, "BuildFromDiscard")]
     [DataRow("HalikarnassosB", 2, "3 Clay",     1, 0, 0, "BuildFromDiscard")]
     [DataRow("HalikarnassosB", 3, "Glass, Papyrus, Loom", 0, 0, 0, "BuildFromDiscard")]
-    public void Stage_MatchesRulebook(string wonder, int stage, string cost, int vp, int coins, int shields, string effect)
+    public void Stage_MatchesRulebook(
+        string wonder,
+        int stage,
+        string cost,
+        int vp,
+        int coins,
+        int shields,
+        string effect)
     {
         PlayerState player = SetUpPlayer(wonder);
         for (int s = 1; s < stage; s++)
@@ -108,26 +115,11 @@ public class WonderDataTests
             GiveResources(player, 10);
             Assert.IsTrue(player.Board.AddStage(player), $"building earlier stage {s}");
         }
+
         int builtStages = stage - 1;
         Dictionary<Resource, int> costDict = ParseCost(cost);
 
-        // Exactly the rulebook cost is enough (no coins, so nothing can be bought).
-        SetResources(player, costDict);
-        Assert.IsTrue(player.CanBuildWonder(), "exact cost should be enough");
-
-        // One less of any resource is not enough, unless the board's own wildcard covers it.
-        foreach (Resource r in costDict.Keys)
-        {
-            bool wildcardCovers =
-                Raw.Contains(r) && (wonder == "AlexandriaA" && builtStages >= 2 || wonder == "AlexandriaB" && builtStages >= 1) ||
-                Manufactured.Contains(r) && wonder == "AlexandriaB" && builtStages >= 2;
-            if (wildcardCovers) continue;
-
-            var lessOne = new Dictionary<Resource, int>(costDict);
-            lessOne[r]--;
-            SetResources(player, lessOne);
-            Assert.IsFalse(player.CanBuildWonder(), $"one {r} short should not be enough");
-        }
+        CheckExactlyTheCostIsEnough(player, wonder, builtStages, costDict);
 
         // Build it and check the rewards.
         SetResources(player, costDict);
@@ -145,23 +137,79 @@ public class WonderDataTests
         Assert.AreEqual(shields, player.Resources[Resource.Shields] - shieldsBefore, "shields");
 
         Ability gained = player.Board.Abilities & ~abilitiesBefore;
+        CheckEffect(player, effect, gained, scienceBefore);
+    }
+
+    // ===== helpers =====
+
+    /// <summary>
+    /// Exactly the rulebook cost is enough (no coins, so nothing can be bought), and one less of any resource is
+    /// not, unless the board's own wildcard covers it.
+    /// </summary>
+    private static void CheckExactlyTheCostIsEnough(
+        PlayerState player,
+        string wonder,
+        int builtStages,
+        Dictionary<Resource, int> costDict)
+    {
+        SetResources(player, costDict);
+        Assert.IsTrue(player.CanBuildWonder(), "exact cost should be enough");
+
+        foreach (Resource r in costDict.Keys)
+        {
+            if (WildcardCovers(r, wonder, builtStages))
+            {
+                continue;
+            }
+
+            var lessOne = new Dictionary<Resource, int>(costDict);
+            lessOne[r]--;
+            SetResources(player, lessOne);
+            Assert.IsFalse(player.CanBuildWonder(), $"one {r} short should not be enough");
+        }
+    }
+
+    // Alexandria A's stage 2 makes any raw resource; Alexandria B's stage 1 any raw, its stage 2 any manufactured
+    private static bool WildcardCovers(Resource resource, string wonder, int builtStages)
+    {
+        bool anyRaw = wonder == "AlexandriaA" && builtStages >= 2 || wonder == "AlexandriaB" && builtStages >= 1;
+        bool anyManufactured = wonder == "AlexandriaB" && builtStages >= 2;
+        return Raw.Contains(resource) && anyRaw || Manufactured.Contains(resource) && anyManufactured;
+    }
+
+    /// <summary>The stage gave exactly the <paramref name="effect"/> named in the row, and nothing else.</summary>
+    private static void CheckEffect(PlayerState player, string effect, Ability gained, int scienceBefore)
+    {
+        bool freeBuild = player.FreeCardOnce && gained.HasFlag(Ability.FreeCardEachEra);
+        int expectedScienceGain = 0;
+        if (effect == "ScienceWildcard")
+        {
+            expectedScienceGain = 1;
+        }
+
         Assert.AreEqual(effect == "PlaySeventh", gained.HasFlag(Ability.PlaySeventh), "play seventh card");
-        Assert.AreEqual(effect == "FreeBuildOncePerAge", player.FreeCardOnce && gained.HasFlag(Ability.FreeCardEachEra), "free build once per age");
+        Assert.AreEqual(effect == "FreeBuildOncePerAge", freeBuild, "free build once per age");
         Assert.AreEqual(effect == "BuildFromDiscard", player.DiscardFree, "build from discard");
         Assert.AreEqual(effect == "RawTradingDiscount", gained.HasFlag(Ability.WonderRawCheap), "raw trading discount");
         Assert.AreEqual(effect == "RawWildcard", gained.HasFlag(Ability.AnyRaw), "raw wildcard");
-        Assert.AreEqual(effect == "ManufacturedWildcard", gained.HasFlag(Ability.AnyManufactured), "manufactured wildcard");
+        Assert.AreEqual(
+            effect == "ManufacturedWildcard",
+            gained.HasFlag(Ability.AnyManufactured),
+            "manufactured wildcard");
         Assert.AreEqual(effect == "CopyGuild", gained.HasFlag(Ability.CopyGuild), "copy a guild");
-        Assert.AreEqual(effect == "ScienceWildcard" ? 1 : 0, player.CalculateScientificScore() - scienceBefore, "science wildcard");
+        Assert.AreEqual(
+            expectedScienceGain,
+            player.CalculateScientificScore() - scienceBefore,
+            "science wildcard");
 
-        if (effect == "RawWildcard" || effect == "ManufacturedWildcard")
+        if (effect == "RawWildcard")
         {
-            Resource[] covered = effect == "RawWildcard" ? Raw : Manufactured;
-            foreach (Resource r in covered)
-            {
-                SetResources(player, new Dictionary<Resource, int>());
-                Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(player, new Dictionary<Resource, int> { { r, 1 } }), $"wildcard gives {r}");
-            }
+            CheckWildcardGivesEach(player, Raw);
+        }
+
+        if (effect == "ManufacturedWildcard")
+        {
+            CheckWildcardGivesEach(player, Manufactured);
         }
 
         if (effect == "CopyGuild")
@@ -173,23 +221,44 @@ public class WonderDataTests
         }
     }
 
-    // ===== helpers =====
+    private static void CheckWildcardGivesEach(PlayerState player, Resource[] covered)
+    {
+        foreach (Resource r in covered)
+        {
+            SetResources(player, new Dictionary<Resource, int>());
+            Dictionary<Resource, int> oneOfIt = new Dictionary<Resource, int> { { r, 1 } };
+            Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(player, oneOfIt), $"wildcard gives {r}");
+        }
+    }
 
-    private static Wonder CreateWonder(string name) => new Wonder(Enum.Parse<WonderId>(name));
+    private static Wonder CreateWonder(string name)
+    {
+        return new Wonder(Enum.Parse<WonderId>(name));
+    }
 
     private static PlayerState SetUpPlayer(string wonder)
     {
-        List<PlayerState> players = MockHelper.MockPlayers(
-            new List<Wonder> { CreateWonder(wonder), new Wonder(WonderId.GizahA), new Wonder(WonderId.GizahA) });
+        List<Wonder> wonders = new List<Wonder>
+        {
+            CreateWonder(wonder),
+            new Wonder(WonderId.GizahA),
+            new Wonder(WonderId.GizahA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState p in players)
+        {
             p.Resources[Resource.Coins] = 0;
+        }
+
         return players[0];
     }
 
     private static void GiveResources(PlayerState player, int amount)
     {
         foreach (Resource r in Raw.Concat(Manufactured))
+        {
             player.Resources[r] = amount;
+        }
     }
 
     /// <summary>Sets raw and manufactured resources to exactly these amounts, and coins to 0.</summary>
@@ -197,19 +266,30 @@ public class WonderDataTests
     {
         GiveResources(player, 0);
         foreach (var kvp in amounts)
+        {
             player.Resources[kvp.Key] = kvp.Value;
+        }
+
         player.Resources[Resource.Coins] = 0;
     }
 
+    // "2 Wood" or "Glass": an amount (1 if left out), then the resource
     private static Dictionary<Resource, int> ParseCost(string cost)
     {
         var result = new Dictionary<Resource, int>();
         foreach (string part in cost.Split(", "))
         {
             string[] words = part.Split(' ');
-            int amount = words.Length == 2 ? int.Parse(words[0]) : 1;
-            result[Enum.Parse<Resource>(words[^1])] = amount;
+            int amount = 1;
+            if (words.Length == 2)
+            {
+                amount = int.Parse(words[0]);
+            }
+
+            string resourceName = words.Last();
+            result[Enum.Parse<Resource>(resourceName)] = amount;
         }
+
         return result;
     }
 }

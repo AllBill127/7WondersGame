@@ -18,24 +18,36 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Agents.Heuristic;
 
-/// <summary>G: the new heuristic agent and its weights (the R10 fixes).</summary>
+/// <summary>The heuristic agent and its weights, and the mistakes the old heuristic made.</summary>
 [TestClass]
 public class HeuristicAITests
 {
-    private static Card C(CardId id) => CardsDataset.GameCards[id];
+    private static Card C(CardId id)
+    {
+        return CardsDataset.GameCards[id];
+    }
 
     /// <summary>Three players, seated in this order, each with its board's resource.</summary>
     private static List<PlayerState> Table(WonderId me, WonderId east, WonderId west)
     {
         // MockPlayers seats them in a ring: seat 0's east is seat 1, its west seat 2
-        List<PlayerState> players = MockHelper.MockPlayers(new List<Wonder> { new Wonder(me), new Wonder(east), new Wonder(west) });
+        List<Wonder> wonders = new List<Wonder> { new Wonder(me), new Wonder(east), new Wonder(west) };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
         foreach (PlayerState p in players)
+        {
             p.Resources[p.Board.Production] += 1;
+        }
+
         return players;
     }
 
-    /// <summary>Weights without denial and the era 1 civilian penalty, so a card's worth is just its points and bonuses.</summary>
-    private static HeuristicAI Plain() => new() { Weights = new HeuristicWeights { Denial = 0, CivilianEra1 = 0 } };
+    /// <summary>
+    /// Weights without denial and the era 1 civilian penalty, so a card's worth is just its points and bonuses.
+    /// </summary>
+    private static HeuristicAI Plain()
+    {
+        return new HeuristicAI { Weights = new HeuristicWeights { Denial = 0, CivilianEra1 = 0 } };
+    }
 
     private static Command ChooseEra1(HeuristicAI agent, PlayerState me, params CardId[] hand)
     {
@@ -54,10 +66,12 @@ public class HeuristicAITests
     {
         for (int g = 0; g < 3; g++)
         {
-            var game = new Game(Seeding.GameSeed(77, players * 10 + g))
+            var game = new Game(Seeding.GameSeed(77, players * 10 + g));
+            for (int seat = 0; seat < players; seat++)
             {
-                Agents = Enumerable.Range(0, players).Select(_ => (IAgent)new HeuristicAI()).ToList(),
-            };
+                game.Agents.Add(new HeuristicAI());
+            }
+
             game.InitGame();
 
             while (game.Phase != Phase.GameOver)
@@ -76,18 +90,29 @@ public class HeuristicAITests
                     CollectionAssert.Contains(game.LegalMoves(seat), fromView, $"seat {seat}, turn {game.Turn}");
                     moves.Add((seat, fromView));
                 }
+
                 foreach (var (seat, move) in moves)
+                {
                     game.Submit(seat, move);
+                }
             }
         }
     }
 
-    private static string Snapshot(Game game) =>
-        string.Join(" | ", game.Players.Select(p =>
-            $"{p.Id}: {string.Join(",", p.Resources.Select(r => r.Value))} {p.Board.Stage} {p.Abilities} " +
-            $"{p.FreeCardOnce} {p.DiscardFree} {p.VictoryTokens}/{p.DefeatTokens} " +
-            $"[{string.Join(",", p.HandCards.Select(c => c.Id))}] [{string.Join(",", p.PlayedCards.Select(c => c.Id))}]"))
-        + $" discarded={game.DiscardedCards.Count}";
+    private static string Snapshot(Game game)
+    {
+        return string.Join(" | ", game.Players.Select(PlayerSnapshot)) + $" discarded={game.DiscardedCards.Count}";
+    }
+
+    private static string PlayerSnapshot(PlayerState p)
+    {
+        string resources = string.Join(",", p.Resources.Select(resource => resource.Value));
+        string handCards = string.Join(",", p.HandCards.Select(card => card.Id));
+        string playedCards = string.Join(",", p.PlayedCards.Select(card => card.Id));
+        return $"{p.Id}: {resources} {p.Board.Stage} {p.Abilities} " +
+               $"{p.FreeCardOnce} {p.DiscardFree} {p.VictoryTokens}/{p.DefeatTokens} " +
+               $"[{handCards}] [{playedCards}]";
+    }
 
     // =========== settings ===========
 
@@ -116,7 +141,7 @@ public class HeuristicAITests
         Assert.AreNotEqual(0.2, fresh.Weights.CoinValue);
     }
 
-    // =========== R10 fixes ===========
+    // =========== the old heuristic's mistakes ===========
 
     [TestMethod]
     public void Marketplace_CountsEachNeighboursOwnBoard()

@@ -8,6 +8,7 @@ using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Engine.Games;
 
+/// <summary>Passing the hands round the table.</summary>
 [TestClass]
 public class RotateHandCardsTests
 {
@@ -36,9 +37,9 @@ public class RotateHandCardsTests
         testGame.Players[2].HandCards.Add(CardsDataset.GameCards[CardId.School]);
 
         // Expected results
-        List<Card> expP0cards = testGame.Players[1].HandCards.Select(e => e).ToList();
-        List<Card> expP1cards = testGame.Players[2].HandCards.Select(e => e).ToList();
-        List<Card> expP2cards = testGame.Players[0].HandCards.Select(e => e).ToList();
+        List<Card> expP0cards = new List<Card>(testGame.Players[1].HandCards);
+        List<Card> expP1cards = new List<Card>(testGame.Players[2].HandCards);
+        List<Card> expP2cards = new List<Card>(testGame.Players[0].HandCards);
 
         // Test
         testGame.RotateHandCards();

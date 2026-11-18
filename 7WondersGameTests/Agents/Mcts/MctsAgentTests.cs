@@ -1,4 +1,5 @@
-﻿using _7WondersGame.Agents.Common.Entities;
+﻿using System.Text.Json;
+using _7WondersGame.Agents.Common.Entities;
 using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Common.Settings;
 using _7WondersGame.Agents.Heuristic;
@@ -11,16 +12,20 @@ using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
 using _7WondersGame.Engine.Moves.Dtos;
+using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 
 namespace _7WondersGameTests.Agents.Mcts;
 
-/// <summary>Step 6 (E + D1): the configurable MCTS agent.</summary>
+/// <summary>The configurable MCTS agent.</summary>
 [TestClass]
 public class MctsAgentTests
 {
-    internal static MctsAgent Mcts(string settings = "") =>
-        (MctsAgent)AgentCatalog.Create(AgentSpec.Parse("MctsAgent" + settings));
+    /// <summary>An MctsAgent from the catalog, with the settings text as on the command line (":n=40").</summary>
+    internal static MctsAgent Mcts(string settings = "")
+    {
+        return (MctsAgent)AgentCatalog.Create(AgentSpec.Parse("MctsAgent" + settings));
+    }
 
     private static Game NewGame(ulong seed, params IAgent[] agents)
     {
@@ -29,8 +34,15 @@ public class MctsAgentTests
         return game;
     }
 
-    private static string Outcome(Game game) =>
-        string.Join(" | ", game.Players.Select(p => $"{p.VictoryPoints} {string.Join(",", p.PlayedCards.Select(c => c.Id))}"));
+    private static string Outcome(Game game)
+    {
+        return string.Join(" | ", game.Players.Select(PlayerOutcome));
+    }
+
+    private static string PlayerOutcome(PlayerState player)
+    {
+        return $"{player.VictoryPoints} {string.Join(",", player.PlayedCards.Select(card => card.Id))}";
+    }
 
     // every value of every setting, each in a short game (the other settings at their defaults)
     [DataTestMethod]
@@ -60,8 +72,19 @@ public class MctsAgentTests
     {
         foreach (int players in new[] { 3, 4 })
         {
-            IAgent[] agents = Enumerable.Range(0, players)
-                .Select(s => s == 1 ? Mcts(":n=10" + settings) : (IAgent)new HeuristicAI()).ToArray();
+            IAgent[] agents = new IAgent[players];
+            for (int seat = 0; seat < players; seat++)
+            {
+                if (seat == 1)
+                {
+                    agents[seat] = Mcts(":n=10" + settings);
+                }
+                else
+                {
+                    agents[seat] = new HeuristicAI();
+                }
+            }
+
             Game game = NewGame(Seeding.GameSeed(5, players), agents);
             // a move the rules don't allow would throw
             game.Loop(record: true);
@@ -73,25 +96,31 @@ public class MctsAgentTests
     [TestMethod]
     public void TheSameSeed_GivesTheSameGame()
     {
-        string Play()
-        {
-            Game game = NewGame(77, new HeuristicAI(), Mcts(":n=15"), Mcts(":n=15:Tree=Duct"));
-            game.Loop();
-            return Outcome(game);
-        }
-        Assert.AreEqual(Play(), Play());
+        Assert.AreEqual(PlayTwoSearchers(), PlayTwoSearchers());
+    }
+
+    private static string PlayTwoSearchers()
+    {
+        Game game = NewGame(77, new HeuristicAI(), Mcts(":n=15"), Mcts(":n=15:Tree=Duct"));
+        game.Loop();
+        return Outcome(game);
     }
 
     [TestMethod]
     public void ASearch_ChangesNothing()
     {
         Game game = NewGame(3, new HeuristicAI(), new HeuristicAI(), new HeuristicAI());
-        string before = Outcome(game) + string.Join(",", game.Players.SelectMany(p => p.HandCards).Select(c => c.Id));
+        string before = Outcome(game) + AllHandsText(game);
 
         Command move = Mcts(":n=50").Choose(new GameView(game, 0));
 
         CollectionAssert.Contains(game.LegalMoves(0), move);
-        Assert.AreEqual(before, Outcome(game) + string.Join(",", game.Players.SelectMany(p => p.HandCards).Select(c => c.Id)));
+        Assert.AreEqual(before, Outcome(game) + AllHandsText(game));
+    }
+
+    private static string AllHandsText(Game game)
+    {
+        return string.Join(",", game.Players.SelectMany(player => player.HandCards).Select(card => card.Id));
     }
 
     [TestMethod]
@@ -100,22 +129,34 @@ public class MctsAgentTests
         // two deals that differ only in what seat 0 can't see: the other hands and the later decks
         var deal = new Game(11) { Agents = { new HeuristicAI(), new HeuristicAI(), new HeuristicAI() } };
         deal.InitGame();
-        List<int> Ids(IEnumerable<Card> cards) => cards.Select(c => (int)c.Id).ToList();
-        List<int> wonders = deal.Players.Select(p => (int)p.Board.Id).ToList();
-        List<int> era1 = Ids(deal.Decks[0]);
-        List<int> swapped = era1.Take(7).Concat(era1.Skip(14).Take(7)).Concat(era1.Skip(7).Take(7)).ToList();
-        var first = new[] { era1, Ids(deal.Decks[1]), Ids(deal.Decks[2]), wonders };
-        var second = new[] { swapped, Ids(deal.Decks[1].AsEnumerable().Reverse()), Ids(deal.Decks[2].AsEnumerable().Reverse()), wonders };
+        List<int> wonders = deal.Players.Select(player => (int)player.Board.Id).ToList();
+        List<int> era1 = CardIds(deal.Decks[0]);
+        // the first seven cards (seat 0's hand) stay; the other two hands change places
+        List<int> swapped = era1
+            .Take(7)
+            .Concat(era1.Skip(14).Take(7))
+            .Concat(era1.Skip(7).Take(7))
+            .ToList();
+        List<int> era2Reversed = CardIds(deal.Decks[1].AsEnumerable().Reverse());
+        List<int> era3Reversed = CardIds(deal.Decks[2].AsEnumerable().Reverse());
+        var first = new[] { era1, CardIds(deal.Decks[1]), CardIds(deal.Decks[2]), wonders };
+        var second = new[] { swapped, era2Reversed, era3Reversed, wonders };
 
-        Command Search(List<int>[] dataset, string settings)
-        {
-            var game = new Game(11) { Agents = { new HeuristicAI(), new HeuristicAI(), new HeuristicAI() } };
-            game.InitGameNotRandom(dataset);
-            return Mcts(":n=200" + settings).Choose(new GameView(game, 0));
-        }
+        Assert.AreEqual(SearchFromDeal(first, ""), SearchFromDeal(second, ""));
+        Assert.AreEqual(SearchFromDeal(first, ":Tree=Duct"), SearchFromDeal(second, ":Tree=Duct"));
+    }
 
-        Assert.AreEqual(Search(first, ""), Search(second, ""));
-        Assert.AreEqual(Search(first, ":Tree=Duct"), Search(second, ":Tree=Duct"));
+    private static List<int> CardIds(IEnumerable<Card> cards)
+    {
+        return cards.Select(card => (int)card.Id).ToList();
+    }
+
+    // seat 0's first choice in a game dealt from the dataset deal
+    private static Command SearchFromDeal(List<int>[] dataset, string settings)
+    {
+        var game = new Game(11) { Agents = { new HeuristicAI(), new HeuristicAI(), new HeuristicAI() } };
+        game.InitGameNotRandom(dataset);
+        return Mcts(":n=200" + settings).Choose(new GameView(game, 0));
     }
 
     [TestMethod]
@@ -144,7 +185,7 @@ public class MctsAgentTests
         Game game = NewGame(9, Mcts(":n=25"), new HeuristicAI(), new HeuristicAI());
         game.Loop(record: true);
 
-        var stats = System.Text.Json.JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+        var stats = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
         int searches = stats.GetProperty("searches").GetInt32();
         Assert.IsTrue(searches >= 15, game.Results[0].StatsJson);
         Assert.AreEqual(25L * searches, stats.GetProperty("iterations").GetInt64());
@@ -158,15 +199,17 @@ public class MctsAgentTests
     [DataRow("Leaf")]
     public void RootAndLeaf_PlayTheSameWithOrWithoutThreads(string variant)
     {
-        string Play(string threads)
-        {
-            Game game = NewGame(31, Mcts($":n=40:Parallel={variant}:Workers=4{threads}"), new HeuristicAI(), new HeuristicAI());
-            game.Loop();
-            return Outcome(game);
-        }
-        string withThreads = Play("");
-        Assert.AreEqual(withThreads, Play(""));
-        Assert.AreEqual(withThreads, Play(":Threads=1"));
+        string withThreads = PlayFourWorkers(variant, "");
+        Assert.AreEqual(withThreads, PlayFourWorkers(variant, ""));
+        Assert.AreEqual(withThreads, PlayFourWorkers(variant, ":Threads=1"));
+    }
+
+    private static string PlayFourWorkers(string variant, string threads)
+    {
+        MctsAgent searcher = Mcts($":n=40:Parallel={variant}:Workers=4{threads}");
+        Game game = NewGame(31, searcher, new HeuristicAI(), new HeuristicAI());
+        game.Loop();
+        return Outcome(game);
     }
 
     [DataTestMethod]
@@ -176,10 +219,11 @@ public class MctsAgentTests
     [DataRow("Root", 1)]
     public void AParallelSearch_MakesItsIterations(string variant, int workers)
     {
-        Game game = NewGame(9, Mcts($":n=40:Parallel={variant}:Workers={workers}"), new HeuristicAI(), new HeuristicAI());
+        MctsAgent searcher = Mcts($":n=40:Parallel={variant}:Workers={workers}");
+        Game game = NewGame(9, searcher, new HeuristicAI(), new HeuristicAI());
         game.Loop(record: true);
 
-        var stats = System.Text.Json.JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
+        var stats = JsonDocument.Parse(game.Results![0].StatsJson).RootElement;
         int searches = stats.GetProperty("searches").GetInt32();
         Assert.AreEqual(40L * searches, stats.GetProperty("iterations").GetInt64(), game.Results[0].StatsJson);
         // one worker is the plain search, with the plain stats
@@ -189,15 +233,16 @@ public class MctsAgentTests
     [TestMethod]
     public void OneWorker_IsThePlainSearch()
     {
-        string Play(string settings)
-        {
-            Game game = NewGame(44, Mcts(":n=30" + settings), new HeuristicAI(), new HeuristicAI());
-            game.Loop();
-            return Outcome(game);
-        }
-        string plain = Play("");
-        Assert.AreEqual(plain, Play(":Parallel=Root:Workers=1"));
-        Assert.AreEqual(plain, Play(":Parallel=Tree:Workers=1"));
+        string plain = PlayThirtyIterations("");
+        Assert.AreEqual(plain, PlayThirtyIterations(":Parallel=Root:Workers=1"));
+        Assert.AreEqual(plain, PlayThirtyIterations(":Parallel=Tree:Workers=1"));
+    }
+
+    private static string PlayThirtyIterations(string settings)
+    {
+        Game game = NewGame(44, Mcts(":n=30" + settings), new HeuristicAI(), new HeuristicAI());
+        game.Loop();
+        return Outcome(game);
     }
 
     [TestMethod]
@@ -208,7 +253,9 @@ public class MctsAgentTests
         Assert.IsFalse(((IAgent)new HeuristicAI()).UsesClock);
     }
 
-    /// <summary>A sanity check (a sign error in the tree policy would fail it); strength is measured in experiments.</summary>
+    /// <summary>
+    /// A sanity check (a sign error in the tree policy would fail it); strength is measured in experiments.
+    /// </summary>
     [TestMethod]
     public void AgainstRandomPlayers_ItScoresMore()
     {
@@ -218,8 +265,11 @@ public class MctsAgentTests
             Game game = NewGame(Seeding.GameSeed(21, g), Mcts(":n=30"), new RandomChoiceAI(), new RandomChoiceAI());
             game.Loop();
             for (int s = 0; s < 3; s++)
+            {
                 vp[s] += game.Players[s].VictoryPoints / 4.0;
+            }
         }
+
         Assert.IsTrue(vp[0] > Math.Max(vp[1], vp[2]) + 5, $"average VP {string.Join(", ", vp)}");
     }
 }
