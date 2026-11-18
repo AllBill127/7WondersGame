@@ -20,6 +20,8 @@ public static class PaymentPlanner
 {
     // One search per thread, reused: planning runs for every card a heuristic looks at (thousands of times a
     // second in a search's rollouts), and a new one each time was a large share of what a rollout allocates.
+    // It is made on first use in each thread: a [ThreadStatic] field's initializer runs only on the first thread,
+    // so on every other thread the field would start out null.
     [ThreadStatic] private static PaymentSearch? _search;
 
     /// <summary>

@@ -28,14 +28,34 @@ public static class Seeding
     }
 
     /// <summary>The index-th output (counting from 0) of a SplitMix64 generator started at seed.</summary>
-    public static ulong Nth(ulong seed, ulong index) => unchecked(Mix(seed + (index + 1) * Golden));
+    public static ulong Nth(ulong seed, ulong index)
+    {
+        unchecked
+        {
+            ulong position = index + 1;
+            return Mix(seed + position * Golden);
+        }
+    }
 
     /// <summary>Seed of game number gameIndex in a run.</summary>
-    public static ulong GameSeed(ulong runSeed, long gameIndex) => Nth(runSeed, (ulong)gameIndex);
+    public static ulong GameSeed(ulong runSeed, long gameIndex)
+    {
+        return Nth(runSeed, (ulong)gameIndex);
+    }
 
     /// <summary>Seed of the random stream a game gives to the player in this seat.</summary>
-    public static ulong AgentSeed(ulong gameSeed, int seat) => Nth(gameSeed, AgentStreamBase + (ulong)seat);
+    public static ulong AgentSeed(ulong gameSeed, int seat)
+    {
+        return Nth(gameSeed, AgentStreamBase + (ulong)seat);
+    }
 
     /// <summary>The only place a Random is created.</summary>
-    public static Random CreateRandom(ulong seed) => new Random(unchecked((int)(seed >> 32)));
+    public static Random CreateRandom(ulong seed)
+    {
+        unchecked
+        {
+            int randomSeed = (int)(seed >> 32);
+            return new Random(randomSeed);
+        }
+    }
 }

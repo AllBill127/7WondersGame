@@ -30,6 +30,8 @@ public sealed class HeuristicValues
     private CardId[] _gainIds = new CardId[8];
     private double[] _gains = new double[8];
     private int _gainCount;
+    // the next player's values, made the first time a card's gain for them is asked for: most hands never ask,
+    // and a decision is made in every rollout step, so making it up front would allocate for nothing
     private HeuristicValues? _next;
     // the copy each try is made on, reset to the player first
     private PlayerState? _scratch;
