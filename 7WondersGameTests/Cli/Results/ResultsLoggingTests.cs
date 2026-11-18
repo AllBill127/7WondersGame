@@ -103,14 +103,14 @@ public class ResultsLoggingTests
         string path = Path.Combine(_directory, "sub", "results.csv");
         SeatResult[] game = Seats(3);
 
-        using (var w = new ResultsCsvWriter(path))
+        using (var writer = new ResultsCsvWriter(path))
         {
-            w.WriteGame("runA", 0, 0, 11, game);
+            writer.WriteGame("runA", 0, 0, 11, game);
         }
 
-        using (var w = new ResultsCsvWriter(path))
+        using (var writer = new ResultsCsvWriter(path))
         {
-            w.WriteGame("runB", 0, 0, 12, game);
+            writer.WriteGame("runB", 0, 0, 12, game);
         }
 
         string[] lines = File.ReadAllLines(path);
@@ -133,9 +133,9 @@ public class ResultsLoggingTests
     public void Writer_KeepsEachGamesRowsWholeUnderParallelWrites()
     {
         string path = Path.Combine(_directory, "parallel.csv");
-        using (var w = new ResultsCsvWriter(path))
+        using (var writer = new ResultsCsvWriter(path))
         {
-            ParallelGameWriter gameWriter = new ParallelGameWriter(w);
+            ParallelGameWriter gameWriter = new ParallelGameWriter(writer);
             Parallel.For(0, 200, gameWriter.WriteGame);
         }
 

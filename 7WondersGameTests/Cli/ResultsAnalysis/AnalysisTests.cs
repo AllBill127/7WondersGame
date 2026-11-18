@@ -122,11 +122,11 @@ public class AnalysisTests
         };
         List<GroupStats> groups = Analysis.Groups(rows, GroupBy.Agent);
 
-        PairStats xy = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
+        PairStats pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
 
-        Assert.AreEqual(1, xy.Deals);
-        Assert.AreEqual(40 - 33, xy.VpDiff, 1e-12);
-        Assert.IsFalse(xy.VpDiffers, "one deal tells nothing about chance");
+        Assert.AreEqual(1, pair.Deals);
+        Assert.AreEqual(40 - 33, pair.VpDiff, 1e-12);
+        Assert.IsFalse(pair.VpDiffers, "one deal tells nothing about chance");
     }
 
     [TestMethod]

@@ -148,9 +148,9 @@ public class GetPlayableCardsTests
 
         // Evaluate
         bool canPlayCard;
-        for (int i = 0; i < players[1].HandCards.Count - 1; i++)
+        for (int cardIndex = 0; cardIndex < players[1].HandCards.Count - 1; cardIndex++)
         {
-            canPlayCard = playable1.Contains<Card>(players[1].HandCards[i]);
+            canPlayCard = playable1.Contains<Card>(players[1].HandCards[cardIndex]);
             Assert.IsTrue(canPlayCard);
         }
         // eval School card is unplayable

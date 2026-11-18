@@ -104,7 +104,7 @@ public class WonderDataTests
         string wonder,
         int stage,
         string cost,
-        int vp,
+        int victoryPoints,
         int coins,
         int shields,
         string effect)
@@ -123,7 +123,7 @@ public class WonderDataTests
 
         // Build it and check the rewards.
         SetResources(player, stageCost);
-        int vpBefore = player.Board.WonderPoints(player);
+        int victoryPointsBefore = player.Board.WonderPoints(player);
         int shieldsBefore = player.Resources[Resource.Shields];
         int scienceBefore = player.CalculateScientificScore();
         Ability abilitiesBefore = player.Board.Abilities;
@@ -132,7 +132,7 @@ public class WonderDataTests
 
         Assert.IsTrue(player.Board.AddStage(player), "build stage");
         Assert.AreEqual(stage, player.Board.Stage, "stage number");
-        Assert.AreEqual(vp, player.Board.WonderPoints(player) - vpBefore, "VP");
+        Assert.AreEqual(victoryPoints, player.Board.WonderPoints(player) - victoryPointsBefore, "VP");
         Assert.AreEqual(coins, player.Resources[Resource.Coins], "coins");
         Assert.AreEqual(shields, player.Resources[Resource.Shields] - shieldsBefore, "shields");
 

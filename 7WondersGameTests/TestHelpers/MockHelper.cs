@@ -43,10 +43,10 @@ internal class MockHelper
             players.Add(new PlayerState(seat) { Board = wonders[seat] });
         }
 
-        foreach (PlayerState p in players)
+        foreach (PlayerState player in players)
         {
-            p.PlayerWest = players[SeatToTheWest(p.Id, players.Count)];
-            p.PlayerEast = players[SeatToTheEast(p.Id, players.Count)];
+            player.PlayerWest = players[SeatToTheWest(player.Id, players.Count)];
+            player.PlayerEast = players[SeatToTheEast(player.Id, players.Count)];
         }
 
         return players;

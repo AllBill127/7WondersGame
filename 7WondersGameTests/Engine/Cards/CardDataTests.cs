@@ -195,10 +195,10 @@ public class CardDataTests
     [DataRow("Town Hall",   6)]
     [DataRow("Palace",      8)]
     [DataRow("Senate",      6)]
-    public void CivilianCard_GivesRulebookVP(string name, int vp)
+    public void CivilianCard_GivesRulebookVP(string name, int victoryPoints)
     {
         PlayerState player = BuildForFree(name);
-        Assert.AreEqual(vp, player.CalculateCivilianScore());
+        Assert.AreEqual(victoryPoints, player.CalculateCivilianScore());
     }
 
     [DataTestMethod]

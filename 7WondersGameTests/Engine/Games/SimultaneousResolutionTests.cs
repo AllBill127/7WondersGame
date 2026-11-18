@@ -32,9 +32,9 @@ public class SimultaneousResolutionTests
             new Wonder(WonderId.GizahA)
         };
         game.Players = MockHelper.MockPlayers(wonders);
-        foreach (PlayerState p in game.Players)
+        foreach (PlayerState player in game.Players)
         {
-            p.Resources[Resource.Coins] = 0;
+            player.Resources[Resource.Coins] = 0;
         }
 
         return game;
@@ -62,8 +62,8 @@ public class SimultaneousResolutionTests
         List<(PlayerState, Command, List<Card>)> moves = new List<(PlayerState, Command, List<Card>)>();
         foreach (int seat in seats)
         {
-            PlayerState p = game.Players[seat];
-            moves.Add((p, new Command(ActionType.Build, p.HandCards[0]), p.HandCards));
+            PlayerState player = game.Players[seat];
+            moves.Add((player, new Command(ActionType.Build, player.HandCards[0]), player.HandCards));
         }
 
         return moves;

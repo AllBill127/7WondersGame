@@ -73,8 +73,8 @@ public class KnowledgeTests
 
     private static bool SubsetOf(IEnumerable<Card> part, IEnumerable<Card> whole)
     {
-        var w = Count(whole);
-        return Count(part).All(cardCount => w.GetValueOrDefault(cardCount.Key) >= cardCount.Value);
+        var wholeCounts = Count(whole);
+        return Count(part).All(cardCount => wholeCounts.GetValueOrDefault(cardCount.Key) >= cardCount.Value);
     }
 
     private static bool SameCards(IEnumerable<Card> first, IEnumerable<Card> second)

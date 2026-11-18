@@ -26,10 +26,10 @@ public class SetupTests
             Game fromDataset = NewGame((ulong)repeat);
             fromDataset.InitGameNotRandom(dataset);
 
-            for (int i = 0; i < random.Players.Count; i++)
+            for (int seat = 0; seat < random.Players.Count; seat++)
             {
-                PlayerState expected = random.Players[i];
-                PlayerState actual = fromDataset.Players[i];
+                PlayerState expected = random.Players[seat];
+                PlayerState actual = fromDataset.Players[seat];
 
                 Assert.AreEqual(expected.Board.Id, actual.Board.Id, "wonder");
                 CollectionAssert.AreEquivalent(expected.Resources.ToList(), actual.Resources.ToList(), "resources");
@@ -58,7 +58,7 @@ public class SetupTests
     private static Game NewGame(ulong seed)
     {
         Game game = new Game(seed);
-        for (int i = 0; i < 3; i++)
+        for (int agentIndex = 0; agentIndex < 3; agentIndex++)
         {
             game.Agents.Add(new RandomChoiceAI());
         }
