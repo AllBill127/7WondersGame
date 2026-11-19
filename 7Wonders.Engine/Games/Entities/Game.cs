@@ -1,10 +1,11 @@
 ﻿using _7Wonders.Engine.Cards.Data;
 using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Enums;
-using _7Wonders.Engine.Cards.Services;
 using _7Wonders.Engine.Effects.Enums;
 using _7Wonders.Engine.Games.Dtos;
 using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Games.Events;
+using _7Wonders.Engine.Games.Interfaces;
 using _7Wonders.Engine.Games.Knowledge;
 using _7Wonders.Engine.Moves.Dtos;
 using _7Wonders.Engine.Moves.Enums;
@@ -14,9 +15,6 @@ using _7Wonders.Engine.Randomness.Services;
 using _7Wonders.Engine.Rules.Services;
 using _7Wonders.Engine.Wonders.Entities;
 using _7Wonders.Engine.Wonders.Enums;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
 
 namespace _7Wonders.Engine.Games.Entities;
 
@@ -90,19 +88,11 @@ public class Game
     }
 
     /// <summary>
-    /// Step-by-step trace of this game: Debug for the playout, Verbose for detail.
-    /// Silent unless the runner sets it. <see cref="DeepCopy"/> never copies it, so search copies and rollouts stay
-    /// silent. A trace line must not change the game: no pay-and-roll-back checks, no random draws.
+    /// Gets what the rules do in this game, event by event (e.g. a match that records the game). Null for none, and
+    /// then no event is built. <see cref="DeepCopy"/> never copies it, so search copies and rollouts raise nothing.
+    /// Building an event must not change the game: no pay-and-roll-back checks, no random draws.
     /// </summary>
-    public ILogger Trace { get; set; } = Logger.None;
-
-    private bool Tracing
-    {
-        get
-        {
-            return Trace.IsEnabled(LogEventLevel.Debug);
-        }
-    }
+    public IGameEventListener? EventListener { get; set; }
 
     /// <summary>
     /// A game whose random draws (deal, wonders, agents' choices) all come from <paramref name="seed"/>.
@@ -522,7 +512,10 @@ public class Game
         }
         else
         {
-            Trace.Debug("Seat {Seat} builds nothing from the discard pile", player.Seat);
+            if (EventListener != null)
+            {
+                EventListener.EventRaised(new DiscardPileBuildSkipped(player.Seat));
+            }
             player.HalikarnassosDiscardBuildPending = false;
         }
 
@@ -547,7 +540,10 @@ public class Game
             _knowledge.BuiltFromPile(card);
         }
 
-        Trace.Debug("Seat {Seat} builds {Card} from the discard pile", player.Seat, card.Name);
+        if (EventListener != null)
+        {
+            EventListener.EventRaised(new DiscardPileBuilt(player.Seat, card));
+        }
     }
 
     private void StartIfNeeded()
@@ -640,10 +636,9 @@ public class Game
             _knowledge.EraEndDiscards(Players);
         }
 
-        if (Tracing)
+        if (EventListener != null)
         {
-            IEnumerable<Card> lastCards = Players.SelectMany(player => player.Hand);
-            Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, CardNames.Join(lastCards));
+            RaiseEraEnded(EventListener);
         }
         // the cards leave the hands, so no card is in two places during a Halikarnassos build
         foreach (PlayerState player in Players)
@@ -684,27 +679,30 @@ public class Game
             player.OlympiaFreeBuildAvailable = PlayerAbilities.Has(player, Ability.OlympiaFreeBuildEachEra);
             Battles.FightEraBattles(player, Era);
         }
-        if (Tracing)
+        if (EventListener != null)
         {
             foreach (PlayerState player in Players)
             {
-                TraceBattle(player);
+                RaiseBattleFought(EventListener, player);
             }
         }
     }
 
     private void EndGame()
     {
-        Trace.Debug("=== Game over ===");
+        if (EventListener != null)
+        {
+            EventListener.EventRaised(new GameEnded());
+        }
         Phase = Phase.GameOver;
         Array.Clear(_waiting);
     }
 
     private void StartNextEra()
     {
-        if (Tracing)
+        if (EventListener != null)
         {
-            TraceEraStart();
+            RaiseEraStarted(EventListener);
         }
         GiveCards();
     }
@@ -712,12 +710,10 @@ public class Game
     private void PassHands()
     {
         RotateHandCards();
-        string direction = "east";
-        if (HandsPassWestThisEra())
+        if (EventListener != null)
         {
-            direction = "west";
+            EventListener.EventRaised(new HandsPassed(HandsPassWestThisEra()));
         }
-        Trace.Debug("Hands passed {Direction}", direction);
     }
 
     /// <summary>Eras I and III pass hands west, era II east.</summary>
@@ -769,11 +765,9 @@ public class Game
         {
             // Copies a neighbor guild before scoring if the player has the ability to do so.
             bool copied = GuildCopying.CopyBestNeighbourGuild(player);
-            if (copied && Tracing)
+            if (copied && EventListener != null)
             {
-                Trace.Debug("Seat {Seat} copies {Guild} from a neighbour (Olympia B)",
-                    player.Seat,
-                    LastBuiltCard(player).Name);
+                EventListener.EventRaised(new GuildCopied(player.Seat, LastBuiltCard(player)));
             }
             Scoring.CalculateScore(player);
         }
@@ -803,8 +797,8 @@ public class Game
     /// </summary>
     internal void ResolveMoves(IReadOnlyList<SubmittedMove> moves)
     {
-        TraceSnapshot[]? before = null;
-        if (Tracing)
+        PlayerSnapshot[]? before = null;
+        if (EventListener != null)
         {
             before = SnapshotsBefore(moves);
         }
@@ -813,11 +807,11 @@ public class Game
         PlaceAllCards(planned);
         SettleAllMoves(planned);
 
-        if (before != null)
+        if (EventListener != null && before != null)
         {
             for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
             {
-                TraceResult(moves[moveIndex].Player, planned[moveIndex], before[moveIndex]);
+                RaiseMoveResolved(EventListener, moves[moveIndex].Player, planned[moveIndex], before[moveIndex]);
             }
         }
     }
@@ -882,141 +876,94 @@ public class Game
         }
     }
 
-    // ================= Trace (Debug / Verbose) =================
+    // ================= Events (only when a listener is set) =================
     // Read-only: these only read state that is already computed.
 
-    private static TraceSnapshot[] SnapshotsBefore(
-        IReadOnlyList<SubmittedMove> moves)
+    private static PlayerSnapshot[] SnapshotsBefore(IReadOnlyList<SubmittedMove> moves)
     {
-        TraceSnapshot[] snapshots = new TraceSnapshot[moves.Count];
+        PlayerSnapshot[] snapshots = new PlayerSnapshot[moves.Count];
         for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
         {
-            snapshots[moveIndex] = TraceSnapshot.Of(moves[moveIndex].Player);
+            snapshots[moveIndex] = PlayerSnapshot.Of(moves[moveIndex].Player);
         }
         return snapshots;
     }
 
-    private void TraceEraStart()
+    private void RaiseEraStarted(IGameEventListener listener)
     {
-        Trace.Debug("=== Era {Era} ===", Era);
+        List<int> olympiaFreeBuildSeats = new();
         foreach (PlayerState player in Players)
         {
             if (player.OlympiaFreeBuildAvailable)
             {
-                Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Seat);
+                olympiaFreeBuildSeats.Add(player.Seat);
             }
         }
+        listener.EventRaised(new EraStarted(Era, olympiaFreeBuildSeats));
+    }
+
+    private void RaiseEraEnded(IGameEventListener listener)
+    {
+        List<Card> lastCards = new();
+        foreach (PlayerState player in Players)
+        {
+            lastCards.AddRange(player.Hand);
+        }
+        listener.EventRaised(new EraEnded(Era, lastCards));
     }
 
     /// <summary>
     /// What a move changed: coins (own, and paid to each neighbour and the bank), wonder stage and effect flags.
     /// </summary>
-    private void TraceResult(PlayerState player, PlannedMove? plannedMove, TraceSnapshot before)
+    private static void RaiseMoveResolved(IGameEventListener listener, PlayerState player, PlannedMove? plannedMove,
+                                          PlayerSnapshot before)
     {
-        TraceSnapshot after = TraceSnapshot.Of(player);
-        string move = DescribeMove(plannedMove, after.BuiltStageCount);
+        PlayerSnapshot after = PlayerSnapshot.Of(player);
+        List<string> gained = after.Flags.Except(before.Flags).ToList();
+        List<string> usedUp = before.Flags.Except(after.Flags).ToList();
 
-        List<string> details = new();
+        // a skipped move has no card and pays nothing
+        MoveAction action = MoveAction.Skip;
+        Card? card = null;
+        int paidToWest = 0;
+        int paidToEast = 0;
+        int paidToBank = 0;
         if (plannedMove != null)
         {
-            AddPaymentDetails(details, player, plannedMove);
-        }
-        List<string> gained = after.Flags.Except(before.Flags).ToList();
-        List<string> lost = before.Flags.Except(after.Flags).ToList();
-        if (gained.Count > 0)
-        {
-            details.Add("gains " + string.Join(", ", gained));
-        }
-        if (lost.Count > 0)
-        {
-            details.Add("uses up " + string.Join(", ", lost));
+            action = plannedMove.Action;
+            card = plannedMove.Card;
+            paidToWest = plannedMove.Payment.ToWest;
+            paidToEast = plannedMove.Payment.ToEast;
+            paidToBank = plannedMove.CoinCost;
         }
 
-        string detailsText = "";
-        if (details.Count > 0)
-        {
-            detailsText = "; " + string.Join("; ", details);
-        }
-        Trace.Debug("Seat {Seat} {Move}: coins {Before} -> {After}{Details}",
-            player.Seat,
-            move,
+        listener.EventRaised(new MoveResolved(player.Seat,
+            action,
+            card,
+            after.BuiltStageCount,
             before.Coins,
             after.Coins,
-            detailsText);
-    }
-
-    /// <summary>The move in words, for the trace: "builds Loom", "discards Loom", "skips the move"...</summary>
-    private static string DescribeMove(PlannedMove? move, int stageAfter)
-    {
-        if (move == null)
-        {
-            return "skips the move";
-        }
-
-        string name = move.Card.Name;
-        switch (move.Action)
-        {
-            case MoveAction.BuildWithOlympiaFreeBuild:
-                return $"builds {name} for free (Olympia A)";
-            case MoveAction.BuildWonderStage:
-                return $"builds wonder stage {stageAfter} using {name}";
-            case MoveAction.Discard:
-                return $"discards {name}";
-            default:
-                return $"builds {name}";
-        }
-    }
-
-    /// <summary>The coins the move paid to each neighbour and to the bank, the ones above zero.</summary>
-    private static void AddPaymentDetails(List<string> details, PlayerState player, PlannedMove plannedMove)
-    {
-        if (plannedMove.Payment.ToWest > 0)
-        {
-            details.Add($"paid {plannedMove.Payment.ToWest} to seat {player.WestNeighbour.Seat} (west)");
-        }
-        if (plannedMove.Payment.ToEast > 0)
-        {
-            details.Add($"paid {plannedMove.Payment.ToEast} to seat {player.EastNeighbour.Seat} (east)");
-        }
-        if (plannedMove.CoinCost > 0)
-        {
-            details.Add($"paid {plannedMove.CoinCost} to the bank");
-        }
+            player.WestNeighbour.Seat,
+            paidToWest,
+            player.EastNeighbour.Seat,
+            paidToEast,
+            paidToBank,
+            gained,
+            usedUp));
     }
 
     /// <summary>
     /// One player's two battles at the end of an era (after <see cref="Battles.FightEraBattles"/>; read-only).
     /// </summary>
-    private void TraceBattle(PlayerState player)
+    private void RaiseBattleFought(IGameEventListener listener, PlayerState player)
     {
-        int mine = player.Resources[Resource.Shields];
-        int win = Battles.VictoryTokensForWinningBattle(Era);
-        int west = player.WestNeighbour.Resources[Resource.Shields];
-        int east = player.EastNeighbour.Resources[Resource.Shields];
-        Trace.Debug("Seat {Seat} battles with {Shields} shields: vs seat {West} (west, {WestShields}) {WestResult}, " +
-                    "vs seat {East} (east, {EastShields}) {EastResult}",
-            player.Seat,
-            mine,
+        listener.EventRaised(new BattleFought(player.Seat,
+            player.Resources[Resource.Shields],
             player.WestNeighbour.Seat,
-            west,
-            DescribeBattleOutcome(mine, west, win),
+            player.WestNeighbour.Resources[Resource.Shields],
             player.EastNeighbour.Seat,
-            east,
-            DescribeBattleOutcome(mine, east, win));
-    }
-
-    /// <summary>The token a battle gave, for the trace: "+3" for a win in era II, "-1" for a loss, or "draw".</summary>
-    private static string DescribeBattleOutcome(int shields, int neighbourShields, int tokensForWin)
-    {
-        if (shields > neighbourShields)
-        {
-            return $"+{tokensForWin}";
-        }
-        if (shields < neighbourShields)
-        {
-            return "-1";
-        }
-        return "draw";
+            player.EastNeighbour.Resources[Resource.Shields],
+            Battles.VictoryTokensForWinningBattle(Era)));
     }
 
     // ================= Legal moves (for search agents) =================

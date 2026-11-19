@@ -1,11 +1,11 @@
 ﻿using System.Text.RegularExpressions;
 using Serilog;
-using Serilog.Core;
 using Serilog.Events;
 using Match = _7Wonders.Agents.Matches.Match;
 using _7Wonders.Agents.Common.Interfaces;
 using _7Wonders.Agents.Heuristic;
 using _7Wonders.Agents.Matches;
+using _7Wonders.Agents.Matches.Records;
 using _7Wonders.Agents.RandomChoice;
 using _7Wonders.Cli.Logs;
 using _7Wonders.Engine.Games.Entities;
@@ -35,11 +35,6 @@ public class TraceTests
     private static Match NewMatch(ulong seed, ILogger? trace = null)
     {
         Game game = new(seed);
-        if (trace != null)
-        {
-            game.Trace = trace;
-        }
-
         game.SetUpRandomGame(3);
         List<IAgent> agents = new() { new HeuristicAgent(), new RandomAgent(), new RandomAgent() };
         return MatchTracedInto(game, agents, trace);
@@ -83,11 +78,6 @@ public class TraceTests
     private static List<SeatResult> PlayWithSearcher(ILogger? trace)
     {
         Game game = new(5);
-        if (trace != null)
-        {
-            game.Trace = trace;
-        }
-
         game.SetUpRandomGame(3);
         List<IAgent> agents = new()
         {
@@ -120,11 +110,13 @@ public class TraceTests
     public void DeepCopy_IsSilent()
     {
         ILogger logger = LoggerInto(new ListSink(), LogEventLevel.Verbose);
-        Game game = NewMatch(5, logger).Game;
+        Match match = NewMatch(5, logger);
+        match.Play();
+        Assert.IsNotNull(match.Game.EventListener, "the traced match listens to its game");
 
-        Game copy = game.DeepCopy();
+        Game copy = match.Game.DeepCopy();
 
-        Assert.AreSame(Logger.None, copy.Trace);
+        Assert.IsNull(copy.EventListener);
     }
 
     [TestMethod]
@@ -171,7 +163,8 @@ public class TraceTests
     public void UntracedGame_WritesNothing()
     {
         Match match = NewMatch(3);
-        Assert.AreSame(Logger.None, match.Game.Trace);
-        match.Play();
+        MatchRecord record = match.Play();
+        Assert.IsNull(match.Game.EventListener);
+        Assert.AreEqual(0, record.Entries.Count);
     }
 }

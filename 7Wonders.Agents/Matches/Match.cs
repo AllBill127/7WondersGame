@@ -6,6 +6,8 @@ using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Enums;
 using _7Wonders.Engine.Games.Entities;
 using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Games.Events;
+using _7Wonders.Engine.Games.Interfaces;
 using _7Wonders.Engine.Moves.Dtos;
 using _7Wonders.Engine.Moves.Exceptions;
 using _7Wonders.Engine.Players.Entities;
@@ -16,9 +18,10 @@ namespace _7Wonders.Agents.Matches;
 /// <summary>
 /// Agents seated at a set-up <see cref="Game"/>: <see cref="Play"/> asks each seat's agent for its decisions until
 /// the game is over, then scores it. With <see cref="MatchDetail.Full"/> the match records what the agents were
-/// shown and chose, and passes each entry to its listener as it is added.
+/// shown and chose and, as the game's event listener, what the rules did, all in one list in the order it happened.
+/// It passes each entry to its listener as it is added.
 /// </summary>
-public class Match
+public class Match : IGameEventListener
 {
     private readonly List<MatchEntry> _entries = new();
     private readonly IMatchListener? _listener;
@@ -80,6 +83,10 @@ public class Match
     /// <returns>Each seat's final result in seat order, and the entries if the match keeps them.</returns>
     public MatchRecord Play()
     {
+        if (KeepsEntries)
+        {
+            Game.EventListener = this;
+        }
         if (Game.Turn == 0 && KeepsEntries)
         {
             AddSetUp();
@@ -162,6 +169,12 @@ public class Match
         {
             _listener.EntryAdded(entry);
         }
+    }
+
+    /// <summary>The game's rules did something: it goes into the record among the match's own entries.</summary>
+    void IGameEventListener.EventRaised(GameEvent gameEvent)
+    {
+        Add(new GameEventEntry(gameEvent));
     }
 
     private void AddSetUp()

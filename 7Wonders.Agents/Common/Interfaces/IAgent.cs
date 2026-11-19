@@ -37,7 +37,7 @@ public interface IAgent
 
     /// <summary>
     /// Why it made its last choice, in a line (e.g. a search's top moves), for the game trace; null for nothing.
-    /// Read by <see cref="Game"/> after <see cref="Choose"/> only when tracing.
+    /// Read by a match after <see cref="Choose"/> only when it keeps a full record.
     /// </summary>
     string? LastChoiceNote
     {

@@ -348,7 +348,7 @@ internal static class Commands
         }
 
         List<IAgent> agents = setup.Specifications.Select(specification => AgentCatalog.Create(specification)).ToList();
-        Game game = new(setup.GameSeed) { Trace = Log.Logger };
+        Game game = new(setup.GameSeed);
         if (deals != null)
         {
             int dealIndex = setup.DealIndex();

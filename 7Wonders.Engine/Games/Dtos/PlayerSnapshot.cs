@@ -5,11 +5,11 @@ using _7Wonders.Engine.Rules.Services;
 
 namespace _7Wonders.Engine.Games.Dtos;
 
-/// <summary>What the trace compares before and after a move: a player's coins, wonder stage and effect flags.</summary>
-internal sealed class TraceSnapshot
+/// <summary>What a move's event compares before and after it: a player's coins, wonder stage and effect flags.</summary>
+internal sealed class PlayerSnapshot
 {
     /// <summary>A snapshot with these values.</summary>
-    public TraceSnapshot(int coins, int builtStageCount, List<string> flags)
+    public PlayerSnapshot(int coins, int builtStageCount, List<string> flags)
     {
         Coins = coins;
         BuiltStageCount = builtStageCount;
@@ -26,7 +26,7 @@ internal sealed class TraceSnapshot
     public List<string> Flags { get; }
 
     /// <summary>The player's coins, wonder stage and flags now.</summary>
-    public static TraceSnapshot Of(PlayerState player)
+    public static PlayerSnapshot Of(PlayerState player)
     {
         List<string> flags = new();
         foreach (Ability ability in Enum.GetValues<Ability>())
@@ -44,6 +44,6 @@ internal sealed class TraceSnapshot
         {
             flags.Add(nameof(player.OlympiaFreeBuildAvailable));
         }
-        return new TraceSnapshot(player.Resources[Resource.Coins], player.Wonder.BuiltStageCount, flags);
+        return new PlayerSnapshot(player.Resources[Resource.Coins], player.Wonder.BuiltStageCount, flags);
     }
 }

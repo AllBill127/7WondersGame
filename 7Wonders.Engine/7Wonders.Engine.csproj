@@ -5,11 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Game.Trace writes what the rules did to a Serilog logger -->
-    <PackageReference Include="Serilog" Version="3.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="7Wonders.Tests" />
   </ItemGroup>
 

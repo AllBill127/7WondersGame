@@ -107,7 +107,7 @@ internal sealed class GameRunner
             {
                 agents.Add(LineUp.CreateAgent(seat, slot.Value));
             }
-            Game game = new(Seeding.GameSeed(_plan.Seed, slot.Deal)) { Trace = log };
+            Game game = new(Seeding.GameSeed(_plan.Seed, slot.Deal));
             if (_deals != null)
             {
                 game.SetUpGameFromDataset(_deals[slot.Deal]);
