@@ -50,31 +50,31 @@ public sealed class PlayerState
     public List<Card> BuiltCards { get; set; } = new();
 
     /// <summary>The victory points won in battles.</summary>
-    public int VictoryTokens = 0;
+    public int VictoryTokens { get; set; }
 
     /// <summary>The battles lost (each is -1 point).</summary>
-    public int DefeatTokens = 0;
+    public int DefeatTokens { get; set; }
 
     /// <summary>Set by <see cref="Rules.CalculateScore"/>.</summary>
-    public int VictoryPoints = 0;
+    public int VictoryPoints { get; set; }
 
     /// <summary>
     /// The lasting abilities the built cards gave (trading posts, Marketplace). The board's come from its stage;
     /// check both with <see cref="Rules.Has"/>.
     /// </summary>
-    public Ability Abilities = Ability.None;
+    public Ability Abilities { get; set; } = Ability.None;
 
     // One-use effects (see docs/08-special-effects.md)
     /// <summary>Olympia A stage 2: this era's free card is still unused. Re-armed at the start of each era.</summary>
-    public bool OlympiaFreeBuildAvailable = false;
+    public bool OlympiaFreeBuildAvailable { get; set; }
 
     /// <summary>
     /// Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.
     /// </summary>
-    public bool HalikarnassosDiscardBuildPending = false;
+    public bool HalikarnassosDiscardBuildPending { get; set; }
 
     /// <summary>Production, science symbols, coins and shields.</summary>
-    public ResourceCounts Resources = new() { [Resource.Coins] = 3 };
+    public ResourceCounts Resources { get; set; } = new() { [Resource.Coins] = 3 };
 
     /// <summary>The neighbour to the east. Throws until the players are seated.</summary>
     public PlayerState EastNeighbour

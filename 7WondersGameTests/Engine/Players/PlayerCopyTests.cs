@@ -69,16 +69,16 @@ public class PlayerCopyTests
 
         string[] knownFields =
         {
+            "<Abilities>k__BackingField",
             "<BuiltCards>k__BackingField",
+            "<DefeatTokens>k__BackingField",
+            "<HalikarnassosDiscardBuildPending>k__BackingField",
             "<Hand>k__BackingField",
+            "<OlympiaFreeBuildAvailable>k__BackingField",
+            "<Resources>k__BackingField",
             "<Seat>k__BackingField",
-            "Abilities",
-            "DefeatTokens",
-            "HalikarnassosDiscardBuildPending",
-            "OlympiaFreeBuildAvailable",
-            "Resources",
-            "VictoryPoints",
-            "VictoryTokens",
+            "<VictoryPoints>k__BackingField",
+            "<VictoryTokens>k__BackingField",
             "_eastNeighbour",
             "_westNeighbour",
             "_wonder",
