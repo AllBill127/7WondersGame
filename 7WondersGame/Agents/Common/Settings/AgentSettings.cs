@@ -22,29 +22,63 @@ public static class AgentSettings
     }
 
     /// <summary>
-    /// An agent's settings: the instance fields its classes declare with a primitive, enum, string or decimal type,
-    /// except readonly ones (fixed when the agent is made, e.g. by its catalog entry). Auto-property backing fields
-    /// are named after the property. A field whose type has <see cref="SettingsGroupAttribute"/> adds that type's
-    /// settings (found the same way) under their own names.
+    /// An agent type's settings, sorted by name: its public <see cref="SettingAttribute"/> properties, and those of
+    /// the type of each of its <see cref="SettingGroupAttribute"/> properties. Throws if two have the same name or a
+    /// setting has no public setter.
     /// </summary>
-    public static IEnumerable<AgentSetting> Of(Type agentType)
+    public static List<AgentSetting> Of(Type agentType)
     {
-        HashSet<string> seen = new(StringComparer.Ordinal);
-        foreach ((string name, FieldInfo field) in Fields(agentType, includeGroups: true))
+        List<AgentSetting> settings = new();
+        foreach (PropertyInfo property in agentType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            if (IsSettingsGroup(field.FieldType))
+            if (property.IsDefined(typeof(SettingAttribute), inherit: true))
             {
-                foreach ((string inner, FieldInfo innerField) in Fields(field.FieldType, includeGroups: false))
-                {
-                    if (seen.Add(inner))
-                    {
-                        yield return new AgentSetting(inner, innerField, field);
-                    }
-                }
+                settings.Add(CheckedSetting(property, null));
             }
-            else if (seen.Add(name))
+            if (property.IsDefined(typeof(SettingGroupAttribute), inherit: true))
             {
-                yield return new AgentSetting(name, field, null);
+                AddGroupSettings(settings, property);
+            }
+        }
+        CheckNamesDiffer(settings, agentType);
+        return settings.OrderBy(setting => setting.Name, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Adds the settings of the object type in the agent's <paramref name="group"/> property.</summary>
+    private static void AddGroupSettings(List<AgentSetting> settings, PropertyInfo group)
+    {
+        PropertyInfo[] groupProperties = group.PropertyType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        foreach (PropertyInfo property in groupProperties)
+        {
+            if (property.IsDefined(typeof(SettingAttribute), inherit: true))
+            {
+                settings.Add(CheckedSetting(property, group));
+            }
+        }
+    }
+
+    /// <summary>The setting of <paramref name="property"/>; throws if the command line couldn't set it.</summary>
+    private static AgentSetting CheckedSetting(PropertyInfo property, PropertyInfo? group)
+    {
+        bool hasPublicGetter = property.GetGetMethod() != null;
+        bool hasPublicSetter = property.GetSetMethod() != null;
+        if (!hasPublicGetter || !hasPublicSetter)
+        {
+            throw new InvalidOperationException(
+                $"The setting {property.Name} needs a public getter and setter, so the command line can set it.");
+        }
+        return new AgentSetting(property, group);
+    }
+
+    /// <summary>Throws if two settings have the same name (any case, as the command line reads them).</summary>
+    private static void CheckNamesDiffer(List<AgentSetting> settings, Type agentType)
+    {
+        HashSet<string> names = new(StringComparer.OrdinalIgnoreCase);
+        foreach (AgentSetting setting in settings)
+        {
+            if (!names.Add(setting.Name))
+            {
+                throw new InvalidOperationException($"{agentType.Name} has two settings named {setting.Name}.");
             }
         }
     }
@@ -58,67 +92,5 @@ public static class AgentSettings
             return value.ToString();
         }
         return value;
-    }
-
-    /// <summary>The type's setting fields and their names, the type's own first, then its base classes'.</summary>
-    private static IEnumerable<(string Name, FieldInfo Field)> Fields(Type type, bool includeGroups)
-    {
-        BindingFlags flags = BindingFlags.Instance
-                             | BindingFlags.Public
-                             | BindingFlags.NonPublic
-                             | BindingFlags.DeclaredOnly;
-        for (Type? declaringType = type;
-             declaringType != null && declaringType != typeof(object);
-             declaringType = declaringType.BaseType)
-        {
-            foreach (FieldInfo field in declaringType.GetFields(flags))
-            {
-                if (IsSetting(field, includeGroups))
-                {
-                    yield return (SettingName(field), field);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Whether the field is a setting: a non-readonly field of a simple type, or (when asked for) a settings group.
-    /// </summary>
-    private static bool IsSetting(FieldInfo field, bool includeGroups)
-    {
-        Type fieldType = field.FieldType;
-        // a group is changed in place, so its own field may be readonly
-        if (includeGroups && IsSettingsGroup(fieldType))
-        {
-            return true;
-        }
-        if (field.IsInitOnly)
-        {
-            return false;
-        }
-        return fieldType.IsPrimitive || fieldType.IsEnum || fieldType == typeof(string) || fieldType == typeof(decimal);
-    }
-
-    private static bool IsSettingsGroup(Type type)
-    {
-        return type.IsDefined(typeof(SettingsGroupAttribute), inherit: false);
-    }
-
-    /// <summary>The field's name, or for an auto-property's backing field the property's name.</summary>
-    private static string SettingName(FieldInfo field)
-    {
-        if (field.Name.StartsWith("<"))
-        {
-            return BackingFieldPropertyName(field);
-        }
-        return field.Name;
-    }
-
-    /// <summary>The property name inside a backing field's name, "&lt;Name&gt;k__BackingField".</summary>
-    private static string BackingFieldPropertyName(FieldInfo field)
-    {
-        int closingBracket = field.Name.IndexOf('>');
-        int nameLength = closingBracket - 1;
-        return field.Name.Substring(1, nameLength);
     }
 }

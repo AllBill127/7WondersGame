@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using _7WondersGame.Agents.Common.Entities;
 using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Common.Settings;
 using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.Mcts.Configuration.Enums;
 using _7WondersGame.Agents.Mcts.Search;
@@ -20,10 +21,11 @@ public sealed class MctsAgent : IAgent
 {
     private const double BytesPerMegabyte = 1048576.0;
 
-    // what it measured over its game (an agent is made for one game); in an object, so these aren't settings
+    // what it measured over its game (an agent is made for one game)
     private readonly SearchStatistics _statistics = new();
 
     /// <summary>Its settings.</summary>
+    [SettingGroup]
     public MctsConfiguration Configuration { get; } = new();
 
     /// <summary>The move a search of the view's game finds, or the only legal move without a search.</summary>

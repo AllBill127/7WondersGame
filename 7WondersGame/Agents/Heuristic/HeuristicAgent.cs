@@ -1,5 +1,6 @@
 ﻿using _7WondersGame.Agents.Common.Entities;
 using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Common.Settings;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Games.Enums;
@@ -36,6 +37,7 @@ public sealed class HeuristicAgent : IAgent
     private static readonly Move Skip = new(MoveAction.Skip, null);
 
     /// <summary>Its numbers. Each is a setting of the agent.</summary>
+    [SettingGroup]
     public HeuristicWeights Weights { get; init; } = new();
 
     /// <summary>The best move for the view's seat (see the class summary).</summary>
