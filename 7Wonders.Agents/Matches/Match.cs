@@ -1,32 +1,42 @@
 ﻿using _7Wonders.Agents.Common.Entities;
 using _7Wonders.Agents.Common.Interfaces;
 using _7Wonders.Agents.Common.Settings;
-using _7Wonders.Agents.Matches;
+using _7Wonders.Agents.Matches.Records;
+using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Enums;
-using _7Wonders.Engine.Cards.Services;
 using _7Wonders.Engine.Games.Entities;
 using _7Wonders.Engine.Games.Enums;
 using _7Wonders.Engine.Moves.Dtos;
 using _7Wonders.Engine.Moves.Exceptions;
 using _7Wonders.Engine.Players.Entities;
 using _7Wonders.Engine.Rules.Services;
-using Serilog;
-using Serilog.Events;
 
 namespace _7Wonders.Agents.Matches;
 
 /// <summary>
 /// Agents seated at a set-up <see cref="Game"/>: <see cref="Play"/> asks each seat's agent for its decisions until
-/// the game is over, then scores it. The match traces what the agents were shown and chose; the game traces what
-/// the rules did.
+/// the game is over, then scores it. With <see cref="MatchDetail.Full"/> the match records what the agents were
+/// shown and chose, and passes each entry to its listener as it is added.
 /// </summary>
 public class Match
 {
+    private readonly List<MatchEntry> _entries = new();
+    private readonly IMatchListener? _listener;
+
     /// <summary>
     /// Seats <paramref name="agents"/> at <paramref name="game"/>, one per seat in seat order. The game must be set
-    /// up already (<see cref="Game.SetUpRandomGame"/> or <see cref="Game.SetUpGameFromDataset"/>).
+    /// up already (<see cref="Game.SetUpRandomGame"/> or <see cref="Game.SetUpGameFromDataset"/>). The record keeps
+    /// only the results.
     /// </summary>
     public Match(Game game, IReadOnlyList<IAgent> agents)
+        : this(game, agents, MatchDetail.ResultsOnly)
+    {
+    }
+
+    /// <summary>
+    /// Like <see cref="Match(Game, IReadOnlyList{IAgent})"/>, with a record that keeps <paramref name="detail"/>.
+    /// </summary>
+    public Match(Game game, IReadOnlyList<IAgent> agents, MatchDetail detail)
     {
         if (agents.Count != game.Players.Count)
         {
@@ -34,6 +44,17 @@ public class Match
         }
         Game = game;
         Agents = agents;
+        Detail = detail;
+    }
+
+    /// <summary>
+    /// Like <see cref="Match(Game, IReadOnlyList{IAgent})"/>, with a full record whose entries also go to
+    /// <paramref name="listener"/> as they are added.
+    /// </summary>
+    public Match(Game game, IReadOnlyList<IAgent> agents, IMatchListener listener)
+        : this(game, agents, MatchDetail.Full)
+    {
+        _listener = listener;
     }
 
     /// <summary>The game being played.</summary>
@@ -42,31 +63,26 @@ public class Match
     /// <summary>Who decides each seat's moves, by seat.</summary>
     public IReadOnlyList<IAgent> Agents { get; }
 
-    private ILogger Trace
-    {
-        get
-        {
-            return Game.Trace;
-        }
-    }
+    /// <summary>How much of the match its record keeps.</summary>
+    public MatchDetail Detail { get; }
 
-    private bool Tracing
+    private bool KeepsEntries
     {
         get
         {
-            return Trace.IsEnabled(LogEventLevel.Debug);
+            return Detail == MatchDetail.Full;
         }
     }
 
     /// <summary>
     /// Plays the game to the end and scores it.
     /// </summary>
-    /// <returns>Each seat's final result, in seat order.</returns>
-    public List<SeatResult> Play()
+    /// <returns>Each seat's final result in seat order, and the entries if the match keeps them.</returns>
+    public MatchRecord Play()
     {
-        if (Game.Turn == 0 && Tracing)
+        if (Game.Turn == 0 && KeepsEntries)
         {
-            TraceSetup();
+            AddSetUp();
         }
 
         IReadOnlyList<int> pending = Game.PendingPlayers();
@@ -77,11 +93,12 @@ public class Match
         }
 
         Game.ScoreAllPlayers();
-        if (Tracing)
+        if (KeepsEntries)
         {
-            TraceScores();
+            AddFinalScores();
         }
-        return GameResult.ForPlayers(Game.Players, Agents);
+        List<SeatResult> results = GameResult.ForPlayers(Game.Players, Agents);
+        return new MatchRecord(_entries, results);
     }
 
     /// <summary>
@@ -95,9 +112,9 @@ public class Match
         {
             views.Add(new GameView(Game, seat));
         }
-        if (Tracing)
+        if (KeepsEntries)
         {
-            TracePhaseStart(views);
+            AddShown(views);
         }
 
         List<Move> choices = new(views.Count);
@@ -105,11 +122,11 @@ public class Match
         {
             choices.Add(Agents[view.Seat].Choose(view));
         }
-        if (Tracing && Game.Phase != Phase.DiscardPileBuild)
+        if (KeepsEntries)
         {
             for (int choiceIndex = 0; choiceIndex < views.Count; choiceIndex++)
             {
-                TraceChoice(views[choiceIndex].Seat, choices[choiceIndex]);
+                AddChoice(views[choiceIndex].Seat, choices[choiceIndex]);
             }
         }
 
@@ -135,108 +152,70 @@ public class Match
         }
     }
 
-    // ================= Trace (Debug / Verbose) =================
-    // Read-only: these only read state that is already computed.
+    // ================= Record entries (MatchDetail.Full) =================
+    // Read-only: these only read state that is already computed, and copy the lists the game changes later.
 
-    private void TraceSetup()
+    private void Add(MatchEntry entry)
     {
-        Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players",
-            Game.Seed,
-            Game.Seed.ToString("x16"),
-            Game.Players.Count);
+        _entries.Add(entry);
+        if (_listener != null)
+        {
+            _listener.EntryAdded(entry);
+        }
+    }
+
+    private void AddSetUp()
+    {
+        List<SeatSetUp> seats = new(Game.Players.Count);
         foreach (PlayerState player in Game.Players)
         {
             IAgent agent = Agents[player.Seat];
-            Trace.Debug("Seat {Seat}: {Agent} {Configuration} on {Wonder}",
-                player.Seat,
-                agent.Name,
-                agent.ConfigurationJson(),
-                player.Wonder.Id);
+            seats.Add(new SeatSetUp(player.Seat, agent.Name, agent.ConfigurationJson(), player.Wonder.Id));
         }
-        for (int era = 0; era < Game.Decks.Length; era++)
+        List<IReadOnlyList<Card>> decks = new(Game.Decks.Length);
+        foreach (List<Card> deck in Game.Decks)
         {
-            Trace.Verbose("Era {Era} deck: {Cards}", era + 1, CardNames.Join(Game.Decks[era]));
+            decks.Add(new List<Card>(deck));
         }
-        Trace.Debug("=== Era 1 ===");
+        Add(new MatchSetUp(Game.Seed, seats, decks));
     }
 
-    private void TracePhaseStart(IReadOnlyList<GameView> views)
+    private void AddShown(IReadOnlyList<GameView> views)
     {
         if (Game.Phase == Phase.ChooseMoves)
         {
-            TraceTurnStart(views);
-            return;
+            Add(new TurnStarted(Game.Era, Game.Turn));
         }
         foreach (GameView view in views)
         {
             PlayerState player = Game.Players[view.Seat];
-            if (Game.Phase == Phase.SeventhCard)
-            {
-                Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}",
-                    player.Seat,
-                    CardNames.Join(player.Hand));
-            }
-            else
-            {
-                Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", player.Seat);
-                Trace.Verbose("Discard pile: {Cards}", CardNames.Join(Game.DiscardPile));
-            }
-            TracePlayable(view);
-        }
-    }
-
-    private void TraceTurnStart(IReadOnlyList<GameView> views)
-    {
-        Trace.Debug("--- Era {Era}, turn {Turn} ---", Game.Era, Game.Turn);
-        foreach (GameView view in views)
-        {
-            PlayerState player = Game.Players[view.Seat];
-            Trace.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
+            // what the agent was shown: worked out for its view, so recording it changes nothing
+            Add(new SeatShown(Game.Phase,
                 player.Seat,
                 player.Resources[Resource.Coins],
                 player.Resources[Resource.Shields],
                 player.Wonder.Id,
                 player.Wonder.BuiltStageCount,
-                CardNames.Join(player.Hand));
-            TracePlayable(view);
+                new List<Card>(player.Hand),
+                new List<Card>(Game.DiscardPile),
+                view.BuildableCards,
+                view.CanBuildWonder));
         }
     }
 
-    // what the agent was shown (worked out for its view, so tracing it changes nothing)
-    private void TracePlayable(GameView view)
+    private void AddChoice(int seat, Move move)
     {
-        Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
-            view.Seat,
-            CardNames.Join(view.BuildableCards),
-            view.CanBuildWonder);
-    }
-
-    private void TraceChoice(int seat, Move move)
-    {
-        string cardName = "-";
-        if (move.Card != null)
-        {
-            cardName = move.Card.Name;
-        }
-        Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, move.Action, cardName);
-
         // e.g. a search's top moves; the agent made the note when it chose, so reading it changes nothing
         IAgent agent = Agents[seat];
-        string? note = agent.LastChoiceNote;
-        if (note != null)
-        {
-            Trace.Debug("Seat {Seat} {Agent}: {Note}", seat, agent.Name, note);
-        }
+        Add(new SeatChose(Game.Phase, seat, agent.Name, move, agent.LastChoiceNote));
     }
 
-    private void TraceScores()
+    private void AddFinalScores()
     {
+        List<SeatScore> seats = new(Game.Players.Count);
         foreach (PlayerState player in Game.Players)
         {
-            Trace.Debug("Seat {Seat} {Agent}: {Total} VP = military {Military} + coins {Money} + wonder {Wonder} + " +
-                        "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; " +
-                        "{Coins} coins left",
-                player.Seat,
+            seats.Add(new SeatScore(player.Seat,
                 Agents[player.Seat].Name,
                 player.VictoryPoints,
                 Scoring.CalculateMilitaryScore(player),
@@ -246,7 +225,8 @@ public class Match
                 Scoring.CalculateCommercialScore(player),
                 Scoring.CalculateGuildScore(player),
                 Scoring.CalculateScientificScore(player),
-                player.Resources[Resource.Coins]);
+                player.Resources[Resource.Coins]));
         }
+        Add(new FinalScores(seats));
     }
 }

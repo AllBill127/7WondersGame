@@ -323,7 +323,7 @@ internal static class Commands
         Match match = await NewReplayMatch(setup);
         Log.Information("Replaying game seed {Seed} (0x{SeedHex}){Deal} with {Players}", setup.GameSeed,
             setup.GameSeed.ToString("x16"), DealNote(setup), string.Join(", ", setup.Specifications));
-        List<SeatResult> results = match.Play();
+        List<SeatResult> results = match.Play().Results;
 
         foreach (SeatResult seatResult in results)
         {
@@ -357,6 +357,20 @@ internal static class Commands
         else
         {
             game.SetUpRandomGame(agents.Count);
+        }
+        return NewMatch(game, agents, Log.Logger);
+    }
+
+    /// <summary>
+    /// A match of <paramref name="agents"/> at <paramref name="game"/> whose step-by-step trace goes to
+    /// <paramref name="log"/> when the log shows Debug lines. Otherwise the match keeps only the results, so it costs
+    /// no more than the game.
+    /// </summary>
+    public static Match NewMatch(Game game, IReadOnlyList<IAgent> agents, ILogger log)
+    {
+        if (log.IsEnabled(LogEventLevel.Debug))
+        {
+            return new Match(game, agents, new MatchTraceWriter(log));
         }
         return new Match(game, agents);
     }

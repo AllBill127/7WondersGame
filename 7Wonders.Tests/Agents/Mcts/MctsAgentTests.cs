@@ -95,7 +95,7 @@ public class MctsAgentTests
 
             Match match = NewMatch(Seeding.GameSeed(5, players), agents);
             // a move the rules don't allow would throw
-            List<SeatResult> results = match.Play();
+            List<SeatResult> results = match.Play().Results;
             Assert.AreEqual(Phase.GameOver, match.Game.Phase);
             StringAssert.Contains(results[1].AgentStatisticsJson, "\"searches\":");
         }
@@ -192,7 +192,7 @@ public class MctsAgentTests
     public void Stats_CountEveryIteration()
     {
         Match match = NewMatch(9, Mcts(":IterationBudget=25"), new HeuristicAgent(), new HeuristicAgent());
-        List<SeatResult> results = match.Play();
+        List<SeatResult> results = match.Play().Results;
 
         JsonElement statistics = JsonDocument.Parse(results[0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
@@ -231,7 +231,7 @@ public class MctsAgentTests
     {
         MctsAgent searcher = Mcts($":IterationBudget=40:Parallelisation={variant}:ParallelWorkerCount={workers}");
         Match match = NewMatch(9, searcher, new HeuristicAgent(), new HeuristicAgent());
-        List<SeatResult> results = match.Play();
+        List<SeatResult> results = match.Play().Results;
 
         JsonElement statistics = JsonDocument.Parse(results[0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
@@ -275,7 +275,7 @@ public class MctsAgentTests
         {
             Match match = NewMatch(Seeding.GameSeed(21, gameIndex), Mcts(":IterationBudget=30"), new RandomAgent(),
                                    new RandomAgent());
-            List<SeatResult> results = match.Play();
+            List<SeatResult> results = match.Play().Results;
             for (int seat = 0; seat < 3; seat++)
             {
                 averageVictoryPoints[seat] += results[seat].VictoryPoints / 4.0;

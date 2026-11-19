@@ -7,6 +7,7 @@ using _7Wonders.Agents.Common.Interfaces;
 using _7Wonders.Agents.Heuristic;
 using _7Wonders.Agents.Matches;
 using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Logs;
 using _7Wonders.Engine.Games.Entities;
 using _7Wonders.Engine.Randomness.Services;
 using _7Wonders.Tests.Agents.Mcts;
@@ -41,7 +42,7 @@ public class TraceTests
 
         game.SetUpRandomGame(3);
         List<IAgent> agents = new() { new HeuristicAgent(), new RandomAgent(), new RandomAgent() };
-        return new Match(game, agents);
+        return MatchTracedInto(game, agents, trace);
     }
 
     [TestMethod]
@@ -50,11 +51,11 @@ public class TraceTests
         for (ulong gameIndex = 0; gameIndex < 20; gameIndex++)
         {
             ulong seed = Seeding.GameSeed(31, (long)gameIndex);
-            List<SeatResult> silent = NewMatch(seed).Play();
+            List<SeatResult> silent = NewMatch(seed).Play().Results;
 
             ListSink sink = new();
             ILogger logger = LoggerInto(sink, LogEventLevel.Verbose);
-            List<SeatResult> traced = NewMatch(seed, logger).Play();
+            List<SeatResult> traced = NewMatch(seed, logger).Play().Results;
 
             CollectionAssert.AreEqual(silent, traced, $"seed {seed}");
             Assert.IsTrue(sink.Events.Count > 0, "the traced game wrote a trace");
@@ -94,7 +95,17 @@ public class TraceTests
             MctsAgentTests.Mcts(":IterationBudget=40"),
             new HeuristicAgent(),
         };
-        return new Match(game, agents).Play();
+        return MatchTracedInto(game, agents, trace).Play().Results;
+    }
+
+    // a match whose entries are written to the trace, if a logger is given
+    private static Match MatchTracedInto(Game game, List<IAgent> agents, ILogger? trace)
+    {
+        if (trace == null)
+        {
+            return new Match(game, agents);
+        }
+        return new Match(game, agents, new MatchTraceWriter(trace));
     }
 
     // the stats column holds search times, which differ between any two runs; the game itself doesn't
@@ -121,7 +132,7 @@ public class TraceTests
     {
         ListSink sink = new();
         ILogger logger = LoggerInto(sink, LogEventLevel.Debug);
-        List<SeatResult> results = NewMatch(Seeding.GameSeed(77, 0), logger).Play();
+        List<SeatResult> results = NewMatch(Seeding.GameSeed(77, 0), logger).Play().Results;
         List<string> lines = sink.Messages.ToList();
 
         Assert.AreEqual(1, lines.Count(line => line.StartsWith("Game seed")));

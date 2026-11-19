@@ -85,7 +85,7 @@ internal sealed class GameRunner
         Stopwatch watch = Stopwatch.StartNew();
         try
         {
-            List<SeatResult> results = match.Play();
+            List<SeatResult> results = match.Play().Results;
             _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, results);
             int done = Interlocked.Increment(ref _completed);
             LogGameDone(log, slot, results, done, watch.Elapsed);
@@ -116,7 +116,7 @@ internal sealed class GameRunner
             {
                 game.SetUpRandomGame(agents.Count);
             }
-            return new Match(game, agents);
+            return Commands.NewMatch(game, agents, log);
         }
     }
 

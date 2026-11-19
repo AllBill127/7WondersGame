@@ -43,7 +43,7 @@ public class ResultsLoggingTests
         List<PlayerState> players = match.Game.Players;
         List<string> wonders = players.Select(player => player.Wonder.Id.ToString()).ToList();
 
-        List<SeatResult> results = match.Play();
+        List<SeatResult> results = match.Play().Results;
 
         Assert.AreEqual(3, results.Count);
         for (int seat = 0; seat < 3; seat++)

@@ -124,7 +124,7 @@ public class SeedingTests
     private static List<int> PlayToTheEnd(Game game)
     {
         List<IAgent> agents = new() { new RandomAgent(), new HeuristicAgent(), new RandomAgent() };
-        List<SeatResult> results = new Match(game, agents).Play();
+        List<SeatResult> results = new Match(game, agents).Play().Results;
         return results.Select(result => result.VictoryPoints).ToList();
     }
 
