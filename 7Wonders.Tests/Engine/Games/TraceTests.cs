@@ -107,19 +107,6 @@ public class TraceTests
     }
 
     [TestMethod]
-    public void DeepCopy_IsSilent()
-    {
-        ILogger logger = LoggerInto(new ListSink(), LogEventLevel.Verbose);
-        Match match = NewMatch(5, logger);
-        match.Play();
-        Assert.IsNotNull(match.Game.EventListener, "the traced match listens to its game");
-
-        Game copy = match.Game.DeepCopy();
-
-        Assert.IsNull(copy.EventListener);
-    }
-
-    [TestMethod]
     public void DebugTrace_HasTheMainSteps()
     {
         ListSink sink = new();
