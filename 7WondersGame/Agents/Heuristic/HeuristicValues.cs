@@ -82,7 +82,7 @@ public sealed class HeuristicValues
 
         // in the city before its effect applies, like a real build (the Lighthouse counts itself)
         scratchPlayer.BuiltCards.Add(card);
-        scratchPlayer.ApplyCardEffect(card);
+        CardEffects.ApplyCardEffect(scratchPlayer, card);
 
         int score = ScoreIfEraEnded(scratchPlayer);
         int coinsGained = scratchPlayer.Resources[Resource.Coins] - coinsBefore;

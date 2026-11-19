@@ -222,7 +222,7 @@ public static partial class Rules
         {
             case MoveAction.Build:
             case MoveAction.BuildWithOlympiaFreeBuild:
-                player.ApplyCardEffect(move.Card);
+                CardEffects.ApplyCardEffect(player, move.Card);
                 UseUpFreeBuildCharges(player, move);
                 break;
             case MoveAction.BuildWonderStage:
@@ -247,18 +247,6 @@ public static partial class Rules
         if (move.FromDiscardPile)
         {
             player.HalikarnassosDiscardBuildPending = false;
-        }
-    }
-
-    /// <summary>
-    /// A card's effects when it is built: production, coins, shields, science or an ability
-    /// (see <see cref="Card.Effects"/>).
-    /// </summary>
-    public static void ApplyCardEffect(this PlayerState player, Card card)
-    {
-        for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
-        {
-            card.Effects[effectIndex].OnBuild(player);
         }
     }
 
