@@ -13,7 +13,7 @@ namespace _7Wonders.Engine.Moves.Dtos;
 /// state, <see cref="MoveResolution.Place"/>, then <see cref="MoveResolution.Settle"/> (see
 /// <see cref="Game.ResolveMoves"/>).
 /// </summary>
-public sealed class PlannedMove
+internal sealed class PlannedMove
 {
     /// <summary>A planned move that doesn't come from the discard pile.</summary>
     /// <param name="source">Where the card comes from: the hand, or the discard pile (Halikarnassos).</param>

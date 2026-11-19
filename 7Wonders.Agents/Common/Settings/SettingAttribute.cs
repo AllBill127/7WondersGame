@@ -7,6 +7,6 @@
 /// property. Nothing else is a setting.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class SettingAttribute : Attribute
+internal sealed class SettingAttribute : Attribute
 {
 }

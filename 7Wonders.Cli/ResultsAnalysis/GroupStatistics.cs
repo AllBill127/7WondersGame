@@ -4,7 +4,7 @@
 /// A group's results. Wins counts a k-way tie for first as 1/k (the winShare column). The win rate's interval is
 /// the 95% Wilson score interval; FairShare is what a player no better than the others would get (1 / players).
 /// </summary>
-public sealed class GroupStatistics
+internal sealed class GroupStatistics
 {
     /// <summary>A group's results with these values.</summary>
     public GroupStatistics(int number, string label, string key, int games, double wins, double winRate,

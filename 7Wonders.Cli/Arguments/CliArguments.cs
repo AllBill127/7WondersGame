@@ -6,7 +6,7 @@ namespace _7Wonders.Cli.Arguments;
 /// Parsed command line: <c>&lt;command&gt; [--name value | --name=value]...</c>.
 /// Option names are case-insensitive; each option may be given once.
 /// </summary>
-public sealed class CliArguments
+internal sealed class CliArguments
 {
     /// <summary>Where an option's name starts, after its two dashes.</summary>
     private const int OptionNameStart = 2;

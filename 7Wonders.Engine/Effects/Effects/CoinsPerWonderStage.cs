@@ -5,7 +5,7 @@ using _7Wonders.Engine.Players.Entities;
 namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Coins when built, for each of the player's built wonder stages.</summary>
-public sealed class CoinsPerWonderStage : IEffect
+internal sealed class CoinsPerWonderStage : IEffect
 {
     /// <summary>An effect that gives <paramref name="coins"/> per built wonder stage.</summary>
     public CoinsPerWonderStage(int coins)

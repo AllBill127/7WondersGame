@@ -4,7 +4,7 @@
 /// How one search uses several threads (<see cref="MctsConfiguration.ParallelWorkerCount"/> of them). The variants are
 /// the classic ones (Chaslot, Winands and van den Herik 2008, "Parallel Monte-Carlo Tree Search").
 /// </summary>
-public enum MctsParallelisation
+internal enum MctsParallelisation
 {
     /// <summary>One tree, one thread: the plain search (ParallelWorkerCount is ignored).</summary>
     None,

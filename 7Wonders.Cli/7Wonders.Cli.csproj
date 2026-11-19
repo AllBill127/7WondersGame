@@ -32,4 +32,8 @@
     </PropertyGroup>
   </Target>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="7Wonders.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -8,7 +8,7 @@ namespace _7Wonders.Engine.Moves.Dtos;
 /// A player's move as it goes into <see cref="Game.ResolveMoves"/>, with the cards it is made from. A struct,
 /// because every turn of every rollout makes one per player.
 /// </summary>
-public readonly struct SubmittedMove
+internal readonly struct SubmittedMove
 {
     /// <summary><paramref name="player"/>'s <paramref name="move"/>, made from <paramref name="source"/>.</summary>
     public SubmittedMove(PlayerState player, Move move, List<Card> source)

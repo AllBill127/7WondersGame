@@ -10,7 +10,7 @@ namespace _7Wonders.Cli.ResultsAnalysis;
 /// What 'analyze' computes from result rows: per group the win rate with a Wilson interval and the mean VP, and for
 /// pairs of groups the paired VP and win-share differences over the same deals.
 /// </summary>
-public static class Analysis
+internal static class Analysis
 {
     /// <summary>Without --compare-with, 'analyze' lists every pair only up to this many groups.</summary>
     public const int MostGroupsForAllPairs = 8;

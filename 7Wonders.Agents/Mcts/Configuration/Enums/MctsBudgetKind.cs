@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>When the search stops.</summary>
-public enum MctsBudgetKind
+internal enum MctsBudgetKind
 {
     /// <summary>
     /// After <see cref="MctsConfiguration.IterationBudget"/> iterations; every iteration counts. Reproducible.

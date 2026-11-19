@@ -113,7 +113,7 @@ public static class AgentCatalog
     /// The setting a key names (its name, in any case). Throws an <see cref="AgentSpecificationException"/> if the
     /// agent has no such setting.
     /// </summary>
-    public static AgentSetting ResolveSetting(Type agentType, string key)
+    private static AgentSetting ResolveSetting(Type agentType, string key)
     {
         List<AgentSetting> fields = AgentSettings.Of(agentType).ToList();
         foreach (AgentSetting field in fields)

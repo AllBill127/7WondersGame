@@ -20,7 +20,7 @@ public static class MoveResolution
     /// Step 2: the player pays their own coins (to the neighbours and the bank) and the card leaves where it came
     /// from. A built card goes into the city. Nobody receives anything yet.
     /// </summary>
-    public static void Place(PlannedMove move)
+    internal static void Place(PlannedMove move)
     {
         PlayerState player = move.Player;
         player.Resources[Resource.Coins] -= move.Payment.Total + move.CoinCost;
@@ -38,7 +38,7 @@ public static class MoveResolution
     /// Step 3: the neighbours receive their trade coins and the move takes effect: the card's effect, the wonder
     /// stage, or 3 coins for a discard. A discarded card goes to the discard pile in <see cref="Game.ResolveMoves"/>.
     /// </summary>
-    public static void Settle(PlannedMove move)
+    internal static void Settle(PlannedMove move)
     {
         PlayerState player = move.Player;
         player.WestNeighbour.Resources[Resource.Coins] += move.Payment.ToWest;

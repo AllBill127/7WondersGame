@@ -3,7 +3,7 @@
 namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>Which moves the tree considers.</summary>
-public enum MctsMovePruning
+internal enum MctsMovePruning
 {
     /// <summary>Every legal move.</summary>
     None,

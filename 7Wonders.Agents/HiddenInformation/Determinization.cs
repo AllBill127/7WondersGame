@@ -19,7 +19,7 @@ namespace _7Wonders.Agents.HiddenInformation;
 /// The public state (cities, coins, wonder stages, hand and pile sizes) and the seat's own hand stay as they are.
 /// </summary>
 /// <remarks>Runs once per MCTS iteration: no LINQ, lambdas or extra allocations.</remarks>
-public static class Determinization
+internal static class Determinization
 {
     /// <summary>
     /// A copy of the game with the hidden cards dealt again, as <paramref name="seat"/> may guess them.

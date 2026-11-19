@@ -7,7 +7,7 @@ namespace _7Wonders.Agents.Common.Settings;
 /// One setting of an agent: a <see cref="SettingAttribute"/> property of the agent, or of the object in one of its
 /// <see cref="SettingGroupAttribute"/> properties.
 /// </summary>
-public sealed class AgentSetting
+internal sealed class AgentSetting
 {
     private readonly PropertyInfo _property;
     private readonly PropertyInfo? _group;

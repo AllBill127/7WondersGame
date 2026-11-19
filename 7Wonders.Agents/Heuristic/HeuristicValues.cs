@@ -19,7 +19,7 @@ namespace _7Wonders.Agents.Heuristic;
 /// It runs in every step of a search's rollouts: no LINQ, no delegates, and no allocations beyond the first copy
 /// and the cache.
 /// </remarks>
-public sealed class HeuristicValues
+internal sealed class HeuristicValues
 {
     private readonly PlayerState _player;
     private readonly int _era;

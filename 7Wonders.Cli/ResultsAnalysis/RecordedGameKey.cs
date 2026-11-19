@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>Which game a result row is from: its run and its number in the run. Equal when both are.</summary>
-public sealed class RecordedGameKey : IEquatable<RecordedGameKey>
+internal sealed class RecordedGameKey : IEquatable<RecordedGameKey>
 {
     /// <summary>The game of <paramref name="row"/>.</summary>
     public RecordedGameKey(ResultRow row)

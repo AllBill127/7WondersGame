@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Engine.Effects.Enums;
 
 /// <summary>Whose city a "per card" or "per stage" effect counts.</summary>
-public enum Who
+internal enum Who
 {
     /// <summary>Only the player.</summary>
     Self,

@@ -9,7 +9,7 @@ namespace _7Wonders.Cli.ResultsAnalysis;
 /// played <see cref="Rotations"/> times (moving the line-up one seat on each time), <see cref="Games"/> deals
 /// per value.
 /// </summary>
-public sealed class SweptSeat
+internal sealed class SweptSeat
 {
     /// <summary>The swept agent listed in position <paramref name="listed"/>.</summary>
     public SweptSeat(int listed, int games, int rotations)

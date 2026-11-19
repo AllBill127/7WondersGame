@@ -16,7 +16,7 @@ public static class Standings
     /// <summary>
     /// Standings in the same order as the input.
     /// </summary>
-    public static List<PlayerStanding> Rank(IReadOnlyList<FinalScore> players)
+    internal static List<PlayerStanding> Rank(IReadOnlyList<FinalScore> players)
     {
         List<PlayerStanding> standings = new(players.Count);
         for (int seat = 0; seat < players.Count; seat++)

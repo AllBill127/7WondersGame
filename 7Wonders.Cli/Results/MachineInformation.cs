@@ -6,7 +6,7 @@ using Microsoft.Win32;
 namespace _7Wonders.Cli.Results;
 
 /// <summary>The machine and runtime a run used: timings from different machines or settings don't compare.</summary>
-public sealed class MachineInformation
+internal sealed class MachineInformation
 {
     private const string WindowsCpuKey = @"HARDWARE\DESCRIPTION\System\CentralProcessor\0";
     private const string LinuxCpuInformationFile = "/proc/cpuinfo";

@@ -9,6 +9,6 @@ namespace _7Wonders.Agents.Common.Settings;
 /// own instance, since setting one changes it.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class SettingGroupAttribute : Attribute
+internal sealed class SettingGroupAttribute : Attribute
 {
 }

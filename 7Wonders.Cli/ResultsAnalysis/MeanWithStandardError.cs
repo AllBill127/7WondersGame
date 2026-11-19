@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>The mean of some values and the standard error of that mean.</summary>
-public sealed class MeanWithStandardError
+internal sealed class MeanWithStandardError
 {
     /// <summary>The <paramref name="mean"/> and its <paramref name="standardError"/>.</summary>
     public MeanWithStandardError(double mean, double standardError)

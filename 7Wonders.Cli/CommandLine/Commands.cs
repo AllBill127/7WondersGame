@@ -23,7 +23,7 @@ using Serilog.Events;
 namespace _7Wonders.Cli.CommandLine;
 
 /// <summary>The program's commands: run, replay, analyze, dataset, agents. Each returns the exit code.</summary>
-public static class Commands
+internal static class Commands
 {
     /// <summary>Exit code: everything was done.</summary>
     public const int Ok = 0;

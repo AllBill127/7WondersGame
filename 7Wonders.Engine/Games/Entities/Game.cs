@@ -801,7 +801,7 @@ public class Game
     /// the cards and wonder stages arrive. Coins received can't be spent in the same turn, and seat order doesn't
     /// change the result.
     /// </summary>
-    public void ResolveMoves(IReadOnlyList<SubmittedMove> moves)
+    internal void ResolveMoves(IReadOnlyList<SubmittedMove> moves)
     {
         TraceSnapshot[]? before = null;
         if (Tracing)

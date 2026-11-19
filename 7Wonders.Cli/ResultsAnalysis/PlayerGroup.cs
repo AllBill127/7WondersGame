@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>A group of rows by player: an agent with one configuration (the swept agent apart).</summary>
-public sealed class PlayerGroup
+internal sealed class PlayerGroup
 {
     /// <summary>The group <paramref name="key"/> of <paramref name="agent"/> with its configuration.</summary>
     public PlayerGroup(string key, string agent, string configurationJson, bool swept)

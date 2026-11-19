@@ -5,7 +5,7 @@ using _7Wonders.Agents.Common.Interfaces;
 namespace _7Wonders.Agents.Common.Settings;
 
 /// <summary>An agent's settings: what the results log and the command line can set.</summary>
-public static class AgentSettings
+internal static class AgentSettings
 {
     /// <summary>
     /// The agent's settings as JSON, logged with every result row: its settings (see <see cref="Of"/>), sorted by

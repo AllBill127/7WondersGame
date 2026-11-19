@@ -18,7 +18,7 @@ namespace _7Wonders.Agents.RandomChoice;
 /// <item>Halikarnassos' discard-pile build: a playable discard-pile card, or Skip when there is none.</item>
 /// </list>
 /// </summary>
-public class RandomAgent : IAgent
+internal class RandomAgent : IAgent
 {
     /// <summary>A random move for the view's seat (see the class summary).</summary>
     public Move Choose(GameView view)

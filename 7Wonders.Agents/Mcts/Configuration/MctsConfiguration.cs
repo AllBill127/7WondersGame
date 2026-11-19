@@ -9,7 +9,7 @@ namespace _7Wonders.Agents.Mcts.Configuration;
 /// <c>MctsAgent:ExplorationConstant=1.2:BackpropagationRule=Paranoid</c>, and is logged in the results
 /// (configurationJson). The exploration constant is still to be tuned (in [0.3, 2]).
 /// </summary>
-public sealed class MctsConfiguration
+internal sealed class MctsConfiguration
 {
     /// <summary>What the search may know about the hidden cards.</summary>
     [Setting]

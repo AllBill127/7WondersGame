@@ -15,7 +15,7 @@ namespace _7Wonders.Engine.Rules.Services;
 /// against the turn-start state and prices it, changing nothing. <see cref="MoveResolution"/> does the
 /// other two.
 /// </summary>
-public static class MovePlanning
+internal static class MovePlanning
 {
     /// <summary>
     /// Step 1: checks a move against the current state and works out what it costs, changing nothing.

@@ -9,7 +9,7 @@ namespace _7Wonders.Cli.Logs;
 /// Information: run progress and one line per game. Debug: the step-by-step trace of real games.
 /// Verbose: more detail (playable cards, every attempted purchase, deck order).
 /// </summary>
-public static class Logging
+internal static class Logging
 {
     /// <summary>The environment variable that sets the log level when <c>--log-level</c> doesn't.</summary>
     public const string EnvironmentVariable = "SEVENWONDERS_LOG";

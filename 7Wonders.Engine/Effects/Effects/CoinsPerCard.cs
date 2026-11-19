@@ -7,7 +7,7 @@ using _7Wonders.Engine.Players.Entities;
 namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Coins when built, for each card of a type in <see cref="Who"/>'s cities (built cards count).</summary>
-public sealed class CoinsPerCard : IEffect
+internal sealed class CoinsPerCard : IEffect
 {
     /// <summary>
     /// An effect that gives <paramref name="coins"/> per card of <paramref name="type"/> in

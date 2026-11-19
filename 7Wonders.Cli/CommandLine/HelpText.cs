@@ -3,7 +3,7 @@
 namespace _7Wonders.Cli.CommandLine;
 
 /// <summary>The text printed by 'help' and 'help &lt;command&gt;'.</summary>
-public static class HelpText
+internal static class HelpText
 {
     /// <summary>The commands that have their own help.</summary>
     public static readonly string[] Topics = { "run", "replay", "analyze", "dataset", "agents" };

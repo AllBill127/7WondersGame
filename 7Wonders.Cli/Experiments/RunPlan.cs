@@ -11,7 +11,7 @@ namespace _7Wonders.Cli.Experiments;
 /// What 'run' plays, from the command line or from an experiment file (<c>--experiment file.json</c>, which uses the
 /// same option names). Game <c>i</c> always gets the same deal, seating and sweep value.
 /// </summary>
-public sealed class RunPlan
+internal sealed class RunPlan
 {
     /// <summary>The options 'run' takes.</summary>
     public static readonly string[] Options =

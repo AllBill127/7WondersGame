@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>A group's average victory points and win share on one deal (over its seatings of that deal).</summary>
-public sealed class DealAverages
+internal sealed class DealAverages
 {
     /// <summary>The averages <paramref name="victoryPoints"/> and <paramref name="winShare"/>.</summary>
     public DealAverages(double victoryPoints, double winShare)

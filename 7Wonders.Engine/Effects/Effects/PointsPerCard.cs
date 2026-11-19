@@ -7,7 +7,7 @@ using _7Wonders.Engine.Players.Entities;
 namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Victory points for each card of the given types in <see cref="Who"/>'s cities at the end.</summary>
-public sealed class PointsPerCard : IEffect
+internal sealed class PointsPerCard : IEffect
 {
     /// <summary>
     /// An effect worth <paramref name="victoryPoints"/> per card of <paramref name="types"/> in

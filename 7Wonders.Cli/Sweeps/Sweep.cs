@@ -6,7 +6,7 @@ namespace _7Wonders.Cli.Sweeps;
 /// A setting given as a range <c>a..b</c>: the run plays every deal once for each of <c>Steps</c> evenly spaced values
 /// from a to b (both included). Only one setting in a run may be a range.
 /// </summary>
-public sealed class Sweep : IEquatable<Sweep>
+internal sealed class Sweep : IEquatable<Sweep>
 {
     private const string RangeDots = "..";
 

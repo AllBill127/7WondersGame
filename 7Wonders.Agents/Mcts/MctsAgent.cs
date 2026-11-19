@@ -17,7 +17,7 @@ namespace _7Wonders.Agents.Mcts;
 /// hidden cards: each iteration searches a new guess at them (SO-ISMCTS). A decision with only one legal move is made
 /// without a search.
 /// </summary>
-public sealed class MctsAgent : IAgent
+internal sealed class MctsAgent : IAgent
 {
     private const double BytesPerMegabyte = 1048576.0;
 

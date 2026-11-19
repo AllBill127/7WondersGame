@@ -12,7 +12,7 @@ namespace _7Wonders.Engine.Wonders.Data;
 /// Every wonder board: its starting resource and, for each stage in building order, the cost and the effects.
 /// Shared by every game and never changed. Checked against the rulebook in WonderDataTests.
 /// </summary>
-public static class WonderBoards
+internal static class WonderBoards
 {
     /// <summary>A stage's cost of one resource.</summary>
     private static IReadOnlyDictionary<Resource, int> Cost(Resource resource, int amount)

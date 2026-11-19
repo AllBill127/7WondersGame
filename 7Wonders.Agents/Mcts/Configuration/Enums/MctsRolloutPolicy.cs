@@ -4,7 +4,7 @@ using _7Wonders.Agents.RandomChoice;
 namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>How the players move in a rollout.</summary>
-public enum MctsRolloutPolicy
+internal enum MctsRolloutPolicy
 {
     /// <summary><see cref="HeuristicAgent"/>'s move, or with probability ε a random move.</summary>
     HeuristicWithRandomMoves,

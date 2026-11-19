@@ -5,7 +5,7 @@
 /// Per deal, each group's VP and win share are averaged over its rows; the differences A - B are then averaged
 /// over the deals. The standard error is that of the mean, and the 95% interval is mean +- 1.96 standard errors.
 /// </summary>
-public sealed class PairStatistics
+internal sealed class PairStatistics
 {
     /// <summary>A compared with B over <paramref name="deals"/> shared deals.</summary>
     public PairStatistics(GroupStatistics groupA, GroupStatistics groupB, int deals, double victoryPointDifference,

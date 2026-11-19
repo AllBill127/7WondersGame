@@ -4,7 +4,7 @@ using _7Wonders.Engine.Players.Entities;
 namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Victory points at the end of the game.</summary>
-public sealed class Points : IEffect
+internal sealed class Points : IEffect
 {
     /// <summary>An effect worth <paramref name="victoryPoints"/> victory points at the end.</summary>
     public Points(int victoryPoints)

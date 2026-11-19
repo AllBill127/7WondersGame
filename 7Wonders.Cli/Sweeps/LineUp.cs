@@ -9,7 +9,7 @@ namespace _7Wonders.Cli.Sweeps;
 /// A line-up as the command line writes it, where one setting may be a range <c>a..b</c> (a <see cref="Sweep"/>).
 /// The catalog creates agents from plain values, so a range is replaced by one value first.
 /// </summary>
-public static class LineUp
+internal static class LineUp
 {
     /// <summary>
     /// Checks a line-up before any game starts: every agent and setting exists, values parse, and at most one

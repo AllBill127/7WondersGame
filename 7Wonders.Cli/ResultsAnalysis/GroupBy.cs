@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>How 'analyze' puts result rows into groups.</summary>
-public enum GroupBy
+internal enum GroupBy
 {
     /// <summary>One group per agent configuration (the swept agent apart).</summary>
     Player,

@@ -6,7 +6,7 @@ using _7Wonders.Engine.Players.Entities;
 namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Victory points for each built wonder stage in <see cref="Who"/>'s cities at the end.</summary>
-public sealed class PointsPerWonderStage : IEffect
+internal sealed class PointsPerWonderStage : IEffect
 {
     /// <summary>
     /// An effect worth <paramref name="victoryPoints"/> per wonder stage in <paramref name="who"/>'s cities.

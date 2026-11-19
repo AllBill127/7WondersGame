@@ -7,7 +7,7 @@ using _7Wonders.Engine.Wonders.Enums;
 namespace _7Wonders.Engine.Wonders.Dtos;
 
 /// <summary>A board's fixed description, with what its built stages add up to precomputed.</summary>
-public sealed class WonderBoard
+internal sealed class WonderBoard
 {
     /// <summary>Which board and side this is.</summary>
     public WonderId Id { get; }

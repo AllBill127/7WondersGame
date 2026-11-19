@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.Experiments;
 
 /// <summary>Which deal, seating and sweep value game <see cref="Index"/> of a run plays.</summary>
-public readonly struct GameSlot
+internal readonly struct GameSlot
 {
     /// <summary>
     /// Game <paramref name="index"/>: deal <paramref name="deal"/> in seating <paramref name="rotation"/>, at sweep

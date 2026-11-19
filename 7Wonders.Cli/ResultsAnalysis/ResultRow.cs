@@ -5,7 +5,7 @@ namespace _7Wonders.Cli.ResultsAnalysis;
 /// <summary>
 /// One row of a results CSV, as 'analyze' needs it. Swept: the row is the agent with the range setting.
 /// </summary>
-public sealed class ResultRow
+internal sealed class ResultRow
 {
     /// <summary>A row with these column values.</summary>
     public ResultRow(string runId, long gameIndex, string seed, int seat, string agent, string configurationJson,

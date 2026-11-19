@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>The reward of a finished rollout, per player.</summary>
-public enum MctsRewardKind
+internal enum MctsRewardKind
 {
     /// <summary>1 for a win, 1/k for a k-way tie for first (VP, then coins), else 0.</summary>
     Win,

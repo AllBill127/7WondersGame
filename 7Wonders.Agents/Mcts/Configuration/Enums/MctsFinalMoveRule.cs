@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>Which of the searching player's moves is played after the search.</summary>
-public enum MctsFinalMoveRule
+internal enum MctsFinalMoveRule
 {
     /// <summary>The most visited (robust child).</summary>
     MostVisits,

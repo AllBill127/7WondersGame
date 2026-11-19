@@ -4,7 +4,7 @@
 /// What a player is ranked by at the end of a game: victory points, then coins. A struct, because MCTS ranks the
 /// players at the end of every rollout.
 /// </summary>
-public readonly struct FinalScore
+internal readonly struct FinalScore
 {
     /// <summary>The seat's victory points and coins.</summary>
     public FinalScore(int seat, int victoryPoints, int coins)

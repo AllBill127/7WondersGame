@@ -32,7 +32,7 @@ namespace _7Wonders.Cli.Datasets;
 /// A deal is <c>[deck1, deck2, deck3, wonders]</c> as card and wonder ids, as <see cref="Game.SetUpGameFromDataset"/>
 /// takes it.
 /// </remarks>
-public static class Filer
+internal static class Filer
 {
     /// <summary>The start of a dataset file's first line, before the player count.</summary>
     public const string HeaderPrefix = "Players:";

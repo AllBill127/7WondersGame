@@ -8,7 +8,7 @@ namespace _7Wonders.Cli.Results;
 /// The run manifest, saved next to the results CSV: what was run, from which code, and when.
 /// Written when the run starts and again when it ends.
 /// </summary>
-public sealed class RunManifest
+internal sealed class RunManifest
 {
     private const string UnknownCommit = "unknown";
 

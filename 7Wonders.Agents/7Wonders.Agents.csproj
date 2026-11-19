@@ -8,4 +8,8 @@
     <ProjectReference Include="..\7Wonders.Engine\7Wonders.Engine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="7Wonders.Tests" />
+  </ItemGroup>
+
 </Project>

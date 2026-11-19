@@ -3,7 +3,7 @@
 namespace _7Wonders.Cli.Logs;
 
 /// <summary>The log level to use, and where it came from (for the run manifest and messages).</summary>
-public sealed class LogLevelChoice
+internal sealed class LogLevelChoice
 {
     /// <summary>The <paramref name="level"/> that <paramref name="source"/> gave.</summary>
     public LogLevelChoice(LogEventLevel level, string source)

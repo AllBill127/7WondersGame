@@ -32,7 +32,7 @@ namespace _7Wonders.Agents.Heuristic;
 /// <see cref="Choose(PlayerState, Phase, int, List{Card})"/> runs in every step of a search's rollouts: it and
 /// everything it calls use no LINQ, no delegates and no allocations beyond the values object.
 /// </remarks>
-public sealed class HeuristicAgent : IAgent
+internal sealed class HeuristicAgent : IAgent
 {
     private static readonly Move Skip = new(MoveAction.Skip, null);
 

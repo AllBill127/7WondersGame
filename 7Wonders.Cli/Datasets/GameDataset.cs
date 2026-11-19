@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.Datasets;
 
 /// <summary>The contents of a dataset file: the player count and the deals, each checked for that count.</summary>
-public sealed class GameDataset
+internal sealed class GameDataset
 {
     /// <summary>The <paramref name="deals"/> for <paramref name="players"/> players.</summary>
     public GameDataset(int players, List<List<int>[]> deals)

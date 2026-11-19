@@ -3,7 +3,7 @@
 /// <summary>
 /// Where a result row comes in the order the runs play their games: by run, then game, then seat.
 /// </summary>
-public sealed class PlayOrder : IComparable<PlayOrder>
+internal sealed class PlayOrder : IComparable<PlayOrder>
 {
     /// <summary>The place of <paramref name="row"/>.</summary>
     public PlayOrder(ResultRow row)

@@ -9,7 +9,7 @@ namespace _7Wonders.Cli.Results;
 /// The one writer of the results CSV: one row per (game, seat), appended and flushed after every game,
 /// so a crash loses at most the game being written. Safe to call from parallel games.
 /// </summary>
-public sealed class ResultsCsvWriter : IDisposable
+internal sealed class ResultsCsvWriter : IDisposable
 {
     /// <summary>
     /// What separates the fields of every CSV the program writes and reads. Not a comma, so the JSON fields seldom

@@ -1,7 +1,7 @@
 ﻿namespace _7Wonders.Cli.Experiments;
 
 /// <summary>What an experiment file holds: its options as command-line text, and its description.</summary>
-public sealed class ExperimentFile
+internal sealed class ExperimentFile
 {
     /// <summary>The file's <paramref name="options"/> and <paramref name="description"/>.</summary>
     public ExperimentFile(Dictionary<string, string> options, string? description)
