@@ -51,7 +51,7 @@ public class LighthouseTests
         Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
         Assert.IsTrue(MoveTestHelper.BuildCard(player, lighthouse, new List<Card> { lighthouse }, true));
-        player.Battle(3);
+        Battles.FightEraBattles(player, 3);
 
         // 3 VP from the Lighthouse + 6 coins / 3 = 2 VP (no shields anywhere, so no military points)
         Assert.AreEqual(5, player.CalculateScore());

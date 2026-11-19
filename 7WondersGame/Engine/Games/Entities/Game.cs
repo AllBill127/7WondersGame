@@ -14,7 +14,6 @@ using _7WondersGame.Engine.Moves.Enums;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.Engine.Rules.Services;
-using static _7WondersGame.Engine.Rules.Services.Rules;
 using _7WondersGame.Engine.Wonders.Entities;
 using _7WondersGame.Engine.Wonders.Enums;
 using Serilog;
@@ -700,7 +699,7 @@ public class Game
         {
             // Olympia A stage 2: one free card per era
             player.OlympiaFreeBuildAvailable = PlayerAbilities.Has(player, Ability.OlympiaFreeBuildEachEra);
-            player.Battle(Era);
+            Battles.FightEraBattles(player, Era);
         }
         if (Tracing)
         {
@@ -1205,11 +1204,13 @@ public class Game
         }
     }
 
-    /// <summary>One player's two battles at the end of an era (after <see cref="Rules.Battle"/>; read-only).</summary>
+    /// <summary>
+    /// One player's two battles at the end of an era (after <see cref="Battles.FightEraBattles"/>; read-only).
+    /// </summary>
     private void TraceBattle(PlayerState player)
     {
         int mine = player.Resources[Resource.Shields];
-        int win = VictoryTokensForWinningBattle(Era);
+        int win = Battles.VictoryTokensForWinningBattle(Era);
         int west = player.WestNeighbour.Resources[Resource.Shields];
         int east = player.EastNeighbour.Resources[Resource.Shields];
         Trace.Debug("Seat {Seat} battles with {Shields} shields: vs seat {West} (west, {WestShields}) {WestResult}, " +

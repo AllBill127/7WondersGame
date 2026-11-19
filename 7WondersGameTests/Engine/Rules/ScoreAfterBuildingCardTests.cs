@@ -16,7 +16,7 @@ public class ScoreAfterBuildingCardTests
     {
         Card card = CardsDataset.GameCards[id];
         Assert.IsTrue(MoveTestHelper.BuildCard(player, card, new List<Card> { card }, true));
-        player.Battle(era);
+        Battles.FightEraBattles(player, era);
         player.CopyGuild();
         return player.CalculateScore();
     }

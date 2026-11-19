@@ -146,7 +146,7 @@ public sealed class HeuristicValues
     /// <summary>The player's score if the era ended now: a battle, then Olympia B's guild copy.</summary>
     private int ScoreIfEraEnded(PlayerState scratchPlayer)
     {
-        scratchPlayer.Battle(_era);
+        Battles.FightEraBattles(scratchPlayer, _era);
         scratchPlayer.CopyGuild();
         return scratchPlayer.CalculateScore();
     }
