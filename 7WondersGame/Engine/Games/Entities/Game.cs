@@ -558,8 +558,8 @@ public class Game
         {
             throw MoveFailed(player, "build from the discard pile", card);
         }
-        player.Place(planned);
-        player.Settle(planned);
+        MoveResolution.Place(planned);
+        MoveResolution.Settle(planned);
         if (_knowledge != null)
         {
             _knowledge.BuiltFromPile(card);
@@ -975,7 +975,7 @@ public class Game
             {
                 continue;
             }
-            move.Player.Place(move);
+            MoveResolution.Place(move);
             if (move.Action == MoveAction.Discard)
             {
                 DiscardPile.Add(move.Card);
@@ -994,7 +994,7 @@ public class Game
         {
             if (move != null)
             {
-                move.Player.Settle(move);
+                MoveResolution.Settle(move);
             }
         }
     }

@@ -10,7 +10,8 @@ namespace _7WondersGame.Engine.Moves.Dtos;
 /// <summary>
 /// A move that has been checked and priced but not carried out yet. Moves made at the same time go through
 /// three steps, each for every player before the next: <see cref="MovePlanning.PlanMove"/> against the turn-start
-/// state, <see cref="Rules.Place"/>, then <see cref="Rules.Settle"/> (see <see cref="Game.ResolveMoves"/>).
+/// state, <see cref="MoveResolution.Place"/>, then <see cref="MoveResolution.Settle"/> (see
+/// <see cref="Game.ResolveMoves"/>).
 /// </summary>
 public sealed class PlannedMove
 {

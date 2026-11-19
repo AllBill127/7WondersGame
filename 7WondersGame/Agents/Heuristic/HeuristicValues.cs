@@ -4,7 +4,6 @@ using _7WondersGame.Engine.Effects.Effects;
 using _7WondersGame.Engine.Effects.Enums;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Rules.Services;
-using static _7WondersGame.Engine.Rules.Services.Rules;
 
 namespace _7WondersGame.Agents.Heuristic;
 
@@ -115,7 +114,7 @@ public sealed class HeuristicValues
     public double DiscardGain()
     {
         PlayerState scratchPlayer = Copy();
-        scratchPlayer.Resources[Resource.Coins] += CoinsForDiscard;
+        scratchPlayer.Resources[Resource.Coins] += MoveResolution.CoinsForDiscard;
         return ScoreIfEraEnded(scratchPlayer) - _baseline;
     }
 

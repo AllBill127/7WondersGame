@@ -2,6 +2,7 @@
 using _7WondersGame.Engine.Effects.Enums;
 using _7WondersGame.Engine.Effects.Interfaces;
 using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Rules.Services;
 using _7WondersGame.Engine.Wonders.Data;
 using _7WondersGame.Engine.Wonders.Dtos;
 using _7WondersGame.Engine.Wonders.Enums;
@@ -141,7 +142,8 @@ public sealed class WonderBoardProgress
     }
 
     /// <summary>
-    /// Adds the next stage and applies its effects. The caller has already paid for it (see <see cref="Rules.Place"/>).
+    /// Adds the next stage and applies its effects. The caller has already paid for it (see
+    /// <see cref="MoveResolution.Place"/>).
     /// </summary>
     /// <returns>false if every stage is already built</returns>
     public bool AddStage(PlayerState player)

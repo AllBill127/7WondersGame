@@ -56,8 +56,8 @@ internal static class MoveTestHelper
             return false;
         }
 
-        player.Place(plannedMove);
-        player.Settle(plannedMove);
+        MoveResolution.Place(plannedMove);
+        MoveResolution.Settle(plannedMove);
         return true;
     }
 }
