@@ -205,8 +205,8 @@ public sealed class HeuristicValues
     /// </summary>
     private double ScienceBonus()
     {
-        bool isFirstScience = _player.CountBuiltCardsOfType(CardType.Scientific) == 0;
-        bool hasRawMaterials = _player.CountBuiltCardsOfType(CardType.Materials) >= 2;
+        bool isFirstScience = CityCounts.CountBuiltCardsOfType(_player, CardType.Scientific) == 0;
+        bool hasRawMaterials = CityCounts.CountBuiltCardsOfType(_player, CardType.Materials) >= 2;
         if (!isFirstScience || !hasRawMaterials)
         {
             return _weights.EarlyScienceCardBonus;
@@ -484,7 +484,7 @@ public sealed class HeuristicValues
     /// <summary>Raw material cards, plus 1 for a board that makes a raw material.</summary>
     private static int RawCards(PlayerState cityOwner)
     {
-        int count = cityOwner.CountBuiltCardsOfType(CardType.Materials);
+        int count = CityCounts.CountBuiltCardsOfType(cityOwner, CardType.Materials);
         if (IsRaw(cityOwner.Wonder.Production))
         {
             count++;
@@ -495,7 +495,7 @@ public sealed class HeuristicValues
     /// <summary>Manufactured good cards, plus 1 for a board that makes a good.</summary>
     private static int GoodsCards(PlayerState cityOwner)
     {
-        int count = cityOwner.CountBuiltCardsOfType(CardType.Manufactured);
+        int count = CityCounts.CountBuiltCardsOfType(cityOwner, CardType.Manufactured);
         if (IsGood(cityOwner.Wonder.Production))
         {
             count++;

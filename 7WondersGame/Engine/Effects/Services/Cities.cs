@@ -17,14 +17,14 @@ internal static class Cities
         switch (who)
         {
             case Who.Self:
-                return player.CountBuiltCardsOfType(type);
+                return CityCounts.CountBuiltCardsOfType(player, type);
             case Who.Neighbours:
-                return player.EastNeighbour.CountBuiltCardsOfType(type)
-                       + player.WestNeighbour.CountBuiltCardsOfType(type);
+                return CityCounts.CountBuiltCardsOfType(player.EastNeighbour, type)
+                       + CityCounts.CountBuiltCardsOfType(player.WestNeighbour, type);
             default:
-                return player.EastNeighbour.CountBuiltCardsOfType(type)
-                    + player.WestNeighbour.CountBuiltCardsOfType(type)
-                    + player.CountBuiltCardsOfType(type);
+                return CityCounts.CountBuiltCardsOfType(player.EastNeighbour, type)
+                    + CityCounts.CountBuiltCardsOfType(player.WestNeighbour, type)
+                    + CityCounts.CountBuiltCardsOfType(player, type);
         }
     }
 

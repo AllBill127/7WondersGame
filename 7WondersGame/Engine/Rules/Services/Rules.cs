@@ -312,18 +312,4 @@ public static partial class Rules
         }
         return false;
     }
-
-    /// <summary>How many cards of one type (colour) the player has built.</summary>
-    public static int CountBuiltCardsOfType(this PlayerState player, CardType cardType)
-    {
-        int amount = 0;
-        foreach (Card card in player.BuiltCards)
-        {
-            if (card.Type == cardType)
-            {
-                amount++;
-            }
-        }
-        return amount;
-    }
 }
