@@ -35,7 +35,7 @@ public class PlayerIntegrationTest
         int expWestPlayerCoins = 5;
 
         // Test
-        List<Card> buildable = players[1].BuildableCards(players[1].Hand);
+        List<Card> buildable = BuildRules.BuildableCards(players[1], players[1].Hand);
         bool canPlayCard = buildable.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
         Assert.IsTrue(canPlayCard);
 
@@ -80,7 +80,7 @@ public class PlayerIntegrationTest
         int expWestPlayerCoins = 3;
 
         // Test
-        List<Card> buildable = players[1].BuildableCards(players[1].Hand);
+        List<Card> buildable = BuildRules.BuildableCards(players[1], players[1].Hand);
         bool canPlayCard = buildable.Contains<Card>(CardsDataset.GameCards[CardId.Temple]);
         Assert.IsFalse(canPlayCard);
 
@@ -146,7 +146,7 @@ public class PlayerIntegrationTest
     }
     private static void AssertCanPlay(PlayerState player, Card card)
     {
-        List<Card> buildable = player.BuildableCards(player.Hand);
+        List<Card> buildable = BuildRules.BuildableCards(player, player.Hand);
         Assert.IsTrue(buildable.Contains<Card>(card));
     }
 

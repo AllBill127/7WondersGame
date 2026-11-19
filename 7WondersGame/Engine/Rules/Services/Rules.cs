@@ -20,66 +20,6 @@ public static partial class Rules
     /// <summary>The coins a discarded card gives.</summary>
     public const int CoinsForDiscard = 3;
 
-    // =========== Wonder ===========
-    /// <summary>Is there a next wonder stage, and can the player pay for it?</summary>
-    public static bool CanBuildWonder(this PlayerState player)
-    {
-        IReadOnlyDictionary<Resource, int>? cost = player.Wonder.NextStageCost;
-        if (cost == null)
-        {
-            return false;
-        }
-        return PaymentPlanner.Plan(player, cost) != null;
-    }
-
-    // =========== Card related ===========
-    /// <summary>
-    /// A new list of the cards in <paramref name="cards"/> the player can build now (not a duplicate, and chained
-    /// or affordable). With <paramref name="everyCardFree"/> (Halikarnassos, Olympia A's free card) cost doesn't
-    /// matter.
-    /// </summary>
-    public static List<Card> BuildableCards(this PlayerState player, List<Card> cards, bool everyCardFree = false)
-    {
-        List<Card> buildableCards = new();
-        foreach (Card card in cards)
-        {
-            // the same card can't be built twice
-            if (player.HasPlayedCard(card))
-            {
-                continue;
-            }
-
-            if (everyCardFree || player.CanBuildByChaining(card) || PaymentPlanner.Plan(player, card.Cost) != null)
-            {
-                buildableCards.Add(card);
-            }
-        }
-        return buildableCards;
-    }
-
-    /// <summary>
-    /// The coins building the card would cost the player now (trade plus the card's own coin cost; 0 when chained),
-    /// or null if they can't build it. Changes nothing.
-    /// </summary>
-    public static int? BuildPrice(this PlayerState player, Card card)
-    {
-        if (player.HasPlayedCard(card))
-        {
-            return null;
-        }
-        if (player.CanBuildByChaining(card))
-        {
-            return 0;
-        }
-
-        PaymentPlan? plan = PaymentPlanner.Plan(player, card.Cost);
-        if (plan == null)
-        {
-            return null;
-        }
-        return plan.Value.Total + CoinCostOf(card);
-    }
-
     // =========== Moves: plan, place, settle ===========
     /// <summary>
     /// Step 1: checks a move against the current state and works out what it costs, changing nothing.
@@ -130,11 +70,11 @@ public static partial class Rules
         List<Card> source,
         bool free)
     {
-        if (player.HasPlayedCard(card) || !source.Contains(card))
+        if (BuildRules.HasBuiltCardNamed(player, card) || !source.Contains(card))
         {
             return null;
         }
-        if (free || player.CanBuildByChaining(card))
+        if (free || BuildRules.CanBuildByChaining(player, card))
         {
             return new PlannedMove(player, action, card, source, PaymentPlan.Free, 0);
         }
@@ -144,7 +84,7 @@ public static partial class Rules
         {
             return null;
         }
-        return new PlannedMove(player, action, card, source, plan.Value, CoinCostOf(card));
+        return new PlannedMove(player, action, card, source, plan.Value, BuildRules.CoinCostOf(card));
     }
 
     /// <summary>Olympia A stage 2: one free card per era, while the era's charge is unused.</summary>
@@ -181,16 +121,6 @@ public static partial class Rules
             return null;
         }
         return new PlannedMove(player, MoveAction.Discard, card, source, PaymentPlan.Free, 0);
-    }
-
-    /// <summary>The coins the card itself asks for (for example Tree Farm's 1 coin), 0 if none.</summary>
-    private static int CoinCostOf(Card card)
-    {
-        if (card.Cost.TryGetValue(Resource.Coins, out int coins))
-        {
-            return coins;
-        }
-        return 0;
     }
 
     /// <summary>
@@ -248,56 +178,5 @@ public static partial class Rules
         {
             player.HalikarnassosDiscardBuildPending = false;
         }
-    }
-
-    /// <summary>The no-duplicates rule: true if the city already has a card with this name.</summary>
-    private static bool HasPlayedCard(this PlayerState player, Card card)
-    {
-        foreach (Card playedCard in player.BuiltCards)
-        {
-            if (playedCard.SameNameAs(card))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /// <summary>Is the card free because the city has the card it chains from?</summary>
-    private static bool CanBuildByChaining(this PlayerState player, Card card)
-    {
-        CardId freeWithId = card.FreeIfBuiltCardId;
-        if (freeWithId == CardId.None)
-        {
-            return false;
-        }
-
-        // Forum is free with either trading post
-        if (freeWithId == CardId.AnyTradingPost && HasBuiltEitherTradingPost(player))
-        {
-            return true;
-        }
-
-        foreach (Card playedCard in player.BuiltCards)
-        {
-            if (playedCard.Id == freeWithId)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /// <summary>Has the city the East or the West Trading Post?</summary>
-    private static bool HasBuiltEitherTradingPost(PlayerState player)
-    {
-        foreach (Card playedCard in player.BuiltCards)
-        {
-            if (playedCard.Id is CardId.EastTradingPost or CardId.WestTradingPost)
-            {
-                return true;
-            }
-        }
-        return false;
     }
 }

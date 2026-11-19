@@ -117,7 +117,7 @@ public static partial class Rules
     /// <summary>Is the card a guild the player doesn't have yet?</summary>
     private static bool CanCopyGuild(PlayerState player, Card card)
     {
-        return card.Type == CardType.Guild && !player.HasPlayedCard(card);
+        return card.Type == CardType.Guild && !BuildRules.HasBuiltCardNamed(player, card);
     }
 
     /// <summary>

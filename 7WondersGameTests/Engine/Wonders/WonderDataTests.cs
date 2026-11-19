@@ -53,7 +53,7 @@ public class WonderDataTests
 
         GiveResources(player, 10);
         player.Resources[Resource.Coins] = 100;
-        Assert.IsFalse(player.CanBuildWonder(), "one stage too many");
+        Assert.IsFalse(BuildRules.CanBuildWonderStage(player), "one stage too many");
     }
 
     // Columns: wonder, stage, cost, VP, coins, shields, other effect.
@@ -153,7 +153,7 @@ public class WonderDataTests
         Dictionary<Resource, int> stageCost)
     {
         SetResources(player, stageCost);
-        Assert.IsTrue(player.CanBuildWonder(), "exact cost should be enough");
+        Assert.IsTrue(BuildRules.CanBuildWonderStage(player), "exact cost should be enough");
 
         foreach (Resource resource in stageCost.Keys)
         {
@@ -165,7 +165,7 @@ public class WonderDataTests
             Dictionary<Resource, int> lessOne = new(stageCost);
             lessOne[resource]--;
             SetResources(player, lessOne);
-            Assert.IsFalse(player.CanBuildWonder(), $"one {resource} short should not be enough");
+            Assert.IsFalse(BuildRules.CanBuildWonderStage(player), $"one {resource} short should not be enough");
         }
     }
 

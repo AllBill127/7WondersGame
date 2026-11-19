@@ -33,7 +33,7 @@ public sealed class GameView
         DiscardPile = new List<Card>(game.DiscardPile);
         DecidingPlayer = Players[seat];
         BuildableCards = BuildableCardsNow();
-        CanBuildWonder = DecidingPlayer.CanBuildWonder();
+        CanBuildWonder = BuildRules.CanBuildWonderStage(DecidingPlayer);
         Knowledge = game.KnowledgeOf(seat);
     }
 
@@ -102,8 +102,8 @@ public sealed class GameView
         if (Phase == Phase.DiscardPileBuild)
         {
             // the discard-pile build is free, so only the no-duplicates rule limits it
-            return DecidingPlayer.BuildableCards(DiscardPile, everyCardFree: true);
+            return BuildRules.BuildableCards(DecidingPlayer, DiscardPile, everyCardFree: true);
         }
-        return DecidingPlayer.BuildableCards(DecidingPlayer.Hand);
+        return BuildRules.BuildableCards(DecidingPlayer, DecidingPlayer.Hand);
     }
 }

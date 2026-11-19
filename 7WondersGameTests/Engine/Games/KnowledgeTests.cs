@@ -154,7 +154,7 @@ public class KnowledgeTests
         PlayerState firstPlayer = game.Players[0];
         PlayerState secondPlayer = game.Players[1];
         Card discarded = firstPlayer.Hand[0];
-        Card built = secondPlayer.BuildableCards(secondPlayer.Hand).First();
+        Card built = BuildRules.BuildableCards(secondPlayer, secondPlayer.Hand).First();
 
         game.Submit(0, new Move(MoveAction.Discard, discarded));
         game.Submit(1, new Move(MoveAction.Build, built));

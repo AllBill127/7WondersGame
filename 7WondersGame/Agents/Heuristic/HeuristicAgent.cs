@@ -90,7 +90,7 @@ public sealed class HeuristicAgent : IAgent
     /// <summary>Halikarnassos: the build is free, so only the card's worth counts.</summary>
     private static Move ChooseDiscardPileBuild(PlayerState player, List<Card> discardPile, HeuristicValues values)
     {
-        List<Card> buildable = player.BuildableCards(discardPile, everyCardFree: true);
+        List<Card> buildable = BuildRules.BuildableCards(player, discardPile, everyCardFree: true);
         Card? pick = HighestValueCard(buildable, values);
         return MoveOrSkip(MoveAction.Build, pick);
     }
@@ -115,7 +115,7 @@ public sealed class HeuristicAgent : IAgent
         for (int cardIndex = 0; cardIndex < hand.Count; cardIndex++)
         {
             // a price means the card can be built (the cards BuildableCards gives)
-            int? price = player.BuildPrice(hand[cardIndex]);
+            int? price = BuildRules.BuildPrice(player, hand[cardIndex]);
             if (price == null)
             {
                 continue;
@@ -136,7 +136,7 @@ public sealed class HeuristicAgent : IAgent
     {
         List<Card> hand = player.Hand;
         double keep = KeepOlympiaFreeBuildValue(hand);
-        foreach (Card card in player.BuildableCards(hand, everyCardFree: true))
+        foreach (Card card in BuildRules.BuildableCards(player, hand, everyCardFree: true))
         {
             int handIndex = hand.IndexOf(card);
             double value = values.Gain(card) - keep + denied[handIndex];

@@ -831,11 +831,11 @@ internal sealed class MctsSearch
             return Skip;
         }
 
-        List<Card> buildable = player.BuildableCards(hand);
+        List<Card> buildable = BuildRules.BuildableCards(player, hand);
         List<Card>? free = null;
         if (searchGame.Phase == Phase.ChooseMoves && player.OlympiaFreeBuildAvailable)
         {
-            free = player.BuildableCards(hand, everyCardFree: true);
+            free = BuildRules.BuildableCards(player, hand, everyCardFree: true);
         }
         List<MoveAction> options = new(4);
         if (buildable.Count > 0)
@@ -846,7 +846,7 @@ internal sealed class MctsSearch
         {
             options.Add(MoveAction.BuildWithOlympiaFreeBuild);
         }
-        if (player.CanBuildWonder())
+        if (BuildRules.CanBuildWonderStage(player))
         {
             options.Add(MoveAction.BuildWonderStage);
         }
@@ -862,7 +862,7 @@ internal sealed class MctsSearch
     /// <summary>Halikarnassos: a random playable discard-pile card, or Skip when there is none.</summary>
     private static Move RandomDiscardPileBuild(Game searchGame, PlayerState player, Random random)
     {
-        List<Card> fromPile = player.BuildableCards(searchGame.DiscardPile, everyCardFree: true);
+        List<Card> fromPile = BuildRules.BuildableCards(player, searchGame.DiscardPile, everyCardFree: true);
         if (fromPile.Count == 0)
         {
             return Skip;

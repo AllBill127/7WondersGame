@@ -33,7 +33,7 @@ public class CheckCanBuildWonderTests
         int expWestPlayerCoins = 3;
 
         // Test
-        bool canBuildWonder = players[1].CanBuildWonder();
+        bool canBuildWonder = BuildRules.CanBuildWonderStage(players[1]);
 
         // Evaluate
         Assert.IsTrue(canBuildWonder);

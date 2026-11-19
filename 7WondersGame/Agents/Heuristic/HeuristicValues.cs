@@ -126,7 +126,7 @@ public sealed class HeuristicValues
     public double NextPlayerGain(Card card)
     {
         PlayerState next = NextPlayer();
-        if (next == null || next == _player || next.BuildPrice(card) == null)
+        if (next == null || next == _player || BuildRules.BuildPrice(next, card) == null)
         {
             return 0;
         }

@@ -38,7 +38,7 @@ public class RandomAgent : IAgent
         }
         else if (action == MoveAction.BuildWithOlympiaFreeBuild)
         {
-            List<Card> free = player.BuildableCards(player.Hand, everyCardFree: true);
+            List<Card> free = BuildRules.BuildableCards(player, player.Hand, everyCardFree: true);
             if (free.Count > 0)
             {
                 card = ChooseCard(view, free);

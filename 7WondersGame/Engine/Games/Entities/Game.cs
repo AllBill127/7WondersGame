@@ -1305,7 +1305,7 @@ public class Game
     /// <summary>Halikarnassos: a free build of any discard-pile card the city doesn't have.</summary>
     private void AddDiscardPileBuilds(List<Move> moves, PlayerState player)
     {
-        foreach (Card card in player.BuildableCards(DiscardPile, everyCardFree: true))
+        foreach (Card card in BuildRules.BuildableCards(player, DiscardPile, everyCardFree: true))
         {
             AddIfNew(moves, new Move(MoveAction.Build, card));
         }
@@ -1313,7 +1313,7 @@ public class Game
 
     private static void AddBuilds(List<Move> moves, PlayerState player)
     {
-        foreach (Card card in player.BuildableCards(player.Hand))
+        foreach (Card card in BuildRules.BuildableCards(player, player.Hand))
         {
             AddIfNew(moves, new Move(MoveAction.Build, card));
         }
@@ -1323,7 +1323,7 @@ public class Game
     private void AddWonderStages(List<Move> moves, PlayerState player, bool pruned)
     {
         List<Card> hand = player.Hand;
-        if (!player.CanBuildWonder() || hand.Count == 0)
+        if (!BuildRules.CanBuildWonderStage(player) || hand.Count == 0)
         {
             return;
         }
@@ -1345,7 +1345,7 @@ public class Game
         {
             return;
         }
-        foreach (Card card in player.BuildableCards(player.Hand, everyCardFree: true))
+        foreach (Card card in BuildRules.BuildableCards(player, player.Hand, everyCardFree: true))
         {
             AddIfNew(moves, new Move(MoveAction.BuildWithOlympiaFreeBuild, card));
         }

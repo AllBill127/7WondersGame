@@ -35,7 +35,7 @@ public class BuildableCardsTests
         int expWestPlayerCoins = 3;
 
         // Test
-        List<Card> buildableCards = players[1].BuildableCards(players[1].Hand);
+        List<Card> buildableCards = BuildRules.BuildableCards(players[1], players[1].Hand);
         List<Card> buildable = buildableCards;
 
         bool canPlayCard = buildable.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
@@ -69,7 +69,7 @@ public class BuildableCardsTests
         int expWestPlayerCoins = 3;
 
         // Test
-        List<Card> buildableCards = players[1].BuildableCards(players[1].Hand);
+        List<Card> buildableCards = BuildRules.BuildableCards(players[1], players[1].Hand);
         List<Card> buildable = buildableCards;
 
         bool canPlayCard = buildable.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
@@ -105,7 +105,7 @@ public class BuildableCardsTests
         int expWestPlayerCoins = 3;
 
         // Test
-        List<Card> buildableCards = players[1].BuildableCards(players[1].Hand);
+        List<Card> buildableCards = BuildRules.BuildableCards(players[1], players[1].Hand);
         List<Card> buildable = buildableCards;
 
         bool canPlayCard = buildable.Contains<Card>(CardsDataset.GameCards[CardId.Caravansery]);
@@ -144,7 +144,7 @@ public class BuildableCardsTests
         int expWestPlayerCoins = 3;
 
         // Test
-        List<Card> buildable = players[1].BuildableCards(players[1].Hand);
+        List<Card> buildable = BuildRules.BuildableCards(players[1], players[1].Hand);
 
         // Evaluate
         bool canPlayCard;
@@ -182,7 +182,7 @@ public class BuildableCardsTests
         List<Card> expectedBuildableCards = players[1].Hand;
 
         // Test
-        List<Card> buildable = players[1].BuildableCards(players[1].Hand, true);
+        List<Card> buildable = BuildRules.BuildableCards(players[1], players[1].Hand, true);
 
         // Evaluate
         bool isMatch = buildable.SequenceEqual(expectedBuildableCards);
@@ -219,7 +219,7 @@ public class BuildableCardsTests
         };
 
         // Test
-        List<Card> buildable = players[1].BuildableCards(players[1].Hand, true);
+        List<Card> buildable = BuildRules.BuildableCards(players[1], players[1].Hand, true);
 
         // Evaluate
         bool isMatch = buildable.SequenceEqual(expectedBuildableCards);

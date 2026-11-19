@@ -40,7 +40,7 @@ internal static class MoveTestHelper
             return player.PlanMove(MoveAction.Build, card, source);
         }
 
-        List<Card> buildableForFree = player.BuildableCards(source, everyCardFree: true);
+        List<Card> buildableForFree = BuildRules.BuildableCards(player, source, everyCardFree: true);
         if (!buildableForFree.Contains(card))
         {
             return null;

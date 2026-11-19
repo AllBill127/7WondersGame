@@ -38,12 +38,12 @@ public class BuildWonderTests
         int expWestPlayerCoins = 3;
 
         // Test
-        players[1].CanBuildWonder();
+        BuildRules.CanBuildWonderStage(players[1]);
         bool canBuildWonder = MoveTestHelper.BuildWonderStage(players[1], player1Card, players[1].Hand);
 
         // Evaluate
         Assert.IsTrue(canBuildWonder);
-        Assert.IsFalse(players[1].CanBuildWonder());
+        Assert.IsFalse(BuildRules.CanBuildWonderStage(players[1]));
         // eval hand card change
         bool cardInHand = players[1].Hand.Contains<Card>(player1Card);
         Assert.IsFalse(cardInHand);

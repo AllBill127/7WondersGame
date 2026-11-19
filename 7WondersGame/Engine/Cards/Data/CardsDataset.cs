@@ -134,7 +134,7 @@ public static class CardsDataset
             cost: new int[] { 0, 0, 0, 0, 0, 0, 0, 0 }, copies: new int[] { 1, 1, 1, 2, 2 },
             new Grant(Ability.ManufacturedGoodsCheapFromBothNeighbours)),
         // Forum is free with either trading post: its FreeIfBuiltCardId is AnyTradingPost
-        // (see Rules.CanBuildByChaining).
+        // (see BuildRules.CanBuildByChaining).
         new Card(CardId.Forum, "Forum", CardType.Commercial, era: 2, freeIfBuilt: CardId.AnyTradingPost,
             cost: new int[] { 0, 0, 2, 0, 0, 0, 0, 0 }, copies: new int[] { 1, 1, 1, 2, 3 },
             new OneOf(false, Resource.Loom, Resource.Glass, Resource.Papyrus)),
