@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Effects.Effects;
+namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Victory points at the end of the game.</summary>
 public sealed class Points : IEffect

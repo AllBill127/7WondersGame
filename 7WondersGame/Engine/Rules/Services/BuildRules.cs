@@ -1,10 +1,10 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Payment.Dtos;
-using _7WondersGame.Engine.Payment.Services;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Payment.Dtos;
+using _7Wonders.Engine.Payment.Services;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Rules.Services;
+namespace _7Wonders.Engine.Rules.Services;
 
 /// <summary>
 /// Can a player build a card or their next wonder stage now, and what would it cost? Reads the state

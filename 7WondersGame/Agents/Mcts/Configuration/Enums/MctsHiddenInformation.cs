@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Agents.HiddenInformation;
+﻿using _7Wonders.Agents.HiddenInformation;
 
-namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>What the search may know.</summary>
 public enum MctsHiddenInformation

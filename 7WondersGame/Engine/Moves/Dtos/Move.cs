@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Moves.Enums;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Moves.Enums;
 
-namespace _7WondersGame.Engine.Moves.Dtos;
+namespace _7Wonders.Engine.Moves.Dtos;
 
 /// <summary>
 /// A move: an action and the card it uses (null only for <see cref="MoveAction.Skip"/>).

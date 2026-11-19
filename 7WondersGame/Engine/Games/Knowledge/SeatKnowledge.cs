@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
 
-namespace _7WondersGame.Engine.Games.Knowledge;
+namespace _7Wonders.Engine.Games.Knowledge;
 
 /// <summary>
 /// What one seat knows about the cards it can't see now. Everything else hidden (the cards it never

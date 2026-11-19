@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Knowledge;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Knowledge;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Agents.HiddenInformation;
+namespace _7Wonders.Agents.HiddenInformation;
 
 /// <summary>
 /// One guess at the hidden cards, from one seat's point of view: a copy of the game in which everything that seat

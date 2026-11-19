@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Agents.Mcts.Tree;
+﻿using _7Wonders.Agents.Mcts.Tree;
 
-namespace _7WondersGame.Agents.Mcts.Search;
+namespace _7Wonders.Agents.Mcts.Search;
 
 /// <summary>
 /// One step of the walk down the tree: a node and the moves made there (one in a sequential tree, every pending

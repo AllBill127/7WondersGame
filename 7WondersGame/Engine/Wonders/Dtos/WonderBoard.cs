@@ -1,10 +1,10 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Effects;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Wonders.Enums;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Effects;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Wonders.Enums;
 
-namespace _7WondersGame.Engine.Wonders.Dtos;
+namespace _7Wonders.Engine.Wonders.Dtos;
 
 /// <summary>A board's fixed description, with what its built stages add up to precomputed.</summary>
 public sealed class WonderBoard

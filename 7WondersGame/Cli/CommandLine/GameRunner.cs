@@ -1,16 +1,16 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Experiments;
-using _7WondersGame.Cli.Logs;
-using _7WondersGame.Cli.Matches;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Randomness.Services;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Experiments;
+using _7Wonders.Cli.Logs;
+using _7Wonders.Cli.Matches;
+using _7Wonders.Cli.Results;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Randomness.Services;
 using Serilog;
 
-namespace _7WondersGame.Cli.CommandLine;
+namespace _7Wonders.Cli.CommandLine;
 
 /// <summary>
 /// Plays the games of a run, several at a time, and appends each finished game's rows to the results CSV. A game

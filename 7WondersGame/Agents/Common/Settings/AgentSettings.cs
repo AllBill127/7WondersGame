@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Text.Json;
-using _7WondersGame.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Interfaces;
 
-namespace _7WondersGame.Agents.Common.Settings;
+namespace _7Wonders.Agents.Common.Settings;
 
 /// <summary>An agent's settings: what the results log and the command line can set.</summary>
 public static class AgentSettings

@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Effects;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Effects;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Agents.Heuristic;
+namespace _7Wonders.Agents.Heuristic;
 
 /// <summary>
 /// What cards and wonder stages are worth to one player, for <see cref="HeuristicAgent"/>, in victory points: how

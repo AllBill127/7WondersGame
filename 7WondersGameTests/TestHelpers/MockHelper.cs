@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGame.Engine.Wonders.Enums;
+﻿using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Engine.Wonders.Enums;
 
-namespace _7WondersGameTests.TestHelpers;
+namespace _7Wonders.Tests.TestHelpers;
 
 /// <summary>Wonder boards and seated players for tests that set up a table by hand.</summary>
 internal class MockHelper

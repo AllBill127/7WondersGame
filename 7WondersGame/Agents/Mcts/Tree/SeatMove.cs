@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Engine.Moves.Dtos;
+﻿using _7Wonders.Engine.Moves.Dtos;
 
-namespace _7WondersGame.Agents.Mcts.Tree;
+namespace _7Wonders.Agents.Mcts.Tree;
 
 /// <summary>
 /// A move and the seat that made it: the key of a move's statistics at a node. Equal when the seat and the move

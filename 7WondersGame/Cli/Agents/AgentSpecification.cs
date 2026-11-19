@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Cli.Arguments;
+﻿using _7Wonders.Cli.Arguments;
 
-namespace _7WondersGame.Cli.Agents;
+namespace _7Wonders.Cli.Agents;
 
 /// <summary>
 /// One seat's agent as written on the command line: <c>Name[:setting=value...]</c>,

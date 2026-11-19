@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.RandomChoice;
+﻿using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.RandomChoice;
 
-namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>How the players move in a rollout.</summary>
 public enum MctsRolloutPolicy

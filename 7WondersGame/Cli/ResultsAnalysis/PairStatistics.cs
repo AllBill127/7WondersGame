@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>
 /// A paired comparison of groups A and B on the deals both played (the seed column: same seed, same deal).

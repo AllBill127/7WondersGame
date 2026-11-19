@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
-using _7WondersGame.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Interfaces;
 
-namespace _7WondersGame.Agents.Common.Settings;
+namespace _7Wonders.Agents.Common.Settings;
 
 /// <summary>
 /// One setting of an agent: a <see cref="SettingAttribute"/> property of the agent, or of the object in one of its

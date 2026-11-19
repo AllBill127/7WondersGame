@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace _7WondersGame.Cli.Common;
+namespace _7Wonders.Cli.Common;
 
 /// <summary>Reading text values out of the JSON files and columns the program writes.</summary>
 internal static class JsonText

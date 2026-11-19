@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Text.Json;
-using _7WondersGame.Cli.Common;
+using _7Wonders.Cli.Common;
 
-namespace _7WondersGame.Cli.Results;
+namespace _7Wonders.Cli.Results;
 
 /// <summary>
 /// The run manifest, saved next to the results CSV: what was run, from which code, and when.

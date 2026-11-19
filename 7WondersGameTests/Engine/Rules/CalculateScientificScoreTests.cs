@@ -1,12 +1,12 @@
-﻿using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGame.Engine.Wonders.Enums;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Engine.Wonders.Enums;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Engine.Rules;
+namespace _7Wonders.Tests.Engine.Rules;
 
 /// <summary>Science points, with wildcards placed on the symbol that gives the most.</summary>
 [TestClass]

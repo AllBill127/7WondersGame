@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace _7WondersGame.Cli.ResultsAnalysis;
+namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>
 /// One row of a results CSV, as 'analyze' needs it. Swept: the row is the agent with the range setting.

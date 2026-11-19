@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>
 /// Where a result row comes in the order the runs play their games: by run, then game, then seat.

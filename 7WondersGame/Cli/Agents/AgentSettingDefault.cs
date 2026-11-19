@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Agents;
+﻿namespace _7Wonders.Cli.Agents;
 
 /// <summary>One setting of an agent type and its default value, for the 'agents' listing.</summary>
 public sealed class AgentSettingDefault

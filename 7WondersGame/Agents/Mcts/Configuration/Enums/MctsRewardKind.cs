@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>The reward of a finished rollout, per player.</summary>
 public enum MctsRewardKind

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Search;
+﻿namespace _7Wonders.Agents.Mcts.Search;
 
 /// <summary>
 /// Runs a parallel search's workers on several threads and counts the memory allocated on threads other than the

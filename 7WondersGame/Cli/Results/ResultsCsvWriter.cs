@@ -1,8 +1,8 @@
 ﻿using System.Globalization;
 using System.Text;
-using _7WondersGame.Cli.Common;
+using _7Wonders.Cli.Common;
 
-namespace _7WondersGame.Cli.Results;
+namespace _7Wonders.Cli.Results;
 
 /// <summary>
 /// The one writer of the results CSV: one row per (game, seat), appended and flushed after every game,

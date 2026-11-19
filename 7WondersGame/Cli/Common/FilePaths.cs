@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Common;
+﻿namespace _7Wonders.Cli.Common;
 
 /// <summary>Paths of the files the program reads and writes.</summary>
 internal static class FilePaths

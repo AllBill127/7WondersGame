@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>Setting up a game from a dataset deal.</summary>
 [TestClass]

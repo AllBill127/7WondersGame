@@ -2,16 +2,16 @@
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using Match = _7WondersGame.Cli.Matches.Match;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Randomness.Services;
-using _7WondersGameTests.Agents.Mcts;
+using Match = _7Wonders.Cli.Matches.Match;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Results;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Randomness.Services;
+using _7Wonders.Tests.Agents.Mcts;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>
 /// The game trace (Debug/Verbose) only reads state, and only real games write it.

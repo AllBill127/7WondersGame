@@ -1,15 +1,15 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
-using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.Mcts.Configuration;
-using _7WondersGame.Agents.Mcts.Configuration.Enums;
-using _7WondersGame.Agents.Mcts.Search;
-using _7WondersGame.Engine.Moves.Dtos;
+using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.Mcts.Configuration;
+using _7Wonders.Agents.Mcts.Configuration.Enums;
+using _7Wonders.Agents.Mcts.Search;
+using _7Wonders.Engine.Moves.Dtos;
 
-namespace _7WondersGame.Agents.Mcts;
+namespace _7Wonders.Agents.Mcts;
 
 /// <summary>
 /// The one configurable MCTS agent, which replaces the old v1-v12 and JM agents. Every choice the old versions made

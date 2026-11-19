@@ -1,12 +1,12 @@
-﻿using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Arguments;
-using _7WondersGame.Cli.CommandLine;
-using _7WondersGame.Cli.Experiments;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Cli.ResultsAnalysis;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Arguments;
+using _7Wonders.Cli.CommandLine;
+using _7Wonders.Cli.Experiments;
+using _7Wonders.Cli.Results;
+using _7Wonders.Cli.ResultsAnalysis;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Cli.ResultsAnalysis;
+namespace _7Wonders.Tests.Cli.ResultsAnalysis;
 
 /// <summary>The 'analyze' command: Wilson intervals, paired differences, groups.</summary>
 [TestClass]

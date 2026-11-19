@@ -1,9 +1,9 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Engine.Games.Dtos;
+namespace _7Wonders.Engine.Games.Dtos;
 
 /// <summary>What the trace compares before and after a move: a player's coins, wonder stage and effect flags.</summary>
 internal sealed class TraceSnapshot

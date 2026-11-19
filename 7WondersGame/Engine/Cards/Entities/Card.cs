@@ -1,10 +1,10 @@
 ﻿using System.Text;
-using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Effects;
-using _7WondersGame.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Effects;
+using _7Wonders.Engine.Effects.Interfaces;
 
-namespace _7WondersGame.Engine.Cards.Entities;
+namespace _7Wonders.Engine.Cards.Entities;
 
 /// <summary>
 /// One card of the game: what it costs, what it chains from and what it does. Card objects come from

@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Engine.Effects.Enums;
+namespace _7Wonders.Engine.Effects.Enums;
 
 /// <summary>
 /// Lasting abilities a card or wonder stage gives. A card's go into <see cref="PlayerState.Abilities"/> when it is

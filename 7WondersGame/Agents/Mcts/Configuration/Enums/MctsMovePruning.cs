@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Engine.Games.Entities;
+﻿using _7Wonders.Engine.Games.Entities;
 
-namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>Which moves the tree considers.</summary>
 public enum MctsMovePruning

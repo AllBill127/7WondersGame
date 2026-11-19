@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Cards.Enums;
+﻿namespace _7Wonders.Engine.Cards.Enums;
 
 /// <summary>
 /// What a city counts: raw materials, manufactured goods, science symbols, coins and shields. Card costs in

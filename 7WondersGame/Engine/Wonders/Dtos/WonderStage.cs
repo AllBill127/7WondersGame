@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
 
-namespace _7WondersGame.Engine.Wonders.Dtos;
+namespace _7Wonders.Engine.Wonders.Dtos;
 
 /// <summary>One wonder stage: what it costs and what it does.</summary>
 public sealed class WonderStage

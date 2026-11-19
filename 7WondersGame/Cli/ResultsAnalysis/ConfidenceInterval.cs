@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>The two ends of a confidence interval.</summary>
 public sealed class ConfidenceInterval

@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Agents;
+﻿using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Agents;
 
-namespace _7WondersGameTests.TestHelpers;
+namespace _7Wonders.Tests.TestHelpers;
 
 /// <summary>
 /// An agent with settings of its own (not in a setting group), for the command-line tests (cheap to play, unlike

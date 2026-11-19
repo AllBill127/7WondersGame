@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
+﻿using _7Wonders.Engine.Cards.Enums;
 
-namespace _7WondersGameTests.Engine.Payment;
+namespace _7Wonders.Tests.Engine.Payment;
 
 /// <summary>An either/or source for <see cref="BruteForcePayment"/>: its owner and the resources it may give.</summary>
 internal sealed class EitherOrSource

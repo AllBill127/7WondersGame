@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Cards.Enums;
+﻿namespace _7Wonders.Engine.Cards.Enums;
 
 /// <summary>Every card of the game, one id per card (the era 1 and era 2 Loom are different cards).</summary>
 public enum CardId

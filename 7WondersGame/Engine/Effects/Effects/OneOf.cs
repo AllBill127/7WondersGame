@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Payment.Services;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Payment.Services;
 
-namespace _7WondersGame.Engine.Effects.Effects;
+namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>
 /// One unit of any of <see cref="Choices"/> each turn, chosen when paying (see <see cref="PaymentPlanner"/>).

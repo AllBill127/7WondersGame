@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Results;
+using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Results;
 
-namespace _7WondersGame.Cli.ResultsAnalysis;
+namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>
 /// What 'analyze' computes from result rows: per group the win rate with a Wilson interval and the mean VP, and for

@@ -1,12 +1,12 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Payment.Dtos;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Payment.Dtos;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGameTests.TestHelpers;
+namespace _7Wonders.Tests.TestHelpers;
 
 /// <summary>
 /// One player's move on its own, outside a turn: plan, place, settle, the way <see cref="Game.ResolveMoves"/> does

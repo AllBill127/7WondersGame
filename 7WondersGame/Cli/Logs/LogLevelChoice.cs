@@ -1,6 +1,6 @@
 ﻿using Serilog.Events;
 
-namespace _7WondersGame.Cli.Logs;
+namespace _7Wonders.Cli.Logs;
 
 /// <summary>The log level to use, and where it came from (for the run manifest and messages).</summary>
 public sealed class LogLevelChoice

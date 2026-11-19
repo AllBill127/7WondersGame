@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>The mean of some values and the standard error of that mean.</summary>
 public sealed class MeanWithStandardError

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Experiments;
+﻿namespace _7Wonders.Cli.Experiments;
 
 /// <summary>Which deal, seating and sweep value game <see cref="Index"/> of a run plays.</summary>
 public readonly struct GameSlot

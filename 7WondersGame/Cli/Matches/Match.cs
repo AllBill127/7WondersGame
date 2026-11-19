@@ -1,19 +1,19 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Cards.Services;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Exceptions;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Cli.Results;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Cards.Services;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Exceptions;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 using Serilog;
 using Serilog.Events;
 
-namespace _7WondersGame.Cli.Matches;
+namespace _7Wonders.Cli.Matches;
 
 /// <summary>
 /// Agents seated at a set-up <see cref="Game"/>: <see cref="Play"/> asks each seat's agent for its decisions until

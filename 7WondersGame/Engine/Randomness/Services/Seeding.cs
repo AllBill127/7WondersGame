@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Randomness.Services;
+﻿namespace _7Wonders.Engine.Randomness.Services;
 
 /// <summary>
 /// All randomness comes from here, so the same seed always gives the same games.

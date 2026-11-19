@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Effects.Interfaces;
+namespace _7Wonders.Engine.Effects.Interfaces;
 
 /// <summary>
 /// What a card or wonder stage does. <see cref="OnBuild"/> runs once, when it is built;

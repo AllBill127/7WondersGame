@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Payment.Dtos;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Payment.Dtos;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Payment.Services;
+namespace _7Wonders.Engine.Payment.Services;
 
 /// <summary>
 /// Finds the cheapest way to pay a cost. It only reads the players and changes nothing.

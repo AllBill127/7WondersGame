@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Rules.Services;
+namespace _7Wonders.Engine.Rules.Services;
 
 /// <summary>What building a card does: each of its effects' <c>OnBuild</c>.</summary>
 public static class CardEffects

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>A group's average victory points and win share on one deal (over its seatings of that deal).</summary>
 public sealed class DealAverages

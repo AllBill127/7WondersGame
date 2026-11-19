@@ -1,10 +1,10 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Effects.Services;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Effects.Services;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Effects.Effects;
+namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Victory points for each card of the given types in <see cref="Who"/>'s cities at the end.</summary>
 public sealed class PointsPerCard : IEffect

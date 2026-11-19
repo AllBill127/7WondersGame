@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Rules.Services;
+namespace _7Wonders.Engine.Rules.Services;
 
 /// <summary>The battles between neighbours at the end of each era.</summary>
 public static class Battles

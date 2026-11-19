@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Datasets;
+﻿namespace _7Wonders.Cli.Datasets;
 
 /// <summary>The contents of a dataset file: the player count and the deals, each checked for that count.</summary>
 public sealed class GameDataset

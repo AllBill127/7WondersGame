@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Engine.Rules;
+namespace _7Wonders.Tests.Engine.Rules;
 
 /// <summary>Checking whether a player can build its next wonder stage.</summary>
 [TestClass]

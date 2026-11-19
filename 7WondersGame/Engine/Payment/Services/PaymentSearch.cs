@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Payment.Dtos;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Payment.Dtos;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Engine.Payment.Services;
+namespace _7Wonders.Engine.Payment.Services;
 
 /// <summary>
 /// The search behind <see cref="PaymentPlanner"/>: tries every use of the either/or sources (the buyer's own,

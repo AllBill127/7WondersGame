@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Moves.Enums;
+﻿namespace _7Wonders.Engine.Moves.Enums;
 
 /// <summary>What a player does with a card on their turn.</summary>
 public enum MoveAction

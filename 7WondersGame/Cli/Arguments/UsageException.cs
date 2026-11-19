@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Arguments;
+﻿namespace _7Wonders.Cli.Arguments;
 
 /// <summary>
 /// A mistake in the command line. The message says what is wrong; the program prints it with a help hint.

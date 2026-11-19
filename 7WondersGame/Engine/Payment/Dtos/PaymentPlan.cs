@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Payment.Dtos;
+﻿namespace _7Wonders.Engine.Payment.Dtos;
 
 /// <summary>
 /// How a player pays for a card or wonder stage: the coins given to each neighbour for the resources bought

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Common.Settings;
+﻿namespace _7Wonders.Agents.Common.Settings;
 
 /// <summary>
 /// Marks a public property (with a public getter and setter) as an agent setting: the command line can set it

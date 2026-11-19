@@ -1,14 +1,14 @@
 ﻿using System.Globalization;
-using _7WondersGame.Cli.Common;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGame.Engine.Wonders.Enums;
+using _7Wonders.Cli.Common;
+using _7Wonders.Cli.Results;
+using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Engine.Wonders.Enums;
 
-namespace _7WondersGame.Cli.Datasets;
+namespace _7Wonders.Cli.Datasets;
 
 /// <summary>
 /// Reads and writes game dataset files: pre-shuffled decks and wonders, one deal per game.

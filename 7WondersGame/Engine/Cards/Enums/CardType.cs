@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Cards.Enums;
+﻿namespace _7Wonders.Engine.Cards.Enums;
 
 /// <summary>A card's colour: what kind of structure it is.</summary>
 public enum CardType

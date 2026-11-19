@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Moves.Exceptions;
+﻿namespace _7Wonders.Engine.Moves.Exceptions;
 
 /// <summary>
 /// A chosen move that the rules don't allow. The game stops here instead of carrying on in a state that shouldn't

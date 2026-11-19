@@ -2,7 +2,7 @@
 using Serilog.Events;
 using Serilog.Formatting.Display;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>A log sink that keeps every event in memory, so a test can read what was logged.</summary>
 internal sealed class ListSink : ILogEventSink

@@ -1,10 +1,10 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Rules.Services;
+namespace _7Wonders.Engine.Rules.Services;
 
 /// <summary>
 /// The last two of the three steps that carry out a move (see <see cref="Game.ResolveMoves"/>), after

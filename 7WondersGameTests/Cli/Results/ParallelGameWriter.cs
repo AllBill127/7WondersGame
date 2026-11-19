@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Cli.Results;
+﻿using _7Wonders.Cli.Results;
 
-namespace _7WondersGameTests.Cli.Results;
+namespace _7Wonders.Tests.Cli.Results;
 
 /// <summary>Writes one three-seat game per call, for many threads to call at once.</summary>
 internal sealed class ParallelGameWriter

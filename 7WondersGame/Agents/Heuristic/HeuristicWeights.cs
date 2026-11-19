@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Agents.Common.Settings;
+﻿using _7Wonders.Agents.Common.Settings;
 
-namespace _7WondersGame.Agents.Heuristic;
+namespace _7Wonders.Agents.Heuristic;
 
 /// <summary>
 /// Every number <see cref="HeuristicAgent"/> uses. Values are in victory points unless a comment says otherwise.

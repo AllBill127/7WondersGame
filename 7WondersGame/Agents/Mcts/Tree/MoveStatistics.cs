@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Tree;
+﻿namespace _7Wonders.Agents.Mcts.Tree;
 
 /// <summary>One decision of one player at a node: its statistics.</summary>
 internal sealed class MoveStatistics

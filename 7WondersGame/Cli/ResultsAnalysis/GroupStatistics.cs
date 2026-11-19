@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>
 /// A group's results. Wins counts a k-way tie for first as 1/k (the winShare column). The win rate's interval is

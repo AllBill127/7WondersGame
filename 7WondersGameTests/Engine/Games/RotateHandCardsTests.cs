@@ -1,12 +1,12 @@
-﻿using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>Passing the hands round the table.</summary>
 [TestClass]

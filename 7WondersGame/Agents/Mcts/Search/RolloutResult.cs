@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Search;
+﻿namespace _7Wonders.Agents.Mcts.Search;
 
 /// <summary>
 /// What a rollout gives back up the tree: every seat's reward and the searching player's win share. A struct,

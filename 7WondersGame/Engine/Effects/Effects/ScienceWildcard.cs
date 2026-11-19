@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Engine.Effects.Effects;
+namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>
 /// A science symbol of the player's choice at the end (Scientists Guild, Babylon). Scored in

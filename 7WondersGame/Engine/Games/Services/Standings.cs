@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Dtos;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Dtos;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Games.Services;
+namespace _7Wonders.Engine.Games.Services;
 
 /// <summary>
 /// The final ranking, used everywhere a game's outcome is judged (the rulebook's tie-break): most VP wins; on a VP

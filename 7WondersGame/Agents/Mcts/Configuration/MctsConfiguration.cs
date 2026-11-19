@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.Mcts.Configuration.Enums;
+﻿using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.Mcts.Configuration.Enums;
 
-namespace _7WondersGame.Agents.Mcts.Configuration;
+namespace _7Wonders.Agents.Mcts.Configuration;
 
 /// <summary>
 /// Every setting of <see cref="MctsAgent"/> (its <see cref="MctsAgent.Configuration"/> is a setting group). Each

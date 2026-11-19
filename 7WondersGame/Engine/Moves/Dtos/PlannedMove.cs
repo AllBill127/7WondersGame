@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Payment.Dtos;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Payment.Dtos;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Engine.Moves.Dtos;
+namespace _7Wonders.Engine.Moves.Dtos;
 
 /// <summary>
 /// A move that has been checked and priced but not carried out yet. Moves made at the same time go through

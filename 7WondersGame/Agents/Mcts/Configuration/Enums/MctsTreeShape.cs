@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>How the tree handles moves made at the same time.</summary>
 public enum MctsTreeShape

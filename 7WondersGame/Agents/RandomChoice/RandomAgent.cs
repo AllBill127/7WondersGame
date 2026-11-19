@@ -1,13 +1,13 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Agents.RandomChoice;
+namespace _7Wonders.Agents.RandomChoice;
 
 /// <summary>
 /// A random action among the possible ones, then a random card for it:

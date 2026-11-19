@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Experiments;
+﻿namespace _7Wonders.Cli.Experiments;
 
 /// <summary>What an experiment file holds: its options as command-line text, and its description.</summary>
 public sealed class ExperimentFile

@@ -1,11 +1,11 @@
 ﻿using System.Globalization;
-using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Arguments;
-using _7WondersGame.Cli.Common;
-using _7WondersGame.Cli.Experiments;
-using _7WondersGame.Cli.Results;
+using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Arguments;
+using _7Wonders.Cli.Common;
+using _7Wonders.Cli.Experiments;
+using _7Wonders.Cli.Results;
 
-namespace _7WondersGame.Cli.CommandLine;
+namespace _7Wonders.Cli.CommandLine;
 
 /// <summary>
 /// What 'replay' plays: the line-up, the game's seed, the deal of a dataset file (if any), and, when the game comes

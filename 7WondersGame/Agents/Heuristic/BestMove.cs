@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Moves.Enums;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Moves.Enums;
 
-namespace _7WondersGame.Agents.Heuristic;
+namespace _7Wonders.Agents.Heuristic;
 
 /// <summary>The best move so far (none: Skip): the first one with the highest value.</summary>
 internal struct BestMove

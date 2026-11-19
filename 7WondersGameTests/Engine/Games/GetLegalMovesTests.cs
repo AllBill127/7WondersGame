@@ -1,4 +1,4 @@
-﻿namespace _7WondersGameTests.Engine.Games;
+﻿namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>Placeholders for legal-move tests: both bodies are still empty.</summary>
 [TestClass]

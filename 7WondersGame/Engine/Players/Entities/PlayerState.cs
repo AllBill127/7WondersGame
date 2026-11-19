@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Rules.Services;
-using _7WondersGame.Engine.Wonders.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Rules.Services;
+using _7Wonders.Engine.Wonders.Entities;
 
-namespace _7WondersGame.Engine.Players.Entities;
+namespace _7Wonders.Engine.Players.Entities;
 
 /// <summary>
 /// One player's city and hand: data only. The rules that read and change it are the static services in

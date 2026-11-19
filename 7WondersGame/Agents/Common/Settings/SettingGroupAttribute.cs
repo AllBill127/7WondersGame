@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Agents.Heuristic;
+﻿using _7Wonders.Agents.Heuristic;
 
-namespace _7WondersGame.Agents.Common.Settings;
+namespace _7Wonders.Agents.Common.Settings;
 
 /// <summary>
 /// Marks an agent's property that holds an object of settings (e.g. <see cref="HeuristicAgent.Weights"/>): the

@@ -1,13 +1,13 @@
 ﻿using System.Reflection;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Randomness.Services;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Randomness.Services;
 
-namespace _7WondersGameTests.Engine.Players;
+namespace _7Wonders.Tests.Engine.Players;
 
 /// <summary>
 /// <see cref="PlayerState.CopyFrom"/> (the heuristic's reusable copy) must copy what

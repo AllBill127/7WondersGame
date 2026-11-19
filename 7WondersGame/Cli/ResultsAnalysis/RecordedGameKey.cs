@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>Which game a result row is from: its run and its number in the run. Equal when both are.</summary>
 public sealed class RecordedGameKey : IEquatable<RecordedGameKey>

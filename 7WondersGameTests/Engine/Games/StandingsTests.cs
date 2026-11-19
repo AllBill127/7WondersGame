@@ -1,7 +1,7 @@
-﻿using _7WondersGame.Engine.Games.Dtos;
-using _7WondersGame.Engine.Games.Services;
+﻿using _7Wonders.Engine.Games.Dtos;
+using _7Wonders.Engine.Games.Services;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>Ranking the players at the end of a game: victory points, then coins, shared wins.</summary>
 [TestClass]

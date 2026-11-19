@@ -1,22 +1,22 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.HiddenInformation;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Matches;
-using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Games.Knowledge;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Randomness.Services;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.HiddenInformation;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Matches;
+using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Games.Knowledge;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Randomness.Services;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>What each seat knows about hidden cards, and the guesses a fair search makes from it.</summary>
 [TestClass]

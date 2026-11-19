@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Dtos;
-using _7WondersGame.Engine.Games.Services;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Dtos;
+using _7Wonders.Engine.Games.Services;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Cli.Results;
+namespace _7Wonders.Cli.Results;
 
 /// <summary>
 /// The results of a finished game as the results file records them: each seat's <see cref="Standings"/> with the

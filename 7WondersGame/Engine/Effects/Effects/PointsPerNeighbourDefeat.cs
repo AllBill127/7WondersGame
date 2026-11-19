@@ -1,9 +1,9 @@
-﻿using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Effects.Services;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Effects.Services;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Effects.Effects;
+namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>Strategists Guild: victory points for each defeat token the neighbours hold at the end.</summary>
 public sealed class PointsPerNeighbourDefeat : IEffect

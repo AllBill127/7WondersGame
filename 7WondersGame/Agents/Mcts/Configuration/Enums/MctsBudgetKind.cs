@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>When the search stops.</summary>
 public enum MctsBudgetKind

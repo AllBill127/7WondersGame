@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Cli.Logs;
+﻿using _7Wonders.Cli.Logs;
 
-namespace _7WondersGame.Cli.CommandLine;
+namespace _7Wonders.Cli.CommandLine;
 
 /// <summary>The text printed by 'help' and 'help &lt;command&gt;'.</summary>
 public static class HelpText

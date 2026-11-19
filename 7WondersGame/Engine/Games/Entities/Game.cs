@@ -1,24 +1,24 @@
-﻿using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Cards.Services;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Games.Dtos;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Games.Knowledge;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Moves.Exceptions;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Randomness.Services;
-using _7WondersGame.Engine.Rules.Services;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGame.Engine.Wonders.Enums;
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Cards.Services;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Games.Dtos;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Games.Knowledge;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Moves.Exceptions;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Randomness.Services;
+using _7Wonders.Engine.Rules.Services;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Engine.Wonders.Enums;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 
-namespace _7WondersGame.Engine.Games.Entities;
+namespace _7Wonders.Engine.Games.Entities;
 
 /// <summary>
 /// One game: the players' state, the decks and the discard pile, and the turn rules as a state machine

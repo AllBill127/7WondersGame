@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
-using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Arguments;
-using _7WondersGame.Cli.CommandLine;
-using _7WondersGame.Cli.Common;
+using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Arguments;
+using _7Wonders.Cli.CommandLine;
+using _7Wonders.Cli.Common;
 
-namespace _7WondersGame.Cli.Experiments;
+namespace _7Wonders.Cli.Experiments;
 
 /// <summary>
 /// What 'run' plays, from the command line or from an experiment file (<c>--experiment file.json</c>, which uses the

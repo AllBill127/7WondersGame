@@ -1,12 +1,12 @@
-﻿using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Effects;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Wonders.Dtos;
-using _7WondersGame.Engine.Wonders.Enums;
-using static _7WondersGame.Engine.Cards.Enums.Resource;
+﻿using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Effects;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Wonders.Dtos;
+using _7Wonders.Engine.Wonders.Enums;
+using static _7Wonders.Engine.Cards.Enums.Resource;
 
-namespace _7WondersGame.Engine.Wonders.Data;
+namespace _7Wonders.Engine.Wonders.Data;
 
 /// <summary>
 /// Every wonder board: its starting resource and, for each stage in building order, the cost and the effects.

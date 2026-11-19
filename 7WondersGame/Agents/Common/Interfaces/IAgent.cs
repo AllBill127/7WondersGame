@@ -1,9 +1,9 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Moves.Dtos;
+﻿using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Moves.Dtos;
 
-namespace _7WondersGame.Agents.Common.Interfaces;
+namespace _7Wonders.Agents.Common.Interfaces;
 
 /// <summary>
 /// Decides one seat's moves. The game asks it whenever the seat must decide (see

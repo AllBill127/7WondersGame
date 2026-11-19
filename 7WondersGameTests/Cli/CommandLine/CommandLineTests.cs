@@ -1,14 +1,14 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Arguments;
-using _7WondersGame.Cli.CommandLine;
-using _7WondersGame.Cli.Logs;
-using _7WondersGame.Cli.Results;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Arguments;
+using _7Wonders.Cli.CommandLine;
+using _7Wonders.Cli.Logs;
+using _7Wonders.Cli.Results;
+using _7Wonders.Tests.TestHelpers;
 using Serilog.Events;
 
-namespace _7WondersGameTests.Cli.CommandLine;
+namespace _7Wonders.Tests.Cli.CommandLine;
 
 /// <summary>
 /// The command line (options, agent text, ranges, log levels).

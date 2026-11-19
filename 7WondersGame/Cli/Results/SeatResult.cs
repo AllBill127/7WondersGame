@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
+﻿using _7Wonders.Agents.Common.Interfaces;
 
-namespace _7WondersGame.Cli.Results;
+namespace _7Wonders.Cli.Results;
 
 /// <summary>
 /// What one seat got in a finished game. One CSV row per seat.

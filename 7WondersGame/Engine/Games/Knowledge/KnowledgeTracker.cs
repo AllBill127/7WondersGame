@@ -1,10 +1,10 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Games.Knowledge;
+namespace _7Wonders.Engine.Games.Knowledge;
 
 /// <summary>
 /// Keeps every seat's <see cref="SeatKnowledge"/> up to date. <see cref="Game"/> tells it what each seat saw;

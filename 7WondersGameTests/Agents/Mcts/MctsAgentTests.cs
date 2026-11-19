@@ -1,23 +1,23 @@
 ﻿using System.Text.Json;
-using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.Mcts;
-using _7WondersGame.Agents.Mcts.Configuration;
-using _7WondersGame.Agents.Mcts.Configuration.Enums;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Agents;
-using _7WondersGame.Cli.Matches;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Randomness.Services;
+using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.Mcts;
+using _7Wonders.Agents.Mcts.Configuration;
+using _7Wonders.Agents.Mcts.Configuration.Enums;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Agents;
+using _7Wonders.Cli.Matches;
+using _7Wonders.Cli.Results;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Randomness.Services;
 
-namespace _7WondersGameTests.Agents.Mcts;
+namespace _7Wonders.Tests.Agents.Mcts;
 
 /// <summary>The configurable MCTS agent.</summary>
 [TestClass]

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>Where a rollout stops.</summary>
 public enum MctsRolloutEnd

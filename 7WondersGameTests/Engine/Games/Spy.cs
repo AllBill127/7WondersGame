@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>
 /// Plays randomly and records whether, when asked, any move of this step was already in the game, or its view

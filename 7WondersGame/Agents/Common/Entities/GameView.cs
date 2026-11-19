@@ -1,13 +1,13 @@
-﻿using _7WondersGame.Agents.HiddenInformation;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Games.Knowledge;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Rules.Services;
+﻿using _7Wonders.Agents.HiddenInformation;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Games.Knowledge;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Agents.Common.Entities;
+namespace _7Wonders.Agents.Common.Entities;
 
 /// <summary>
 /// What an agent sees when it must decide: a copy of the table taken when it is asked, so changing it changes

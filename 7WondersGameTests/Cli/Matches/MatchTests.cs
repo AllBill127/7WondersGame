@@ -1,11 +1,11 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Matches;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Exceptions;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Matches;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Exceptions;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Cli.Matches;
+namespace _7Wonders.Tests.Cli.Matches;
 
 /// <summary>A match seats agents at a game and plays it.</summary>
 [TestClass]

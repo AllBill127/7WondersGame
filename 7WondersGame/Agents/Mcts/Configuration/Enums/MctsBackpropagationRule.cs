@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Configuration.Enums;
+﻿namespace _7Wonders.Agents.Mcts.Configuration.Enums;
 
 /// <summary>Whose reward a player maximises when choosing in the tree.</summary>
 public enum MctsBackpropagationRule

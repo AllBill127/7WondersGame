@@ -1,14 +1,14 @@
 ﻿using System.Runtime.CompilerServices;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Matches;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Randomness.Services;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Matches;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Randomness.Services;
 
-namespace _7WondersGameTests.Engine.Games;
+namespace _7Wonders.Tests.Engine.Games;
 
 /// <summary>
 /// The golden master. 200 seeded games (40 for each player count, 3 to 7) played through

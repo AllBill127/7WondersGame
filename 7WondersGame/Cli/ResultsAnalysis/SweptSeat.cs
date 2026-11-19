@@ -1,8 +1,8 @@
 ﻿using System.Globalization;
-using _7WondersGame.Cli.Experiments;
-using _7WondersGame.Cli.Results;
+using _7Wonders.Cli.Experiments;
+using _7Wonders.Cli.Results;
 
-namespace _7WondersGame.Cli.ResultsAnalysis;
+namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>
 /// Where a sweep run's swept agent sits, from its manifest: listed in position <see cref="Listed"/>, each deal

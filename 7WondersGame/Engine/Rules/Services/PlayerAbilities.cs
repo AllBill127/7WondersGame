@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Rules.Services;
+namespace _7Wonders.Engine.Rules.Services;
 
 /// <summary>
 /// The lasting abilities a player has from built cards and wonder stages (see <see cref="Ability"/>),

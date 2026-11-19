@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
+﻿using _7Wonders.Agents.Common.Interfaces;
 
-namespace _7WondersGame.Cli.Agents;
+namespace _7Wonders.Cli.Agents;
 
 /// <summary>An agent the command line can create: its name, its class, and its 'agents' list line.</summary>
 public sealed class AgentCatalogEntry

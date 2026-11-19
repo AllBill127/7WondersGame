@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Wonders.Enums;
+﻿namespace _7Wonders.Engine.Wonders.Enums;
 
 /// <summary>Every wonder board side: the seven boards' side A, then their side B in the same order.</summary>
 public enum WonderId

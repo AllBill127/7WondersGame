@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace _7WondersGame.Cli.Agents;
+namespace _7Wonders.Cli.Agents;
 
 /// <summary>
 /// A setting given as a range <c>a..b</c>: the run plays every deal once for each of <c>Steps</c> evenly spaced values

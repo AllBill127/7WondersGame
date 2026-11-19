@@ -1,17 +1,17 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Wonders.Entities;
-using _7WondersGame.Engine.Wonders.Enums;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Agents.Common.Entities;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Engine.Wonders.Enums;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Agents;
+namespace _7Wonders.Tests.Agents;
 
 /// <summary>The moves the random and heuristic agents choose when Olympia A's free build is available.</summary>
 [TestClass]

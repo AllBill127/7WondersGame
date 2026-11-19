@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Cli.Arguments;
+﻿using _7Wonders.Cli.Arguments;
 using Serilog;
 using Serilog.Events;
 
-namespace _7WondersGame.Cli.Logs;
+namespace _7Wonders.Cli.Logs;
 
 /// <summary>
 /// Log level and console logger setup.

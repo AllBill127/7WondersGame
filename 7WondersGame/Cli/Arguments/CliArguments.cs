@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace _7WondersGame.Cli.Arguments;
+namespace _7Wonders.Cli.Arguments;
 
 /// <summary>
 /// Parsed command line: <c>&lt;command&gt; [--name value | --name=value]...</c>.

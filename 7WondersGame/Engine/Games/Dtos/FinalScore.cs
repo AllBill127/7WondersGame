@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Engine.Games.Dtos;
+﻿namespace _7Wonders.Engine.Games.Dtos;
 
 /// <summary>
 /// What a player is ranked by at the end of a game: victory points, then coins. A struct, because MCTS ranks the

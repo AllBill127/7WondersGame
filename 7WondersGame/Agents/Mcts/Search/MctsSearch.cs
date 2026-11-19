@@ -1,24 +1,24 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.HiddenInformation;
-using _7WondersGame.Agents.Mcts.Configuration;
-using _7WondersGame.Agents.Mcts.Configuration.Enums;
-using _7WondersGame.Agents.Mcts.Tree;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Dtos;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Games.Enums;
-using _7WondersGame.Engine.Games.Knowledge;
-using _7WondersGame.Engine.Games.Services;
-using _7WondersGame.Engine.Moves.Dtos;
-using _7WondersGame.Engine.Moves.Enums;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGame.Engine.Randomness.Services;
-using _7WondersGame.Engine.Rules.Services;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.HiddenInformation;
+using _7Wonders.Agents.Mcts.Configuration;
+using _7Wonders.Agents.Mcts.Configuration.Enums;
+using _7Wonders.Agents.Mcts.Tree;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Dtos;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Games.Enums;
+using _7Wonders.Engine.Games.Knowledge;
+using _7Wonders.Engine.Games.Services;
+using _7Wonders.Engine.Moves.Dtos;
+using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Randomness.Services;
+using _7Wonders.Engine.Rules.Services;
 
-namespace _7WondersGame.Agents.Mcts.Search;
+namespace _7Wonders.Agents.Mcts.Search;
 
 /// <summary>
 /// One search, for one decision of the player in seat <c>me</c>. Each iteration takes a new copy of the game (a

@@ -1,10 +1,10 @@
-﻿using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.Mcts;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.Mcts;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Agents;
+namespace _7Wonders.Tests.Agents;
 
 /// <summary>
 /// Each agent's settings, by name: only the properties marked <see cref="SettingAttribute"/> (own, or in a

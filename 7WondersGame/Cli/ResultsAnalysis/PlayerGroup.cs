@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.ResultsAnalysis;
+﻿namespace _7Wonders.Cli.ResultsAnalysis;
 
 /// <summary>A group of rows by player: an agent with one configuration (the swept agent apart).</summary>
 public sealed class PlayerGroup

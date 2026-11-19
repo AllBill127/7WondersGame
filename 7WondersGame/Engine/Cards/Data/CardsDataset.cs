@@ -1,9 +1,9 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Effects.Effects;
-using _7WondersGame.Engine.Effects.Enums;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Effects;
+using _7Wonders.Engine.Effects.Enums;
 
-namespace _7WondersGame.Engine.Cards.Data;
+namespace _7Wonders.Engine.Cards.Data;
 
 /// <summary>
 /// The card table: every card in the game, built once and never changed. Copy counts depend on the

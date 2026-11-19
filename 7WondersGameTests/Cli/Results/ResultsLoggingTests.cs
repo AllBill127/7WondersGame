@@ -1,14 +1,14 @@
-﻿using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Matches;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Players.Entities;
-using _7WondersGameTests.TestHelpers;
+﻿using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Matches;
+using _7Wonders.Cli.Results;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Tests.TestHelpers;
 
-namespace _7WondersGameTests.Cli.Results;
+namespace _7Wonders.Tests.Cli.Results;
 
 /// <summary>
 /// One CSV row per (game, seat), written by a single appending writer.

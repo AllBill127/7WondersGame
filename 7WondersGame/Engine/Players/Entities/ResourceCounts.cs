@@ -1,7 +1,7 @@
 ﻿using System.Collections;
-using _7WondersGame.Engine.Cards.Enums;
+using _7Wonders.Engine.Cards.Enums;
 
-namespace _7WondersGame.Engine.Players.Entities;
+namespace _7Wonders.Engine.Players.Entities;
 
 /// <summary>
 /// A player's counts of each <see cref="Resource"/>: production, science symbols, coins and shields. Read and

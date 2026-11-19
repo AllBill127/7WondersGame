@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
 
-namespace _7WondersGame.Engine.Cards.Services;
+namespace _7Wonders.Engine.Cards.Services;
 
 /// <summary>Card names for the trace.</summary>
 public static class CardNames

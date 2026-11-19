@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Engine.Cards.Entities;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Moves.Dtos;
+namespace _7Wonders.Engine.Moves.Dtos;
 
 /// <summary>
 /// A player's move as it goes into <see cref="Game.ResolveMoves"/>, with the cards it is made from. A struct,

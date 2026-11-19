@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Tree;
+﻿namespace _7Wonders.Agents.Mcts.Tree;
 
 /// <summary>
 /// The moves made at a node (one in a sequential tree, everyone pending in DUCT): the key of the child.

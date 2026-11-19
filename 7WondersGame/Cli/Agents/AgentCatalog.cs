@@ -1,15 +1,15 @@
 ﻿using System.Globalization;
 using System.Text.Json;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Agents.Heuristic;
-using _7WondersGame.Agents.Mcts;
-using _7WondersGame.Agents.Mcts.Configuration;
-using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Arguments;
-using _7WondersGame.Cli.Common;
+using _7Wonders.Agents.Common.Interfaces;
+using _7Wonders.Agents.Common.Settings;
+using _7Wonders.Agents.Heuristic;
+using _7Wonders.Agents.Mcts;
+using _7Wonders.Agents.Mcts.Configuration;
+using _7Wonders.Agents.RandomChoice;
+using _7Wonders.Cli.Arguments;
+using _7Wonders.Cli.Common;
 
-namespace _7WondersGame.Cli.Agents;
+namespace _7Wonders.Cli.Agents;
 
 /// <summary>The agents the command line can create, and how their settings are set.</summary>
 public static class AgentCatalog

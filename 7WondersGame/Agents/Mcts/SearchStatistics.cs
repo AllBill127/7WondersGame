@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts;
+﻿namespace _7Wonders.Agents.Mcts;
 
 /// <summary>What an <see cref="MctsAgent"/> measured over its game's searches.</summary>
 internal sealed class SearchStatistics

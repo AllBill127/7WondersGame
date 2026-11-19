@@ -1,9 +1,9 @@
-﻿using _7WondersGame.Cli.Datasets;
-using _7WondersGame.Engine.Cards.Data;
-using _7WondersGame.Engine.Cards.Enums;
-using _7WondersGame.Engine.Games.Entities;
+﻿using _7Wonders.Cli.Datasets;
+using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Games.Entities;
 
-namespace _7WondersGameTests.Cli.Datasets;
+namespace _7Wonders.Tests.Cli.Datasets;
 
 /// <summary>Dataset files say their player count, and every deal is checked when read.</summary>
 [TestClass]

@@ -1,6 +1,6 @@
-﻿using _7WondersGame.Engine.Games.Entities;
+﻿using _7Wonders.Engine.Games.Entities;
 
-namespace _7WondersGame.Engine.Games.Enums;
+namespace _7Wonders.Engine.Games.Enums;
 
 /// <summary>What a game is waiting for. <see cref="Game.PendingPlayers"/> says who must decide.</summary>
 public enum Phase

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Agents.Mcts.Tree;
+﻿namespace _7Wonders.Agents.Mcts.Tree;
 
 /// <summary>A node of the search tree: the statistics of the moves made there and the nodes they lead to.</summary>
 internal sealed class Node

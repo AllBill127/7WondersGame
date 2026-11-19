@@ -1,9 +1,9 @@
-﻿using _7WondersGame.Engine.Effects.Enums;
-using _7WondersGame.Engine.Effects.Interfaces;
-using _7WondersGame.Engine.Games.Entities;
-using _7WondersGame.Engine.Players.Entities;
+﻿using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
+using _7Wonders.Engine.Games.Entities;
+using _7Wonders.Engine.Players.Entities;
 
-namespace _7WondersGame.Engine.Effects.Effects;
+namespace _7Wonders.Engine.Effects.Effects;
 
 /// <summary>
 /// Olympia A stage 2: one card per era for free. The ability is on from this stage; the first use is available

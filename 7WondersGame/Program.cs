@@ -1,8 +1,8 @@
-﻿using _7WondersGame.Cli.Arguments;
-using _7WondersGame.Cli.CommandLine;
+﻿using _7Wonders.Cli.Arguments;
+using _7Wonders.Cli.CommandLine;
 using Serilog;
 
-namespace _7WondersGame;
+namespace _7Wonders;
 
 /// <summary>The command-line program.</summary>
 internal static class Program
