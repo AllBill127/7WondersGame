@@ -36,7 +36,7 @@ bld/
 /[Ll]ogs/
 
 # Game simulation outputs: the program writes them to <exe dir>/results/ (also covered by bin/ above)
-/7WondersGame/bin/*/*/results/
+/7Wonders.Cli/bin/*/*/results/
 *.xlsx
 *.xlsx - Shortcut.lnk
 

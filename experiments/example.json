@@ -1,6 +1,6 @@
 {
   // An example experiment file: 'run --experiment experiments/example.json --parallel 8'.
-  // Keys are run's option names ('7WondersGame help run'). Only --parallel, --output and --log-level
+  // Keys are run's option names ('7Wonders help run'). Only --parallel, --output and --log-level
   // may be added on the command line.
   "description": "MCTS exploration constant sweep against two heuristic players, every seating",
   "players": ["MctsAgent:ExplorationConstant=0.3..2", "HeuristicAgent", "HeuristicAgent"],
