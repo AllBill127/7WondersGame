@@ -2,6 +2,7 @@
 using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
@@ -9,6 +10,7 @@ using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
 using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Moves.Enums;
+using _7WondersGame.Engine.Moves.Exceptions;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.Engine.Wonders.Entities;
@@ -132,7 +134,7 @@ public class TurnStateMachineTests
         game.Submit(1, Discard(CardId.Walls));
 
         // Clay Pit costs a coin
-        Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, Build(CardId.ClayPit)));
+        Assert.ThrowsException<MoveNotAllowedException>(() => game.Submit(2, Build(CardId.ClayPit)));
 
         CollectionAssert.AreEqual(new[] { 2 }, game.PendingPlayers().ToArray());
         game.Submit(2, Discard(CardId.ClayPit));
@@ -251,19 +253,17 @@ public class TurnStateMachineTests
     // ================= Loop =================
 
     [TestMethod]
-    public void Loop_NoAgentSeesAnotherChoice()
+    public void Play_NoAgentSeesAnotherChoice()
     {
         List<Spy> spies = new();
         Game game = new(Seeding.GameSeed(7, 0));
         for (int seat = 0; seat < 4; seat++)
         {
-            Spy spy = new() { Game = game };
-            spies.Add(spy);
-            game.Agents.Add(spy);
+            spies.Add(new Spy { Game = game });
         }
 
-        game.SetUpRandomGame();
-        game.Loop(record: true);
+        game.SetUpRandomGame(4);
+        new Match(game, spies).Play();
 
         Assert.AreEqual(Phase.GameOver, game.Phase);
         Assert.IsFalse(spies.Any(spy => spy.SawAnotherChoice));
@@ -271,17 +271,18 @@ public class TurnStateMachineTests
     }
 
     // the line-up rotates by game, so every agent plays every seat
-    private static Game NewGame(int players, int gameIndex, int agentKindCount)
+    private static Match NewMatch(int players, int gameIndex, int agentKindCount)
     {
         Game game = new(Seeding.GameSeed(0xE1, players * 1000 + gameIndex));
+        game.SetUpRandomGame(players);
+        List<IAgent> agents = new(players);
         for (int seat = 0; seat < players; seat++)
         {
             int agentKind = (gameIndex + seat) % agentKindCount;
-            game.Agents.Add(NewAgent(agentKind));
+            agents.Add(NewAgent(agentKind));
         }
 
-        game.SetUpRandomGame();
-        return game;
+        return new Match(game, agents);
     }
 
     private static IAgent NewAgent(int agentKind)
@@ -312,10 +313,10 @@ public class TurnStateMachineTests
                $"built={string.Join(",", player.BuiltCards.Select(card => card.Id))}";
     }
 
-    /// <summary>The agent's decision, asked the way <see cref="Game.Loop"/> asks it.</summary>
-    private static Move Ask(Game game, int seat)
+    /// <summary>The agent's decision, asked the way <see cref="Match.Play"/> asks it.</summary>
+    private static Move Ask(IAgent agent, Game game, int seat)
     {
-        return game.Agents[seat].Choose(new GameView(game, seat));
+        return agent.Choose(new GameView(game, seat));
     }
 
     /// <summary>
@@ -323,8 +324,9 @@ public class TurnStateMachineTests
     /// With <paramref name="copyEachStep"/>, every decision is made and submitted on a fresh copy, the way a search
     /// tree steps.
     /// </summary>
-    private static Game StepThrough(Game game, bool copyEachStep, HashSet<Phase> phasesSeen)
+    private static Game StepThrough(Match match, bool copyEachStep, HashSet<Phase> phasesSeen)
     {
+        Game game = match.Game;
         IReadOnlyList<int> pending = game.PendingPlayers();
         while (pending.Count > 0)
         {
@@ -336,11 +338,11 @@ public class TurnStateMachineTests
 
             int lastPendingIndex = pending.Count - 1;
             int seat = pending[lastPendingIndex];
-            game.Submit(seat, Ask(game, seat));
+            game.Submit(seat, Ask(match.Agents[seat], game, seat));
             pending = game.PendingPlayers();
         }
 
-        game.Loop(record: true);   // only scores: nothing is pending
+        new Match(game, match.Agents).Play();   // only scores: nothing is pending
         return game;
     }
 
@@ -352,12 +354,12 @@ public class TurnStateMachineTests
         {
             for (int gameIndex = 0; gameIndex < 16; gameIndex++)
             {
-                Game looped = NewGame(players, gameIndex, HeuristicAndRandom);
-                looped.Loop(record: true);
-                Game toStep = NewGame(players, gameIndex, HeuristicAndRandom);
+                Match played = NewMatch(players, gameIndex, HeuristicAndRandom);
+                played.Play();
+                Match toStep = NewMatch(players, gameIndex, HeuristicAndRandom);
                 Game stepped = StepThrough(toStep, copyEachStep: false, phasesSeen);
 
-                CollectionAssert.AreEqual(Final(looped), Final(stepped), $"{players} players, game {gameIndex}");
+                CollectionAssert.AreEqual(Final(played.Game), Final(stepped), $"{players} players, game {gameIndex}");
             }
         }
 
@@ -374,11 +376,12 @@ public class TurnStateMachineTests
         {
             for (int gameIndex = 0; gameIndex < 8; gameIndex++)
             {
-                Game looped = NewGame(players, gameIndex, HeuristicOnly);
-                looped.Loop(record: true);
-                Game stepped = StepThrough(NewGame(players, gameIndex, HeuristicOnly), copyEachStep: true, phasesSeen);
+                Match played = NewMatch(players, gameIndex, HeuristicOnly);
+                played.Play();
+                Match toStep = NewMatch(players, gameIndex, HeuristicOnly);
+                Game stepped = StepThrough(toStep, copyEachStep: true, phasesSeen);
 
-                CollectionAssert.AreEqual(Final(looped), Final(stepped), $"{players} players, game {gameIndex}");
+                CollectionAssert.AreEqual(Final(played.Game), Final(stepped), $"{players} players, game {gameIndex}");
             }
         }
     }

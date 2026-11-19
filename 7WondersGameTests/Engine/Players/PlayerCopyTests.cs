@@ -21,12 +21,7 @@ public class PlayerCopyTests
     {
         HeuristicAgent heuristicAgent = new();
         Game game = new(Seeding.GameSeed(77, 0));
-        for (int seat = 0; seat < 4; seat++)
-        {
-            game.Agents.Add(new HeuristicAgent());
-        }
-
-        game.SetUpRandomGame();
+        game.SetUpRandomGame(4);
         while (game.Era < 2 || game.Turn % Game.TurnsPerEra < 3)
         {
             // every pending player chooses from the same state, then all moves are submitted

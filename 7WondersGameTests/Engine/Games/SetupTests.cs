@@ -1,5 +1,4 @@
-﻿using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Engine.Games.Entities;
+﻿using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Players.Entities;
 
 namespace _7WondersGameTests.Engine.Games;
@@ -18,12 +17,12 @@ public class SetupTests
     {
         for (int repeat = 0; repeat < 20; repeat++)
         {
-            Game random = NewGame((ulong)repeat);
-            random.SetUpRandomGame();
+            Game random = new((ulong)repeat);
+            random.SetUpRandomGame(3);
 
             List<int>[] dataset = DealOf(random);
 
-            Game fromDataset = NewGame((ulong)repeat);
+            Game fromDataset = new((ulong)repeat);
             fromDataset.SetUpGameFromDataset(dataset);
 
             for (int seat = 0; seat < random.Players.Count; seat++)
@@ -53,16 +52,5 @@ public class SetupTests
 
         deal[3] = game.Players.Select(player => (int)player.Wonder.Id).ToList();
         return deal;
-    }
-
-    private static Game NewGame(ulong seed)
-    {
-        Game game = new(seed);
-        for (int agentIndex = 0; agentIndex < 3; agentIndex++)
-        {
-            game.Agents.Add(new RandomAgent());
-        }
-
-        return game;
     }
 }

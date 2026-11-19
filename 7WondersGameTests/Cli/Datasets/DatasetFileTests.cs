@@ -1,5 +1,4 @@
-﻿using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Datasets;
+﻿using _7WondersGame.Cli.Datasets;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Games.Entities;
@@ -14,12 +13,7 @@ public class DatasetFileTests
     private static List<int>[] Deal(int players, ulong seed)
     {
         Game game = new(seed);
-        for (int seat = 0; seat < players; seat++)
-        {
-            game.Agents.Add(new RandomAgent());
-        }
-
-        game.SetUpRandomGame();
+        game.SetUpRandomGame(players);
         List<int>[] deal = new List<int>[4];
         for (int era = 0; era < 3; era++)
         {

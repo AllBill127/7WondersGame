@@ -1,5 +1,4 @@
-﻿using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Engine.Cards.Data;
+﻿using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Games.Entities;
@@ -162,12 +161,7 @@ public class CardDataTests
 
         // a real game builds its decks for its own player count, whatever count was used before
         Game game = new(1);
-        for (int seat = 0; seat < players; seat++)
-        {
-            game.Agents.Add(new RandomAgent());
-        }
-
-        game.SetUpRandomGame();
+        game.SetUpRandomGame(players);
         for (int era = 0; era < 3; era++)
         {
             Assert.AreEqual(7 * players, game.Decks[era].Count, $"dealt deck for age {era + 1}");

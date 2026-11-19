@@ -3,6 +3,7 @@ using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.HiddenInformation;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
@@ -24,22 +25,21 @@ public class KnowledgeTests
     private static Game NewGame(int players, int gameIndex)
     {
         Game game = new(Seeding.GameSeed(31, players * 100 + gameIndex));
-
-        // a mix, so wonder stages, discards, Babylon B and Halikarnassos all happen
-        for (int seat = 0; seat < players; seat++)
-        {
-            if (seat % 2 == 0)
-            {
-                game.Agents.Add(new HeuristicAgent());
-            }
-            else
-            {
-                game.Agents.Add(new RandomAgent());
-            }
-        }
-
-        game.SetUpRandomGame();
+        game.SetUpRandomGame(players);
         return game;
+    }
+
+    /// <summary>
+    /// A mix, so wonder stages, discards, Babylon B and Halikarnassos all happen. Both agents choose from the view
+    /// alone, so a new one for every choice chooses the same.
+    /// </summary>
+    private static IAgent AgentFor(int seat)
+    {
+        if (seat % 2 == 0)
+        {
+            return new HeuristicAgent();
+        }
+        return new RandomAgent();
     }
 
     /// <summary>Whether the game waits for anyone's move (it doesn't once it is over).</summary>
@@ -55,7 +55,7 @@ public class KnowledgeTests
         List<Move> moves = new();
         foreach (int seat in pendingSeats)
         {
-            moves.Add(game.Agents[seat].Choose(new GameView(game, seat)));
+            moves.Add(AgentFor(seat).Choose(new GameView(game, seat)));
         }
 
         for (int pendingIndex = 0; pendingIndex < pendingSeats.Count; pendingIndex++)
@@ -344,8 +344,7 @@ public class KnowledgeTests
                 heuristicAgents.Add(new HeuristicAgent());
             }
 
-            sample.Agents = heuristicAgents;
-            sample.Loop();
+            new Match(sample, heuristicAgents).Play();
             Assert.AreEqual(Phase.GameOver, sample.Phase);
         }
     }

@@ -1,8 +1,11 @@
-﻿using _7WondersGame.Agents.Common.Settings;
+﻿using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Common.Settings;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Players.Entities;
 using _7WondersGameTests.TestHelpers;
 
 namespace _7WondersGameTests.Cli.Results;
@@ -34,21 +37,20 @@ public class ResultsLoggingTests
     }
 
     [TestMethod]
-    public void Loop_WithRecord_GivesOneResultPerSeat()
+    public void Play_GivesOneResultPerSeat()
     {
-        Game game = NewGame(3);
-        game.SetUpRandomGame();
-        List<string> wonders = game.Players.Select(player => player.Wonder.Id.ToString()).ToList();
+        Match match = NewMatch(3);
+        List<PlayerState> players = match.Game.Players;
+        List<string> wonders = players.Select(player => player.Wonder.Id.ToString()).ToList();
 
-        Dictionary<int, int> scores = game.Loop(record: true);
+        List<SeatResult> results = match.Play();
 
-        List<SeatResult> results = game.RecordedResults();
         Assert.AreEqual(3, results.Count);
         for (int seat = 0; seat < 3; seat++)
         {
             SeatResult seatResult = results[seat];
             Assert.AreEqual(seat, seatResult.Seat);
-            Assert.AreEqual(scores[seat], seatResult.VictoryPoints);
+            Assert.AreEqual(players[seat].VictoryPoints, seatResult.VictoryPoints);
             Assert.AreEqual(wonders[seat], seatResult.Wonder + seatResult.Side);
             Assert.IsTrue(seatResult.Side == "A" || seatResult.Side == "B");
         }
@@ -57,15 +59,6 @@ public class ResultsLoggingTests
         Assert.AreEqual("HeuristicAgent", results[1].Agent);
         Assert.AreEqual(1.0, results.Sum(result => result.WinShare), 1e-9, "win shares add up to 1");
         Assert.IsTrue(results.Any(result => result.Rank == 1));
-    }
-
-    [TestMethod]
-    public void Loop_WithoutRecord_KeepsNoResults()
-    {
-        Game game = NewGame(3);
-        game.SetUpRandomGame();
-        game.Loop();
-        Assert.IsNull(game.Results);
     }
 
     [TestMethod]
@@ -160,13 +153,12 @@ public class ResultsLoggingTests
 
     // ===== helpers =====
 
-    private static Game NewGame(ulong seed)
+    private static Match NewMatch(ulong seed)
     {
         Game game = new(seed);
-        game.Agents.Add(new RandomAgent());
-        game.Agents.Add(new HeuristicAgent());
-        game.Agents.Add(new RandomAgent());
-        return game;
+        game.SetUpRandomGame(3);
+        List<IAgent> agents = new() { new RandomAgent(), new HeuristicAgent(), new RandomAgent() };
+        return new Match(game, agents);
     }
 
     /// <summary>A made-up game's results for <paramref name="seatCount"/> seats; the last seat wins.</summary>

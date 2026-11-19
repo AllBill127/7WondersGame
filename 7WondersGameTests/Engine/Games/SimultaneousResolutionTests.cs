@@ -4,6 +4,7 @@ using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Moves.Enums;
+using _7WondersGame.Engine.Moves.Exceptions;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Wonders.Entities;
 using _7WondersGame.Engine.Wonders.Enums;
@@ -81,7 +82,7 @@ public class SimultaneousResolutionTests
         // Seat 1 has no coins. Resolved seat by seat, seat 0's 2 coins would arrive first and pay for the stone.
         Game game = TradingTurn(seat0Coins: 2, seat1Coins: 0);
 
-        Assert.ThrowsException<InvalidOperationException>(() => game.ResolveMoves(Moves(game, 0, 1)));
+        Assert.ThrowsException<MoveNotAllowedException>(() => game.ResolveMoves(Moves(game, 0, 1)));
 
         // the turn is refused before anything changes
         CollectionAssert.AreEqual(new[] { 2, 0, 0 }, Coins(game));
@@ -100,7 +101,7 @@ public class SimultaneousResolutionTests
         game.Submit(0, new Move(MoveAction.Build, Stockade));
         game.Submit(1, new Move(MoveAction.Build, Baths));
         Move lastMove = new(MoveAction.Build, lumberYard);
-        Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, lastMove));
+        Assert.ThrowsException<MoveNotAllowedException>(() => game.Submit(2, lastMove));
     }
 
     [TestMethod]

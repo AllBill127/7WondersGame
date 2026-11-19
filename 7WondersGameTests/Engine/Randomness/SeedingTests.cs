@@ -1,5 +1,8 @@
-﻿using _7WondersGame.Agents.Heuristic;
+﻿using _7WondersGame.Agents.Common.Interfaces;
+using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Matches;
+using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Moves.Dtos;
@@ -66,10 +69,8 @@ public class SeedingTests
     [TestMethod]
     public void DeepCopy_DoesNotUseUpTheGamesRandomStreams()
     {
-        Game searched = NewGame(55);
-        searched.SetUpRandomGame();
-        Game untouched = NewGame(55);
-        untouched.SetUpRandomGame();
+        Game searched = SetUpGame(55);
+        Game untouched = SetUpGame(55);
 
         // a search makes copies and draws from them
         for (int copyIndex = 0; copyIndex < 5; copyIndex++)
@@ -89,8 +90,7 @@ public class SeedingTests
     [TestMethod]
     public void DeepCopies_GetDifferentSeeds()
     {
-        Game game = NewGame(9);
-        game.SetUpRandomGame();
+        Game game = SetUpGame(9);
         ulong first = game.DeepCopy().Seed;
         ulong second = game.DeepCopy().Seed;
 
@@ -100,20 +100,11 @@ public class SeedingTests
 
     // ===== helpers =====
 
-    private static Game NewGame(ulong seed)
-    {
-        Game game = new(seed);
-        game.Agents.Add(new RandomAgent());
-        game.Agents.Add(new HeuristicAgent());
-        game.Agents.Add(new RandomAgent());
-        return game;
-    }
-
-    /// <summary>A game of the seed, dealt and not played yet.</summary>
+    /// <summary>A three-player game of the seed, dealt and not played yet.</summary>
     private static Game SetUpGame(ulong seed)
     {
-        Game game = NewGame(seed);
-        game.SetUpRandomGame();
+        Game game = new(seed);
+        game.SetUpRandomGame(3);
         return game;
     }
 
@@ -133,11 +124,9 @@ public class SeedingTests
     /// <summary>Plays the game to the end; each seat's final VP, in seat order.</summary>
     private static List<int> PlayToTheEnd(Game game)
     {
-        Dictionary<int, int> scores = game.Loop();
-        return scores
-            .OrderBy(seatScore => seatScore.Key)
-            .Select(seatScore => seatScore.Value)
-            .ToList();
+        List<IAgent> agents = new() { new RandomAgent(), new HeuristicAgent(), new RandomAgent() };
+        List<SeatResult> results = new Match(game, agents).Play();
+        return results.Select(result => result.VictoryPoints).ToList();
     }
 
     private static string DeckText(List<Card> deck)

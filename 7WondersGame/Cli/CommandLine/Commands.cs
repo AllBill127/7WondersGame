@@ -3,13 +3,13 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Agents;
 using _7WondersGame.Cli.Arguments;
 using _7WondersGame.Cli.Common;
 using _7WondersGame.Cli.Datasets;
 using _7WondersGame.Cli.Experiments;
 using _7WondersGame.Cli.Logs;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Cli.Results;
 using _7WondersGame.Cli.ResultsAnalysis;
 using _7WondersGame.Engine.Cards.Entities;
@@ -319,12 +319,12 @@ public static class Commands
         }
         AgentCatalog.Validate(setup.Specifications, null);
 
-        Game game = await NewReplayGame(setup);
+        Match match = await NewReplayMatch(setup);
         Log.Information("Replaying game seed {Seed} (0x{SeedHex}){Deal} with {Players}", setup.GameSeed,
             setup.GameSeed.ToString("x16"), DealNote(setup), string.Join(", ", setup.Specifications));
-        game.Loop(record: true);
+        List<SeatResult> results = match.Play();
 
-        foreach (SeatResult seatResult in game.RecordedResults())
+        foreach (SeatResult seatResult in results)
         {
             Log.Information("Seat {Seat} {Agent} {Wonder}{Side}: {VP} VP, {Coins} coins, rank {Rank}",
                 seatResult.Seat, seatResult.Agent, seatResult.Wonder, seatResult.Side, seatResult.VictoryPoints,
@@ -332,12 +332,12 @@ public static class Commands
         }
         if (setup.Recorded != null)
         {
-            CompareWithRecorded(setup.Recorded, game);
+            CompareWithRecorded(setup.Recorded, match, results);
         }
         return Ok;
     }
 
-    private static async Task<Game> NewReplayGame(ReplaySetup setup)
+    private static async Task<Match> NewReplayMatch(ReplaySetup setup)
     {
         List<List<int>[]>? deals = null;
         if (setup.DatasetName != null)
@@ -346,11 +346,8 @@ public static class Commands
             deals = await LoadDataset(setup.DatasetName, setup.Specifications.Count, dealsNeeded);
         }
 
-        Game game = new(setup.GameSeed)
-        {
-            Agents = setup.Specifications.Select(specification => AgentCatalog.Create(specification)).ToList(),
-            Trace = Log.Logger,
-        };
+        List<IAgent> agents = setup.Specifications.Select(specification => AgentCatalog.Create(specification)).ToList();
+        Game game = new(setup.GameSeed) { Trace = Log.Logger };
         if (deals != null)
         {
             int dealIndex = setup.DealIndex();
@@ -358,9 +355,9 @@ public static class Commands
         }
         else
         {
-            game.SetUpRandomGame();
+            game.SetUpRandomGame(agents.Count);
         }
-        return game;
+        return new Match(game, agents);
     }
 
     private static string DealNote(ReplaySetup setup)
@@ -373,13 +370,14 @@ public static class Commands
     }
 
     /// <summary>Says whether the replayed game ended as the results CSV recorded it, and why it may not have.</summary>
-    private static void CompareWithRecorded(List<Dictionary<string, string>> recorded, Game game)
+    private static void CompareWithRecorded(List<Dictionary<string, string>> recorded, Match match,
+                                            List<SeatResult> results)
     {
-        if (SameAsRecorded(recorded, game.RecordedResults()))
+        if (SameAsRecorded(recorded, results))
         {
             Log.Information("Same result as recorded in the CSV.");
         }
-        else if (game.Agents.Any(agent => agent.UsesClock))
+        else if (match.Agents.Any(agent => agent.UsesClock))
         {
             Log.Information("The result differs from the CSV row, as expected: an agent searches for a time, " +
                             "so its choices depend on how fast the machine was then.");
@@ -609,13 +607,8 @@ public static class Commands
     /// </summary>
     private static List<int>[] DealOf(ulong seed, int gameIndex, int seats)
     {
-        List<IAgent> agents = new(seats);
-        for (int seat = 0; seat < seats; seat++)
-        {
-            agents.Add(new RandomAgent());
-        }
-        Game game = new(Seeding.GameSeed(seed, gameIndex)) { Agents = agents };
-        game.SetUpRandomGame();
+        Game game = new(Seeding.GameSeed(seed, gameIndex));
+        game.SetUpRandomGame(seats);
 
         int decksAndWonders = Game.LastEra + 1;
         List<int>[] deal = new List<int>[decksAndWonders];

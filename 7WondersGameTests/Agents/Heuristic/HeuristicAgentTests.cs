@@ -73,12 +73,8 @@ public class HeuristicAgentTests
         for (int gameIndex = 0; gameIndex < 3; gameIndex++)
         {
             Game game = new(Seeding.GameSeed(77, players * 10 + gameIndex));
-            for (int seat = 0; seat < players; seat++)
-            {
-                game.Agents.Add(new HeuristicAgent());
-            }
-
-            game.SetUpRandomGame();
+            game.SetUpRandomGame(players);
+            HeuristicAgent agent = new();
 
             while (game.Phase != Phase.GameOver)
             {
@@ -86,7 +82,6 @@ public class HeuristicAgentTests
                 foreach (int seat in game.PendingPlayers())
                 {
                     string before = Snapshot(game);
-                    HeuristicAgent agent = (HeuristicAgent)game.Agents[seat];
                     Move fromView = agent.Choose(new GameView(game, seat));
                     // the same choice made on the game's own state must not change it
                     Move fromState = agent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardPile);

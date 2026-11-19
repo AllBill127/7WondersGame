@@ -2,6 +2,7 @@
 using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Players.Entities;
@@ -91,22 +92,23 @@ public class GoldenMasterTests
     {
         ulong seed = Seeding.GameSeed(RunSeed, players * 1000 + gameIndex);
         Game game = new(seed);
+        game.SetUpRandomGame(players);
 
         // rotate the line-up so every agent plays every seat
+        List<IAgent> agents = new(players);
         for (int seat = 0; seat < players; seat++)
         {
             int agentKind = (gameIndex + seat) % AgentKindCount;
-            game.Agents.Add(NewAgent(agentKind));
+            agents.Add(NewAgent(agentKind));
         }
 
-        game.SetUpRandomGame();
-        game.Loop(record: true);
+        new Match(game, agents).Play();
 
         List<string> lines = new();
         string prefix = $"p{players} g{gameIndex} seed={seed}";
         foreach (PlayerState player in game.Players)
         {
-            lines.Add($"{prefix} seat={player.Seat} {game.Agents[player.Seat].Name} {player.Wonder.Id} " +
+            lines.Add($"{prefix} seat={player.Seat} {agents[player.Seat].Name} {player.Wonder.Id} " +
                       $"stage={player.Wonder.BuiltStageCount} " +
                       $"vp={player.VictoryPoints} coins={player.Resources[Resource.Coins]} " +
                       $"military=+{player.VictoryTokens}/-{player.DefeatTokens} " +

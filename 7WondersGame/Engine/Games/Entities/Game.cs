@@ -11,6 +11,7 @@ using _7WondersGame.Engine.Games.Enums;
 using _7WondersGame.Engine.Games.Knowledge;
 using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Moves.Enums;
+using _7WondersGame.Engine.Moves.Exceptions;
 using _7WondersGame.Engine.Players.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGame.Engine.Rules.Services;
@@ -184,11 +185,11 @@ public class Game
 
     // ============ Game creation related ============
     /// <summary>
-    /// Sets up a random game: one player per agent in <see cref="Agents"/>, the decks and the wonders.
+    /// Sets up a random game for <paramref name="playerCount"/> players: the players, the decks and the wonders.
     /// </summary>
-    public void SetUpRandomGame()
+    public void SetUpRandomGame(int playerCount)
     {
-        CreatePlayers();
+        CreatePlayers(playerCount);
 
         CreateDecks();
         GiveCards();
@@ -197,12 +198,13 @@ public class Game
 
 
     /// <summary>
-    /// Sets up a game from a dataset deal (the decks' card ids and the wonder ids, in order): one player per agent
-    /// in <see cref="Agents"/>.
+    /// Sets up a game from a dataset deal (the decks' card ids and the wonder ids, in order): one player per wonder.
     /// </summary>
     public void SetUpGameFromDataset(List<int>[] gameDataset)
     {
-        CreatePlayers();
+        // after the three decks comes the wonder of each seat
+        List<int> wonderIds = gameDataset[LastEra];
+        CreatePlayers(wonderIds.Count);
 
         for (int deckIndex = 0; deckIndex < Decks.Length; deckIndex++)
         {
@@ -213,21 +215,15 @@ public class Game
         }
         GiveCards();
 
-        // after the three decks comes the wonder of each seat
-        List<int> wonderIds = gameDataset[LastEra];
         for (int seat = 0; seat < Players.Count; seat++)
         {
             AssignWonder(Players[seat], wonderIds[seat]);
         }
     }
 
-    private void CreatePlayers()
+    private void CreatePlayers(int playerCount)
     {
-        if (Agents.Count == 0)
-        {
-            throw new InvalidOperationException("Add the agents (Game.Agents) before setting up the game.");
-        }
-        PlayerCount = Agents.Count;
+        PlayerCount = playerCount;
         Players = new List<PlayerState>(PlayerCount);
         for (int seat = 0; seat < PlayerCount; seat++)
         {
@@ -820,6 +816,10 @@ public class Game
         }
 
         ScoreAllPlayers();
+        if (Tracing)
+        {
+            TraceScores();
+        }
         if (record)
         {
             Results = GameResult.ForPlayers(Players, Agents);
@@ -864,8 +864,8 @@ public class Game
         }
     }
 
-    /// <summary>Olympia B's guild copy, then every player's final score.</summary>
-    private void ScoreAllPlayers()
+    /// <summary>The end of the game: Olympia B's guild copy, then every player's final score.</summary>
+    public void ScoreAllPlayers()
     {
         foreach (PlayerState player in Players)
         {
@@ -879,10 +879,6 @@ public class Game
             }
             Scoring.CalculateScore(player);
         }
-        if (Tracing)
-        {
-            TraceScores();
-        }
     }
 
     private static Card LastBuiltCard(PlayerState player)
@@ -895,11 +891,10 @@ public class Game
     /// A chosen move that the rules don't allow. The game stops here instead of carrying on in a state
     /// that shouldn't exist; the message has what is needed to replay it.
     /// </summary>
-    private InvalidOperationException MoveFailed(PlayerState player, string move, Card card)
+    private MoveNotAllowedException MoveFailed(PlayerState player, string move, Card card)
     {
-        return new InvalidOperationException(
-            $"Seat {player.Seat} ({AgentName(player.Seat)}) could not {move} {card.Name} on turn {Turn} " +
-            $"(era {Era}, game seed {Seed}).");
+        return new MoveNotAllowedException(player.Seat,
+            $"could not {move} {card.Name} on turn {Turn} (era {Era}, game seed {Seed}).");
     }
 
     private string AgentName(int seat)

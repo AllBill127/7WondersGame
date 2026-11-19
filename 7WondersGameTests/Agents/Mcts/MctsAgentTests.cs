@@ -8,6 +8,7 @@ using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.Mcts.Configuration.Enums;
 using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Agents;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
@@ -30,11 +31,16 @@ public class MctsAgentTests
         return (MctsAgent)AgentCatalog.Create(AgentSpecification.Parse("MctsAgent" + settings));
     }
 
-    private static Game NewGame(ulong seed, params IAgent[] agents)
+    private static Game NewGame(ulong seed, int players)
     {
-        Game game = new(seed) { Agents = agents.ToList() };
-        game.SetUpRandomGame();
+        Game game = new(seed);
+        game.SetUpRandomGame(players);
         return game;
+    }
+
+    private static Match NewMatch(ulong seed, params IAgent[] agents)
+    {
+        return new Match(NewGame(seed, agents.Length), agents);
     }
 
     private static string Outcome(Game game)
@@ -88,11 +94,11 @@ public class MctsAgentTests
                 }
             }
 
-            Game game = NewGame(Seeding.GameSeed(5, players), agents);
+            Match match = NewMatch(Seeding.GameSeed(5, players), agents);
             // a move the rules don't allow would throw
-            game.Loop(record: true);
-            Assert.AreEqual(Phase.GameOver, game.Phase);
-            StringAssert.Contains(game.RecordedResults()[1].AgentStatisticsJson, "\"searches\":");
+            List<SeatResult> results = match.Play();
+            Assert.AreEqual(Phase.GameOver, match.Game.Phase);
+            StringAssert.Contains(results[1].AgentStatisticsJson, "\"searches\":");
         }
     }
 
@@ -104,16 +110,16 @@ public class MctsAgentTests
 
     private static string PlayTwoSearchers()
     {
-        Game game = NewGame(77, new HeuristicAgent(), Mcts(":IterationBudget=15"),
-                            Mcts(":IterationBudget=15:TreeShape=Duct"));
-        game.Loop();
-        return Outcome(game);
+        Match match = NewMatch(77, new HeuristicAgent(), Mcts(":IterationBudget=15"),
+                               Mcts(":IterationBudget=15:TreeShape=Duct"));
+        match.Play();
+        return Outcome(match.Game);
     }
 
     [TestMethod]
     public void ASearch_ChangesNothing()
     {
-        Game game = NewGame(3, new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent());
+        Game game = NewGame(3, 3);
         string before = Outcome(game) + AllHandsText(game);
 
         Move move = Mcts(":IterationBudget=50").Choose(new GameView(game, 0));
@@ -131,8 +137,7 @@ public class MctsAgentTests
     public void TheDeterminizedSearch_DoesntDependOnHiddenCards()
     {
         // two deals that differ only in what seat 0 can't see: the other hands and the later decks
-        Game deal = new(11) { Agents = { new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent() } };
-        deal.SetUpRandomGame();
+        Game deal = NewGame(11, 3);
         List<int> wonders = deal.Players.Select(player => (int)player.Wonder.Id).ToList();
         List<int> era1 = CardIds(deal.Decks[0]);
         // the first seven cards (seat 0's hand) stay; the other two hands change places
@@ -158,7 +163,7 @@ public class MctsAgentTests
     // seat 0's first choice in a game dealt from the dataset deal
     private static Move SearchFromDeal(List<int>[] dataset, string settings)
     {
-        Game game = new(11) { Agents = { new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent() } };
+        Game game = new(11);
         game.SetUpGameFromDataset(dataset);
         return Mcts(":IterationBudget=200" + settings).Choose(new GameView(game, 0));
     }
@@ -187,9 +192,8 @@ public class MctsAgentTests
     [TestMethod]
     public void Stats_CountEveryIteration()
     {
-        Game game = NewGame(9, Mcts(":IterationBudget=25"), new HeuristicAgent(), new HeuristicAgent());
-        game.Loop(record: true);
-        List<SeatResult> results = game.RecordedResults();
+        Match match = NewMatch(9, Mcts(":IterationBudget=25"), new HeuristicAgent(), new HeuristicAgent());
+        List<SeatResult> results = match.Play();
 
         JsonElement statistics = JsonDocument.Parse(results[0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
@@ -214,9 +218,9 @@ public class MctsAgentTests
     private static string PlayFourWorkers(string variant, string threads)
     {
         MctsAgent searcher = Mcts($":IterationBudget=40:Parallelisation={variant}:ParallelWorkerCount=4{threads}");
-        Game game = NewGame(31, searcher, new HeuristicAgent(), new HeuristicAgent());
-        game.Loop();
-        return Outcome(game);
+        Match match = NewMatch(31, searcher, new HeuristicAgent(), new HeuristicAgent());
+        match.Play();
+        return Outcome(match.Game);
     }
 
     [DataTestMethod]
@@ -227,9 +231,8 @@ public class MctsAgentTests
     public void AParallelSearch_MakesItsIterations(string variant, int workers)
     {
         MctsAgent searcher = Mcts($":IterationBudget=40:Parallelisation={variant}:ParallelWorkerCount={workers}");
-        Game game = NewGame(9, searcher, new HeuristicAgent(), new HeuristicAgent());
-        game.Loop(record: true);
-        List<SeatResult> results = game.RecordedResults();
+        Match match = NewMatch(9, searcher, new HeuristicAgent(), new HeuristicAgent());
+        List<SeatResult> results = match.Play();
 
         JsonElement statistics = JsonDocument.Parse(results[0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
@@ -249,9 +252,9 @@ public class MctsAgentTests
 
     private static string PlayThirtyIterations(string settings)
     {
-        Game game = NewGame(44, Mcts(":IterationBudget=30" + settings), new HeuristicAgent(), new HeuristicAgent());
-        game.Loop();
-        return Outcome(game);
+        Match match = NewMatch(44, Mcts(":IterationBudget=30" + settings), new HeuristicAgent(), new HeuristicAgent());
+        match.Play();
+        return Outcome(match.Game);
     }
 
     [TestMethod]
@@ -271,12 +274,12 @@ public class MctsAgentTests
         double[] averageVictoryPoints = new double[3];
         for (int gameIndex = 0; gameIndex < 4; gameIndex++)
         {
-            Game game = NewGame(Seeding.GameSeed(21, gameIndex), Mcts(":IterationBudget=30"), new RandomAgent(),
-                                new RandomAgent());
-            game.Loop();
+            Match match = NewMatch(Seeding.GameSeed(21, gameIndex), Mcts(":IterationBudget=30"), new RandomAgent(),
+                                   new RandomAgent());
+            List<SeatResult> results = match.Play();
             for (int seat = 0; seat < 3; seat++)
             {
-                averageVictoryPoints[seat] += game.Players[seat].VictoryPoints / 4.0;
+                averageVictoryPoints[seat] += results[seat].VictoryPoints / 4.0;
             }
         }
 

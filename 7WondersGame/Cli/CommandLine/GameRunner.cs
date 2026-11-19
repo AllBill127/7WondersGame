@@ -4,6 +4,7 @@ using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Cli.Agents;
 using _7WondersGame.Cli.Experiments;
 using _7WondersGame.Cli.Logs;
+using _7WondersGame.Cli.Matches;
 using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Randomness.Services;
@@ -77,15 +78,16 @@ internal sealed class GameRunner
         GameSlot slot = _plan.At(gameIndex);
         List<AgentSpecification> seats = _plan.SeatsFor(slot.Rotation);
         ILogger log = Logging.ForGame(gameIndex);
-        Game game = SetUpGame(slot, seats, log);
+        Match match = SetUpMatch(slot, seats, log);
+        Game game = match.Game;
 
         Stopwatch watch = Stopwatch.StartNew();
         try
         {
-            game.Loop(record: true);
-            _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, game.RecordedResults());
+            List<SeatResult> results = match.Play();
+            _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, results);
             int done = Interlocked.Increment(ref _completed);
-            LogGameDone(log, slot, game.RecordedResults(), done, watch.Elapsed);
+            LogGameDone(log, slot, results, done, watch.Elapsed);
         }
         catch (Exception exception)
         {
@@ -95,7 +97,7 @@ internal sealed class GameRunner
         }
     }
 
-    private Game SetUpGame(GameSlot slot, List<AgentSpecification> seats, ILogger log)
+    private Match SetUpMatch(GameSlot slot, List<AgentSpecification> seats, ILogger log)
     {
         lock (_setupLock)
         {
@@ -104,16 +106,16 @@ internal sealed class GameRunner
             {
                 agents.Add(AgentCatalog.Create(seat, slot.Value));
             }
-            Game game = new(Seeding.GameSeed(_plan.Seed, slot.Deal)) { Agents = agents, Trace = log };
+            Game game = new(Seeding.GameSeed(_plan.Seed, slot.Deal)) { Trace = log };
             if (_deals != null)
             {
                 game.SetUpGameFromDataset(_deals[slot.Deal]);
             }
             else
             {
-                game.SetUpRandomGame();
+                game.SetUpRandomGame(agents.Count);
             }
-            return game;
+            return new Match(game, agents);
         }
     }
 

@@ -1,4 +1,8 @@
 ﻿using System.Text.RegularExpressions;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using Match = _7WondersGame.Cli.Matches.Match;
 using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.Heuristic;
 using _7WondersGame.Agents.RandomChoice;
@@ -6,9 +10,6 @@ using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Randomness.Services;
 using _7WondersGameTests.Agents.Mcts;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
 
 namespace _7WondersGameTests.Engine.Games;
 
@@ -30,22 +31,17 @@ public class TraceTests
         return new LoggerConfiguration().MinimumLevel.Is(level).WriteTo.Sink(sink).CreateLogger();
     }
 
-    private static Game NewGame(ulong seed, ILogger? trace = null)
+    private static Match NewMatch(ulong seed, ILogger? trace = null)
     {
-        Game game = new(seed)
-        {
-            Agents = new List<IAgent>
-            {
-                new HeuristicAgent(), new RandomAgent(), new RandomAgent(),
-            },
-        };
+        Game game = new(seed);
         if (trace != null)
         {
             game.Trace = trace;
         }
 
-        game.SetUpRandomGame();
-        return game;
+        game.SetUpRandomGame(3);
+        List<IAgent> agents = new() { new HeuristicAgent(), new RandomAgent(), new RandomAgent() };
+        return new Match(game, agents);
     }
 
     [TestMethod]
@@ -54,15 +50,13 @@ public class TraceTests
         for (ulong gameIndex = 0; gameIndex < 20; gameIndex++)
         {
             ulong seed = Seeding.GameSeed(31, (long)gameIndex);
-            Game silent = NewGame(seed);
-            silent.Loop(record: true);
+            List<SeatResult> silent = NewMatch(seed).Play();
 
             ListSink sink = new();
             ILogger logger = LoggerInto(sink, LogEventLevel.Verbose);
-            Game traced = NewGame(seed, logger);
-            traced.Loop(record: true);
+            List<SeatResult> traced = NewMatch(seed, logger).Play();
 
-            CollectionAssert.AreEqual(silent.Results, traced.Results, $"seed {seed}");
+            CollectionAssert.AreEqual(silent, traced, $"seed {seed}");
             Assert.IsTrue(sink.Events.Count > 0, "the traced game wrote a trace");
         }
     }
@@ -85,31 +79,28 @@ public class TraceTests
     }
 
     // a game with an MctsAgent at seat 1, traced if a logger is given
-    private static Game PlayWithSearcher(ILogger? trace)
+    private static List<SeatResult> PlayWithSearcher(ILogger? trace)
     {
-        Game game = new(5)
-        {
-            Agents = new List<IAgent>
-            {
-                new HeuristicAgent(),
-                MctsAgentTests.Mcts(":IterationBudget=40"),
-                new HeuristicAgent(),
-            },
-        };
+        Game game = new(5);
         if (trace != null)
         {
             game.Trace = trace;
         }
 
-        game.SetUpRandomGame();
-        game.Loop(record: true);
-        return game;
+        game.SetUpRandomGame(3);
+        List<IAgent> agents = new()
+        {
+            new HeuristicAgent(),
+            MctsAgentTests.Mcts(":IterationBudget=40"),
+            new HeuristicAgent(),
+        };
+        return new Match(game, agents).Play();
     }
 
     // the stats column holds search times, which differ between any two runs; the game itself doesn't
-    private static string Outcome(Game game)
+    private static string Outcome(List<SeatResult> results)
     {
-        IEnumerable<string> seatOutcomes = game.RecordedResults()
+        IEnumerable<string> seatOutcomes = results
             .Select(result => $"{result.VictoryPoints} {result.Coins} {result.Rank}");
         return string.Join(" | ", seatOutcomes);
     }
@@ -118,7 +109,7 @@ public class TraceTests
     public void DeepCopy_IsSilent()
     {
         ILogger logger = LoggerInto(new ListSink(), LogEventLevel.Verbose);
-        Game game = NewGame(5, logger);
+        Game game = NewMatch(5, logger).Game;
 
         Game copy = game.DeepCopy();
 
@@ -130,8 +121,7 @@ public class TraceTests
     {
         ListSink sink = new();
         ILogger logger = LoggerInto(sink, LogEventLevel.Debug);
-        Game game = NewGame(Seeding.GameSeed(77, 0), logger);
-        game.Loop(record: true);
+        List<SeatResult> results = NewMatch(Seeding.GameSeed(77, 0), logger).Play();
         List<string> lines = sink.Messages.ToList();
 
         Assert.AreEqual(1, lines.Count(line => line.StartsWith("Game seed")));
@@ -150,7 +140,7 @@ public class TraceTests
             "Debug hides Verbose");
 
         // the score breakdown adds up to the final VP
-        foreach (SeatResult seat in game.RecordedResults())
+        foreach (SeatResult seat in results)
         {
             string line = ScoreLineOf(seat, lines);
             int total = int.Parse(line.Split(':')[1].Trim().Split(' ')[0]);
@@ -169,8 +159,8 @@ public class TraceTests
     [TestMethod]
     public void UntracedGame_WritesNothing()
     {
-        Game game = NewGame(3);
-        Assert.AreSame(Logger.None, game.Trace);
-        game.Loop();
+        Match match = NewMatch(3);
+        Assert.AreSame(Logger.None, match.Game.Trace);
+        match.Play();
     }
 }
