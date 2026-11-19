@@ -67,7 +67,8 @@ public sealed class RunManifest
     /// </summary>
     public static string GetGitCommit()
     {
-        var attribute = typeof(RunManifest).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        AssemblyInformationalVersionAttribute? attribute =
+            typeof(RunManifest).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         if (attribute == null)
         {
             return UnknownCommit;

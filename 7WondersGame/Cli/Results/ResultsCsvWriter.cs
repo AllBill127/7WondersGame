@@ -48,7 +48,7 @@ public sealed class ResultsCsvWriter : IDisposable
             }
         }
 
-        var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
+        FileStream stream = new(FilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
         _writer = new StreamWriter(stream, new UTF8Encoding(false)) { NewLine = "\n" };
         if (isNew)
         {
@@ -72,7 +72,7 @@ public sealed class ResultsCsvWriter : IDisposable
     /// <summary>Appends one row per seat of a finished game, all at once, and flushes them.</summary>
     public void WriteGame(string runId, long gameIndex, long dealIndex, ulong seed, IEnumerable<SeatResult> seats)
     {
-        var rows = new StringBuilder();
+        StringBuilder rows = new();
         foreach (SeatResult seatResult in seats)
         {
             rows.Append(FormatRow(runId, gameIndex, dealIndex, seed, seatResult)).Append('\n');
@@ -88,7 +88,7 @@ public sealed class ResultsCsvWriter : IDisposable
     /// <summary>One seat's row, its fields quoted where needed (no line break at the end).</summary>
     public static string FormatRow(string runId, long gameIndex, long dealIndex, ulong seed, SeatResult seatResult)
     {
-        var invariantCulture = CultureInfo.InvariantCulture;
+        CultureInfo invariantCulture = CultureInfo.InvariantCulture;
         string[] fields =
         {
             runId,
@@ -142,7 +142,7 @@ public sealed class ResultsCsvWriter : IDisposable
                 header = fields.ToArray();
                 continue;
             }
-            var row = new Dictionary<string, string>(StringComparer.Ordinal);
+            Dictionary<string, string> row = new(StringComparer.Ordinal);
             for (int column = 0; column < header.Length && column < fields.Count; column++)
             {
                 row[header[column]] = fields[column];
@@ -154,8 +154,8 @@ public sealed class ResultsCsvWriter : IDisposable
     /// <summary>The fields of one CSV line, unquoted.</summary>
     public static List<string> SplitRow(string line)
     {
-        var fields = new List<string>();
-        var field = new StringBuilder();
+        List<string> fields = new();
+        StringBuilder field = new();
         bool quoted = false;
         for (int position = 0; position < line.Length; position++)
         {

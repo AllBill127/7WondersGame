@@ -50,7 +50,7 @@ public sealed class HeuristicAgent : IAgent
     /// </summary>
     public Move Choose(PlayerState player, Phase phase, int era, List<Card> discardPile)
     {
-        var values = new HeuristicValues(player, era, Weights);
+        HeuristicValues values = new(player, era, Weights);
 
         if (phase == Phase.DiscardPileBuild)
         {
@@ -68,7 +68,7 @@ public sealed class HeuristicAgent : IAgent
         Span<double> denied = stackalloc double[hand.Count];
         FillDeniedValues(denied, hand, values);
 
-        var best = new BestMove();
+        BestMove best = new();
         ConsiderBuilds(ref best, player, values, denied);
         if (phase == Phase.ChooseMoves && player.OlympiaFreeBuildAvailable)
         {

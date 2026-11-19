@@ -21,8 +21,8 @@ public class ChooseMoveTests
     public void ChooseMove_WhenOlympiaA2_AndBuildableCardsViolateNoDuplicateRule_ChoosesDiscard()
     {
         // Arrange
-        Game testGame = new Game(seed: 0);
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>()
+        Game testGame = new(seed: 0);
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.OlympiaA),
@@ -55,8 +55,8 @@ public class ChooseMoveTests
     public void ChooseMove_WhenOlympiaA2_NoResourceToBuildCard_ChoosesOlympiaFreeBuild()
     {
         // Arrange
-        Game testGame = new Game(seed: 0);
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>()
+        Game testGame = new(seed: 0);
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.OlympiaA),

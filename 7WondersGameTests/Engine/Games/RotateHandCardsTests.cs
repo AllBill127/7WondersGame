@@ -16,7 +16,7 @@ public class RotateHandCardsTests
     public void RotateHandCards_CorrectlyRotatesCardListsClockwise()
     {
         // Arrange
-        Game testGame = new Game(seed: 0);
+        Game testGame = new(seed: 0);
         testGame.Era = 1;
 
         List<WonderBoardProgress> wonders = MockHelper.MockWonders().GetRange(0, 3);
@@ -37,9 +37,9 @@ public class RotateHandCardsTests
         testGame.Players[2].Hand.Add(CardsDataset.GameCards[CardId.School]);
 
         // Expected results
-        List<Card> expectedHandOfSeat0 = new List<Card>(testGame.Players[1].Hand);
-        List<Card> expectedHandOfSeat1 = new List<Card>(testGame.Players[2].Hand);
-        List<Card> expectedHandOfSeat2 = new List<Card>(testGame.Players[0].Hand);
+        List<Card> expectedHandOfSeat0 = new(testGame.Players[1].Hand);
+        List<Card> expectedHandOfSeat1 = new(testGame.Players[2].Hand);
+        List<Card> expectedHandOfSeat2 = new(testGame.Players[0].Hand);
 
         // Test
         testGame.RotateHandCards();

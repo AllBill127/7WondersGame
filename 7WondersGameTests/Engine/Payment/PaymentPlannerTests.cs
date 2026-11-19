@@ -35,13 +35,13 @@ public class PaymentPlannerTests
     private static (PlayerState West, PlayerState Buyer, PlayerState East) SetUp(
         int coins, WonderBoardProgress? buyerWonder = null)
     {
-        WonderBoardProgress buyersWonder = new WonderBoardProgress(WonderId.GizahA);
+        WonderBoardProgress buyersWonder = new(WonderId.GizahA);
         if (buyerWonder != null)
         {
             buyersWonder = buyerWonder;
         }
 
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             buyersWonder,
@@ -80,7 +80,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void OwnProductionCovers_IsFree()
     {
-        var (_, buyer, _) = SetUp(coins: 0);
+        (_, PlayerState buyer, _) = SetUp(coins: 0);
         buyer.Resources[Resource.Wood] = 2;
         Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))));
     }
@@ -88,7 +88,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void BuysFromEachNeighbourTheResourceOnlyTheyHave()
     {
-        var (west, buyer, east) = SetUp(coins: 4);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 4);
         Build(west, CardId.TreeFarm);
         Build(east, CardId.ClayPit);
         // west's Tree Farm is the only wood, so the clay has to come from east's Clay Pit
@@ -100,7 +100,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void NeighboursForumCantBeBoughtFrom()
     {
-        var (west, buyer, east) = SetUp(coins: 10);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 10);
         Build(west, CardId.TreeFarm);
         Build(east, CardId.ClayPit, CardId.Forum);
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Glass, 1))));
@@ -109,7 +109,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void OwnCaravanseryAndForumAreFree()
     {
-        var (_, buyer, _) = SetUp(coins: 0);
+        (_, PlayerState buyer, _) = SetUp(coins: 0);
         Build(buyer, CardId.Caravansery, CardId.Forum);
         Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Ore, 1), (Resource.Papyrus, 1))));
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Ore, 2))));
@@ -120,7 +120,7 @@ public class PaymentPlannerTests
     {
         // Tree Farm (wood/clay) + Forest Cave (wood/ore) pay wood + clay.
         // Taking wood from Tree Farm first would leave clay missing.
-        var (_, buyer, _) = SetUp(coins: 0);
+        (_, PlayerState buyer, _) = SetUp(coins: 0);
         Build(buyer, CardId.TreeFarm, CardId.ForestCave);
         Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
     }
@@ -128,7 +128,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void NeighbourEitherOrCardsAreMatchedToTheCost()
     {
-        var (west, buyer, _) = SetUp(coins: 4);
+        (PlayerState west, PlayerState buyer, _) = SetUp(coins: 4);
         Build(west, CardId.TreeFarm, CardId.ForestCave);
         Assert.AreEqual(
             new PaymentPlan(4, 0),
@@ -138,7 +138,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void NeighbourEitherOrCardGivesOnlyOneResource()
     {
-        var (west, buyer, _) = SetUp(coins: 10);
+        (PlayerState west, PlayerState buyer, _) = SetUp(coins: 10);
         Build(west, CardId.TreeFarm);
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Clay, 1))));
     }
@@ -146,7 +146,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void PurchaseIsSplitBetweenNeighbours()
     {
-        var (west, buyer, east) = SetUp(coins: 4);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 4);
         west.Resources[Resource.Wood] = 1;
         east.Resources[Resource.Wood] = 1;
         Assert.AreEqual(new PaymentPlan(2, 2), PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 2))));
@@ -159,7 +159,7 @@ public class PaymentPlannerTests
     public void CheapUnitsFirstThenTheRestFromTheOtherNeighbour()
     {
         // East Trading Post: 1 coin per raw from the east. East has one wood, west has plenty.
-        var (west, buyer, east) = SetUp(coins: 3);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 3);
         buyer.Abilities |= Ability.RawMaterialsCheapFromEastNeighbour;
         west.Resources[Resource.Wood] = 3;
         east.Resources[Resource.Wood] = 1;
@@ -169,7 +169,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void EquallyCheap_BuysFromWest()
     {
-        var (west, buyer, east) = SetUp(coins: 2);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 2);
         west.Resources[Resource.Stone] = 1;
         east.Resources[Resource.Stone] = 1;
         Assert.AreEqual(new PaymentPlan(2, 0), PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
@@ -178,7 +178,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void CheaperNeighbourWins()
     {
-        var (west, buyer, east) = SetUp(coins: 2);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 2);
         buyer.Abilities |= Ability.RawMaterialsCheapFromEastNeighbour;
         west.Resources[Resource.Stone] = 1;
         east.Resources[Resource.Stone] = 1;
@@ -188,7 +188,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void OlympiaB_RawFromBothNeighboursCostsOne()
     {
-        var (west, buyer, east) = SetUp(coins: 2);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 2);
         buyer.Abilities |= Ability.RawMaterialsCheapFromBothNeighbours;
         west.Resources[Resource.Ore] = 1;
         east.Resources[Resource.Ore] = 1;
@@ -198,7 +198,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void Marketplace_ManufacturedCostsOne_RawStillTwo()
     {
-        var (west, buyer, _) = SetUp(coins: 3);
+        (PlayerState west, PlayerState buyer, _) = SetUp(coins: 3);
         buyer.Abilities |= Ability.ManufacturedGoodsCheapFromBothNeighbours;
         west.Resources[Resource.Glass] = 1;
         west.Resources[Resource.Wood] = 1;
@@ -210,7 +210,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void CoinCostCountsAgainstTheBudget()
     {
-        var (west, buyer, _) = SetUp(coins: 2);
+        (PlayerState west, PlayerState buyer, _) = SetUp(coins: 2);
         west.Resources[Resource.Wood] = 1;
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Wood, 1), (Resource.Coins, 1))));
         buyer.Resources[Resource.Coins] = 3;
@@ -224,7 +224,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void AlexandriaWildcards()
     {
-        var (_, buyer, _) = SetUp(coins: 0, new WonderBoardProgress(WonderId.AlexandriaB));
+        (_, PlayerState buyer, _) = SetUp(coins: 0, new WonderBoardProgress(WonderId.AlexandriaB));
         Assert.IsNull(PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
         buyer.Wonder.BuiltStageCount = 1;   // any raw
         Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(buyer, Cost((Resource.Stone, 1))));
@@ -237,21 +237,22 @@ public class PaymentPlannerTests
     [TestMethod]
     public void PlanningChangesNothing()
     {
-        var (west, buyer, east) = SetUp(coins: 6);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 6);
         Build(west, CardId.TreeFarm, CardId.Mine);
         Build(east, CardId.ClayPit);
         Build(buyer, CardId.ForestCave);
         east.Resources[Resource.Stone] = 1;
         PlayerState[] players = { west, buyer, east };
-        var resourcesBefore = new List<Dictionary<Resource, int>>();
-        var cardsBefore = new List<List<Card>>();
+        List<Dictionary<Resource, int>> resourcesBefore = new();
+        List<List<Card>> cardsBefore = new();
         foreach (PlayerState player in players)
         {
             resourcesBefore.Add(ResourcesOf(player));
             cardsBefore.Add(new List<Card>(player.BuiltCards));
         }
 
-        var cost = Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1));
+        Dictionary<Resource, int> cost =
+            Cost((Resource.Wood, 1), (Resource.Clay, 1), (Resource.Stone, 1), (Resource.Ore, 1));
         Assert.IsNotNull(PaymentPlanner.Plan(buyer, cost));
 
         for (int seat = 0; seat < 3; seat++)
@@ -265,7 +266,7 @@ public class PaymentPlannerTests
     [TestMethod]
     public void BuildCard_PaysWhatThePlanSays()
     {
-        var (west, buyer, east) = SetUp(coins: 4);
+        (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: 4);
         Build(west, CardId.TreeFarm);
         Build(east, CardId.TimberYard);
         Card caravansery = CardsDataset.GameCards[CardId.Caravansery];   // 2 wood
@@ -282,14 +283,14 @@ public class PaymentPlannerTests
     [TestMethod]
     public void MatchesBruteForce_OnRandomPositions()
     {
-        var random = new Random(20261110);
+        Random random = new(20261110);
         WonderId[] boards = { WonderId.GizahA, WonderId.AlexandriaA, WonderId.AlexandriaB };
 
         for (int test = 0; test < 3000; test++)
         {
-            WonderBoardProgress buyersWonder = new WonderBoardProgress(boards[random.Next(boards.Length)]);
+            WonderBoardProgress buyersWonder = new(boards[random.Next(boards.Length)]);
             buyersWonder.BuiltStageCount = random.Next(0, 3);
-            var (west, buyer, east) = SetUp(coins: random.Next(0, 9), buyersWonder);
+            (PlayerState west, PlayerState buyer, PlayerState east) = SetUp(coins: random.Next(0, 9), buyersWonder);
             foreach (PlayerState player in new[] { west, buyer, east })
             {
                 GiveRandomResourcesAndCards(player, random);
@@ -362,7 +363,7 @@ public class PaymentPlannerTests
     // one to three kinds of goods, one to three of each, sometimes a coin
     private static Dictionary<Resource, int> RandomCost(Random random)
     {
-        var cost = new Dictionary<Resource, int>();
+        Dictionary<Resource, int> cost = new();
         int kinds = random.Next(1, 4);
         for (int kindIndex = 0; kindIndex < kinds; kindIndex++)
         {

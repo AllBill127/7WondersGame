@@ -28,7 +28,7 @@ internal sealed class TraceSnapshot
     /// <summary>The player's coins, wonder stage and flags now.</summary>
     public static TraceSnapshot Of(PlayerState player)
     {
-        var flags = new List<string>();
+        List<string> flags = new();
         foreach (Ability ability in Enum.GetValues<Ability>())
         {
             if (ability != Ability.None && player.Has(ability))

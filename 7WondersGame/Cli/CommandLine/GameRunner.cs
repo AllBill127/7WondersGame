@@ -64,7 +64,7 @@ internal sealed class GameRunner
     /// <summary>Plays every game of the plan, at most the plan's <see cref="RunPlan.Parallel"/> at a time.</summary>
     public void PlayAll()
     {
-        var options = new ParallelOptions { MaxDegreeOfParallelism = _plan.Parallel };
+        ParallelOptions options = new() { MaxDegreeOfParallelism = _plan.Parallel };
         Parallel.For(0, _plan.Total, options, PlayGame);
     }
 
@@ -79,7 +79,7 @@ internal sealed class GameRunner
         ILogger log = Logging.ForGame(gameIndex);
         Game game = SetUpGame(slot, seats, log);
 
-        var watch = Stopwatch.StartNew();
+        Stopwatch watch = Stopwatch.StartNew();
         try
         {
             game.Loop(record: true);
@@ -99,12 +99,12 @@ internal sealed class GameRunner
     {
         lock (_setupLock)
         {
-            var agents = new List<IAgent>(seats.Count);
+            List<IAgent> agents = new(seats.Count);
             foreach (AgentSpecification seat in seats)
             {
                 agents.Add(AgentCatalog.Create(seat, slot.Value));
             }
-            var game = new Game(Seeding.GameSeed(_plan.Seed, slot.Deal)) { Agents = agents, Trace = log };
+            Game game = new(Seeding.GameSeed(_plan.Seed, slot.Deal)) { Agents = agents, Trace = log };
             if (_deals != null)
             {
                 game.SetUpGameFromDataset(_deals[slot.Deal]);
@@ -151,7 +151,7 @@ internal sealed class GameRunner
     /// <summary>The command that plays a failed game again, step by step.</summary>
     private string ReplayCommand(Game game, GameSlot slot, List<AgentSpecification> seats)
     {
-        var players = new List<string>(seats.Count);
+        List<string> players = new(seats.Count);
         foreach (AgentSpecification seat in seats)
         {
             players.Add(WithValue(seat, slot.Value));
@@ -167,7 +167,7 @@ internal sealed class GameRunner
     /// <summary>The specification with its range (if any) replaced by the value this game used.</summary>
     private static string WithValue(AgentSpecification specification, double? value)
     {
-        var settings = new List<KeyValuePair<string, string>>(specification.Settings.Count);
+        List<KeyValuePair<string, string>> settings = new(specification.Settings.Count);
         foreach (KeyValuePair<string, string> setting in specification.Settings)
         {
             if (value != null && Sweep.TryParseRange(setting.Value, out _, out _))

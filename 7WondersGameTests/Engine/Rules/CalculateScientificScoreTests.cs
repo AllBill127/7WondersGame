@@ -40,7 +40,7 @@ public class CalculateScientificScoreTests
         int wildcards,
         int expected)
     {
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.BabylonA),
             new WonderBoardProgress(WonderId.GizahA),

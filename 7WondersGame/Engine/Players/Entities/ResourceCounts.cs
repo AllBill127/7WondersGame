@@ -53,7 +53,7 @@ public sealed class ResourceCounts : IReadOnlyCollection<KeyValuePair<Resource, 
     /// <summary>A copy of these counts.</summary>
     public ResourceCounts Clone()
     {
-        var copy = new ResourceCounts();
+        ResourceCounts copy = new();
         Array.Copy(_counts, copy._counts, Size);
         return copy;
     }

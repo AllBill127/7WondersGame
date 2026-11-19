@@ -51,7 +51,7 @@ public sealed class CliArguments
             command = "help";
         }
 
-        var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> options = new(StringComparer.OrdinalIgnoreCase);
         bool help = false;
         for (int argumentIndex = 1; argumentIndex < arguments.Count; argumentIndex++)
         {
@@ -150,8 +150,8 @@ public sealed class CliArguments
     /// </summary>
     public CliArguments WithDefaults(IReadOnlyDictionary<string, string> defaults)
     {
-        var merged = new Dictionary<string, string>(defaults, StringComparer.OrdinalIgnoreCase);
-        foreach (var (name, value) in _options)
+        Dictionary<string, string> merged = new(defaults, StringComparer.OrdinalIgnoreCase);
+        foreach ((string name, string value) in _options)
         {
             merged[name] = value;
         }

@@ -37,8 +37,8 @@ public sealed class MctsAgent : IAgent
         }
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        var clock = Stopwatch.StartNew();
-        var search = new MctsSearch(Configuration, view.Seat, view.CopyGame(), view.Knowledge, view.Random, clock);
+        Stopwatch clock = Stopwatch.StartNew();
+        MctsSearch search = new(Configuration, view.Seat, view.CopyGame(), view.Knowledge, view.Random, clock);
         Move move = search.Run();
         double milliseconds = clock.Elapsed.TotalMilliseconds;
 
@@ -87,7 +87,7 @@ public sealed class MctsAgent : IAgent
     /// </remarks>
     public string StatisticsJson()
     {
-        var statistics = new Dictionary<string, object>
+        Dictionary<string, object> statistics = new()
         {
             ["searches"] = _statistics.Searches,
             ["iterations"] = _statistics.Iterations,

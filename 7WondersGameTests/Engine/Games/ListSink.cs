@@ -30,7 +30,7 @@ internal sealed class ListSink : ILogEventSink
 
     private static string Render(LogEvent logEvent)
     {
-        StringWriter writer = new StringWriter();
+        StringWriter writer = new();
         Format.Format(logEvent, writer);
         return writer.ToString();
     }

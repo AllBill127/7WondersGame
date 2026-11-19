@@ -28,8 +28,8 @@ public class SeedingTests
         for (ulong runSeed = 1; runSeed <= 10; runSeed++)
         {
             ulong seed = Seeding.GameSeed(runSeed, 0);
-            var (setupA, scoresA) = PlayGame(seed);
-            var (setupB, scoresB) = PlayGame(seed);
+            (string setupA, List<int> scoresA) = PlayGame(seed);
+            (string setupB, List<int> scoresB) = PlayGame(seed);
 
             Assert.AreEqual(setupA, setupB, $"deal, seed {seed}");
             CollectionAssert.AreEqual(scoresA, scoresB, $"final scores, seed {seed}");
@@ -39,7 +39,7 @@ public class SeedingTests
     [TestMethod]
     public void DifferentGameIndex_GivesDifferentDeal()
     {
-        var setups = Enumerable.Range(0, 10)
+        List<string> setups = Enumerable.Range(0, 10)
             .Select(gameIndex => PlayGame(Seeding.GameSeed(7, gameIndex)).setup)
             .ToList();
 
@@ -49,8 +49,8 @@ public class SeedingTests
     [TestMethod]
     public void AgentRandom_IsPerSeatAndSeeded()
     {
-        Game firstGame = new Game(123);
-        Game secondGame = new Game(123);
+        Game firstGame = new(123);
+        Game secondGame = new(123);
 
         int[] seat0 = Draw(firstGame.AgentRandom(0));
         CollectionAssert.AreEqual(seat0, Draw(secondGame.AgentRandom(0)), "same seed, same seat");
@@ -98,7 +98,7 @@ public class SeedingTests
 
     private static Game NewGame(ulong seed)
     {
-        Game game = new Game(seed);
+        Game game = new(seed);
         game.Agents.Add(new RandomAgent());
         game.Agents.Add(new HeuristicAgent());
         game.Agents.Add(new RandomAgent());
@@ -111,7 +111,7 @@ public class SeedingTests
         Game game = NewGame(seed);
         game.SetUpRandomGame();
 
-        List<string> dealParts = new List<string>();
+        List<string> dealParts = new();
         foreach (List<Card> deck in game.Decks)
         {
             dealParts.Add(DeckText(deck));

@@ -155,7 +155,7 @@ public class Game
     {
         _copyCount++;
         ulong copySeed = Seeding.Nth(Seed, Seeding.CopyStreamBase + _copyCount);
-        Game copy = new Game(copySeed);
+        Game copy = new(copySeed);
 
         copy.Players = PlayerState.CloneTable(Players);
         // the same agents; a search may swap in others (for its rollouts, say) without touching this game
@@ -206,7 +206,7 @@ public class Game
 
         for (int deckIndex = 0; deckIndex < Decks.Length; deckIndex++)
         {
-            foreach (var cardId in gameDataset[deckIndex])
+            foreach (int cardId in gameDataset[deckIndex])
             {
                 Decks[deckIndex].Add(CardsDataset.GameCards[(CardId)cardId]);
             }
@@ -278,7 +278,7 @@ public class Game
     /// </summary>
     public void CreateDecks()
     {
-        foreach (var card in CardsDataset.Cards)
+        foreach (KeyValuePair<CardId, Card> card in CardsDataset.Cards)
         {
             List<Card> deck = DeckOfEra(card.Value.Era);
             for (int copyIndex = 0; copyIndex < card.Value.CopiesFor(PlayerCount); copyIndex++)
@@ -320,7 +320,7 @@ public class Game
 
         foreach (PlayerState player in Players)
         {
-            List<Card> hand = new List<Card>(HandSize);
+            List<Card> hand = new(HandSize);
             for (int handPosition = 0; handPosition < HandSize; handPosition++)
             {
                 hand.Add(deck[deckPosition]);
@@ -387,7 +387,7 @@ public class Game
     public IReadOnlyList<int> PendingPlayers()
     {
         StartIfNeeded();
-        var pending = new List<int>();
+        List<int> pending = new();
         for (int seat = 0; seat < _waiting!.Length; seat++)
         {
             if (_waiting[seat])
@@ -503,7 +503,7 @@ public class Game
     /// <summary>Every player's held move, with the hand it is made from.</summary>
     private List<(PlayerState, Move, List<Card>)> ChosenMovesOfAllPlayers()
     {
-        var moves = new List<(PlayerState, Move, List<Card>)>(Players.Count);
+        List<(PlayerState, Move, List<Card>)> moves = new(Players.Count);
         foreach (PlayerState player in Players)
         {
             moves.Add((player, _chosen[player.Seat]!, player.Hand));
@@ -805,7 +805,7 @@ public class Game
             Results = GameResult.ForPlayers(Players, Agents);
         }
 
-        var scores = new Dictionary<int, int>();
+        Dictionary<int, int> scores = new();
         foreach (PlayerState player in Players)
         {
             scores.Add(player.Seat, player.VictoryPoints);
@@ -825,7 +825,7 @@ public class Game
             TracePhaseStart(views);
         }
 
-        var choices = new List<Move>(views.Count);
+        List<Move> choices = new(views.Count);
         foreach (GameView view in views)
         {
             choices.Add(Agents[view.Seat].Choose(view));
@@ -923,10 +923,10 @@ public class Game
     /// </summary>
     private PlannedMove?[] PlanAllMoves(IReadOnlyList<(PlayerState Player, Move Move, List<Card> Source)> moves)
     {
-        var planned = new PlannedMove?[moves.Count];
+        PlannedMove?[] planned = new PlannedMove?[moves.Count];
         for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
         {
-            var (player, move, source) = moves[moveIndex];
+            (PlayerState player, Move move, List<Card> source) = moves[moveIndex];
             Card? card = move.Card;
             if (move.Action == MoveAction.Skip || card == null)
             {
@@ -982,7 +982,7 @@ public class Game
     private static TraceSnapshot[] SnapshotsBefore(
         IReadOnlyList<(PlayerState Player, Move Move, List<Card> Source)> moves)
     {
-        var snapshots = new TraceSnapshot[moves.Count];
+        TraceSnapshot[] snapshots = new TraceSnapshot[moves.Count];
         for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
         {
             snapshots[moveIndex] = TraceSnapshot.Of(moves[moveIndex].Player);
@@ -1114,13 +1114,13 @@ public class Game
         TraceSnapshot after = TraceSnapshot.Of(player);
         string move = DescribeMove(plannedMove, after.BuiltStageCount);
 
-        var details = new List<string>();
+        List<string> details = new();
         if (plannedMove != null)
         {
             AddPaymentDetails(details, player, plannedMove);
         }
-        var gained = after.Flags.Except(before.Flags).ToList();
-        var lost = before.Flags.Except(after.Flags).ToList();
+        List<string> gained = after.Flags.Except(before.Flags).ToList();
+        List<string> lost = before.Flags.Except(after.Flags).ToList();
         if (gained.Count > 0)
         {
             details.Add("gains " + string.Join(", ", gained));
@@ -1255,7 +1255,7 @@ public class Game
 
     private List<Move> Moves(int seat, bool pruned)
     {
-        var moves = new List<Move>();
+        List<Move> moves = new();
         if (IsPending(seat))
         {
             PlayerState player = Players[seat];

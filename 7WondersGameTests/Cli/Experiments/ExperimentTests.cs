@@ -179,13 +179,13 @@ public class ExperimentTests
         int exit = await Commands.Run(cli, Array.Empty<string>());
 
         Assert.AreEqual(Commands.Ok, exit);
-        var rows = ResultsCsvWriter.ReadRows(csv).ToList();
+        List<Dictionary<string, string>> rows = ResultsCsvWriter.ReadRows(csv).ToList();
         Assert.AreEqual(2 * 3 * 3, rows.Count);
-        foreach (var deal in rows.GroupBy(row => row["dealIndex"]))
+        foreach (IGrouping<string, Dictionary<string, string>> deal in rows.GroupBy(row => row["dealIndex"]))
         {
             // the deal (each seat's wonder) stays; the agents move round it
             Assert.AreEqual(3, deal.Select(row => row["gameIndex"]).Distinct().Count());
-            foreach (var seat in deal.GroupBy(row => row["seat"]))
+            foreach (IGrouping<string, Dictionary<string, string>> seat in deal.GroupBy(row => row["seat"]))
             {
                 Assert.AreEqual(1, seat.Select(row => row["wonder"] + row["side"]).Distinct().Count());
                 Assert.AreEqual(3, seat.Select(row => row["agent"]).Distinct().Count());

@@ -75,7 +75,7 @@ public static class AgentCatalog
     /// </summary>
     private static List<AgentCatalogEntry> AllEntries()
     {
-        var entries = new List<AgentCatalogEntry>(BuiltIn);
+        List<AgentCatalogEntry> entries = new(BuiltIn);
         entries.AddRange(Registered);
         return entries;
     }
@@ -97,7 +97,7 @@ public static class AgentCatalog
     public static List<(string Name, Type Type, object? Default)> SettingsOf(AgentCatalogEntry entry)
     {
         IAgent sample = entry.Create();
-        var settings = new List<(string Name, Type Type, object? Default)>();
+        List<(string Name, Type Type, object? Default)> settings = new();
         foreach (AgentSetting setting in AgentSettings.Of(sample.GetType()))
         {
             settings.Add((setting.Name, setting.Type, setting.GetValue(sample)));
@@ -110,8 +110,8 @@ public static class AgentCatalog
     /// <summary>The setting a key names (its name, in any case), or a usage error.</summary>
     public static AgentSetting ResolveSetting(Type agentType, string key)
     {
-        var fields = AgentSettings.Of(agentType).ToList();
-        foreach (var field in fields)
+        List<AgentSetting> fields = AgentSettings.Of(agentType).ToList();
+        foreach (AgentSetting field in fields)
         {
             if (field.Name.Equals(key, StringComparison.OrdinalIgnoreCase))
             {
@@ -139,7 +139,7 @@ public static class AgentCatalog
     {
         AgentCatalogEntry entry = Find(specification.Name);
         IAgent agent = entry.Create();
-        foreach (var (key, value) in specification.Settings)
+        foreach ((string key, string value) in specification.Settings)
         {
             AgentSetting setting = ResolveSetting(agent.GetType(), key);
             string text = value;
@@ -210,7 +210,7 @@ public static class AgentCatalog
         Sweep? sweep = null;
         for (int seat = 0; seat < specifications.Count; seat++)
         {
-            foreach (var (key, value) in specifications[seat].Settings)
+            foreach ((string key, string value) in specifications[seat].Settings)
             {
                 if (!Sweep.TryParseRange(value, out double from, out double to))
                 {
@@ -248,7 +248,7 @@ public static class AgentCatalog
     /// <summary>The specification that rebuilds an agent from a results row (agent name + configurationJson).</summary>
     public static AgentSpecification FromResultRow(string agent, string configurationJson)
     {
-        var settings = new List<KeyValuePair<string, string>>();
+        List<KeyValuePair<string, string>> settings = new();
         using (JsonDocument doc = JsonDocument.Parse(configurationJson))
         {
             foreach (JsonProperty property in doc.RootElement.EnumerateObject())

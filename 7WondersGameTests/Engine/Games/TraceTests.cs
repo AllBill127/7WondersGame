@@ -26,14 +26,14 @@ public class TraceTests
 
     private static (ILogger Logger, ListSink Sink) Capture(LogEventLevel level)
     {
-        var sink = new ListSink();
+        ListSink sink = new();
         ILogger logger = new LoggerConfiguration().MinimumLevel.Is(level).WriteTo.Sink(sink).CreateLogger();
         return (logger, sink);
     }
 
     private static Game NewGame(ulong seed, ILogger? trace = null)
     {
-        var game = new Game(seed)
+        Game game = new(seed)
         {
             Agents = new List<IAgent>
             {
@@ -58,7 +58,7 @@ public class TraceTests
             Game silent = NewGame(seed);
             silent.Loop(record: true);
 
-            var (logger, sink) = Capture(LogEventLevel.Verbose);
+            (ILogger logger, ListSink sink) = Capture(LogEventLevel.Verbose);
             Game traced = NewGame(seed, logger);
             traced.Loop(record: true);
 
@@ -70,7 +70,7 @@ public class TraceTests
     [TestMethod]
     public void ASearchersTrace_SaysWhyItChose_AndChangesNothing()
     {
-        var (logger, sink) = Capture(LogEventLevel.Debug);
+        (ILogger logger, ListSink sink) = Capture(LogEventLevel.Debug);
         Assert.AreEqual(Outcome(PlayWithSearcher(null)), Outcome(PlayWithSearcher(logger)));
 
         List<string> notes = sink.Messages.Where(message => message.StartsWith("Seat 1 MctsAgent: ")).ToList();
@@ -86,7 +86,7 @@ public class TraceTests
     // a game with an MctsAgent at seat 1, traced if a logger is given
     private static Game PlayWithSearcher(ILogger? trace)
     {
-        var game = new Game(5)
+        Game game = new(5)
         {
             Agents = new List<IAgent>
             {
@@ -116,7 +116,7 @@ public class TraceTests
     [TestMethod]
     public void DeepCopy_IsSilent()
     {
-        var (logger, _) = Capture(LogEventLevel.Verbose);
+        (ILogger logger, _) = Capture(LogEventLevel.Verbose);
         Game game = NewGame(5, logger);
 
         Game copy = game.DeepCopy();
@@ -127,7 +127,7 @@ public class TraceTests
     [TestMethod]
     public void DebugTrace_HasTheMainSteps()
     {
-        var (logger, sink) = Capture(LogEventLevel.Debug);
+        (ILogger logger, ListSink sink) = Capture(LogEventLevel.Debug);
         Game game = NewGame(Seeding.GameSeed(77, 0), logger);
         game.Loop(record: true);
         List<string> lines = sink.Messages.ToList();

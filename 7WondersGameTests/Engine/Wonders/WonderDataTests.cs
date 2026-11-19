@@ -162,7 +162,7 @@ public class WonderDataTests
                 continue;
             }
 
-            var lessOne = new Dictionary<Resource, int>(stageCost);
+            Dictionary<Resource, int> lessOne = new(stageCost);
             lessOne[resource]--;
             SetResources(player, lessOne);
             Assert.IsFalse(player.CanBuildWonder(), $"one {resource} short should not be enough");
@@ -227,7 +227,7 @@ public class WonderDataTests
         foreach (Resource resource in covered)
         {
             SetResources(player, new Dictionary<Resource, int>());
-            Dictionary<Resource, int> oneOfIt = new Dictionary<Resource, int> { { resource, 1 } };
+            Dictionary<Resource, int> oneOfIt = new() { { resource, 1 } };
             Assert.AreEqual(PaymentPlan.Free, PaymentPlanner.Plan(player, oneOfIt), $"wildcard gives {resource}");
         }
     }
@@ -239,7 +239,7 @@ public class WonderDataTests
 
     private static PlayerState SetUpPlayer(string wonder)
     {
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             CreateWonder(wonder),
             new WonderBoardProgress(WonderId.GizahA),
@@ -266,7 +266,7 @@ public class WonderDataTests
     private static void SetResources(PlayerState player, Dictionary<Resource, int> amounts)
     {
         GiveResources(player, 0);
-        foreach (var kvp in amounts)
+        foreach (KeyValuePair<Resource, int> kvp in amounts)
         {
             player.Resources[kvp.Key] = kvp.Value;
         }
@@ -277,7 +277,7 @@ public class WonderDataTests
     // "2 Wood" or "Glass": an amount (1 if left out), then the resource
     private static Dictionary<Resource, int> ParseCost(string cost)
     {
-        var result = new Dictionary<Resource, int>();
+        Dictionary<Resource, int> result = new();
         foreach (string part in cost.Split(", "))
         {
             string[] words = part.Split(' ');

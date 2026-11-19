@@ -54,7 +54,7 @@ internal sealed class BruteForcePayment
             return null;
         }
 
-        BruteForcePayment search = new BruteForcePayment(buyer, cost);
+        BruteForcePayment search = new(buyer, cost);
         search.CollectSourcesAndSupply();
         search.Assign(0);
 

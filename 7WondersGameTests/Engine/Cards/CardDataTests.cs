@@ -161,7 +161,7 @@ public class CardDataTests
         Assert.AreEqual(7 * players - (players + 2), CountCardsOfEra(3, players), "Age III without guilds");
 
         // a real game builds its decks for its own player count, whatever count was used before
-        var game = new Game(1);
+        Game game = new(1);
         for (int seat = 0; seat < players; seat++)
         {
             game.Agents.Add(new RandomAgent());
@@ -315,14 +315,14 @@ public class CardDataTests
 
     private static Card FindCard(string name, int era)
     {
-        var matches = CardsDataset.GameCards.Values.Where(card => card.Name == name && card.Era == era).ToList();
+        List<Card> matches = CardsDataset.GameCards.Values.Where(card => card.Name == name && card.Era == era).ToList();
         Assert.AreEqual(1, matches.Count, $"cards named '{name}' in age {era}");
         return matches[0];
     }
 
     private static List<KeyValuePair<Resource, int>> ParseCost(string cost)
     {
-        var result = new List<KeyValuePair<Resource, int>>();
+        List<KeyValuePair<Resource, int>> result = new();
         if (cost == "")
         {
             return result;
@@ -368,7 +368,7 @@ public class CardDataTests
             card = FindCard(name, era);
         }
 
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.BabylonA),

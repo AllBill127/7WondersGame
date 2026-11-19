@@ -73,7 +73,7 @@ public class CommandLineTests
             AgentSpecification.ParseList("HeuristicAgent, RandomAgent ,SettingsTestAgent:Weight=1.5:ITERATIONS=500");
 
         Assert.AreEqual(3, specifications.Count);
-        var agent = AgentCatalog.Create(specifications[2]);
+        IAgent agent = AgentCatalog.Create(specifications[2]);
         Assert.IsInstanceOfType(agent, typeof(SettingsTestAgent));
         Assert.AreEqual("{\"Iterations\":500,\"Weight\":1.5}", agent.ConfigurationJson());
     }
@@ -81,7 +81,7 @@ public class CommandLineTests
     [TestMethod]
     public void AgentSpec_Defaults_AreTheClassDefaults()
     {
-        var agent = AgentCatalog.Create(AgentSpecification.Parse("settingstestagent"));
+        IAgent agent = AgentCatalog.Create(AgentSpecification.Parse("settingstestagent"));
         Assert.AreEqual("{\"Iterations\":100,\"Weight\":1}", agent.ConfigurationJson());
     }
 
@@ -103,7 +103,7 @@ public class CommandLineTests
     [TestMethod]
     public void EveryCatalogAgent_CanBeCreated()
     {
-        foreach (var entry in AgentCatalog.Entries)
+        foreach (AgentCatalogEntry entry in AgentCatalog.Entries)
         {
             IAgent agent = AgentCatalog.Create(AgentSpecification.Parse(entry.Name));
             Assert.AreEqual(entry.Name, agent.Name);
@@ -113,7 +113,7 @@ public class CommandLineTests
     [TestMethod]
     public void ResultRow_RebuildsTheSameAgent()
     {
-        var original = AgentCatalog.Create(AgentSpecification.Parse("SettingsTestAgent:Weight=0.1:iterations=1234"));
+        IAgent original = AgentCatalog.Create(AgentSpecification.Parse("SettingsTestAgent:Weight=0.1:iterations=1234"));
         AgentSpecification fromRow = AgentCatalog.FromResultRow(original.Name, original.ConfigurationJson());
 
         Assert.AreEqual(original.ConfigurationJson(), AgentCatalog.Create(fromRow).ConfigurationJson());
@@ -122,7 +122,7 @@ public class CommandLineTests
     [TestMethod]
     public void Range_GivesASweep()
     {
-        var specifications =
+        List<AgentSpecification> specifications =
             AgentSpecification.ParseList("HeuristicAgent,RandomAgent,SettingsTestAgent:Weight=0..2:iterations=7");
         Sweep? sweep = AgentCatalog.Validate(specifications, 5);
 
@@ -141,7 +141,7 @@ public class CommandLineTests
         double minC = 0.3;
         double maxC = 2.1;
         int iterations = 7;
-        var sweep = new Sweep(2, "c", minC, maxC, iterations + 1);
+        Sweep sweep = new(2, "c", minC, maxC, iterations + 1);
         for (int step = 0; step <= iterations; step++)
         {
             Assert.AreEqual(minC + step * ((maxC - minC) / iterations), sweep.ValueAt(step));
@@ -151,9 +151,10 @@ public class CommandLineTests
     [TestMethod]
     public void Range_Mistakes_AreUsageErrors()
     {
-        var oneRange = AgentSpecification.ParseList("HeuristicAgent,RandomAgent,SettingsTestAgent:Weight=0..2");
-        var noRange = AgentSpecification.ParseList("HeuristicAgent,RandomAgent,RandomAgent");
-        var twoRanges =
+        List<AgentSpecification> oneRange =
+            AgentSpecification.ParseList("HeuristicAgent,RandomAgent,SettingsTestAgent:Weight=0..2");
+        List<AgentSpecification> noRange = AgentSpecification.ParseList("HeuristicAgent,RandomAgent,RandomAgent");
+        List<AgentSpecification> twoRanges =
             AgentSpecification.ParseList("SettingsTestAgent:Weight=0..1,RandomAgent,SettingsTestAgent:Weight=0..2");
 
         Assert.ThrowsException<UsageException>(() => AgentCatalog.Validate(oneRange, null), "range without --steps");
@@ -185,7 +186,7 @@ public class CommandLineTests
     [TestMethod]
     public void ResultsCsv_RowsReadBack()
     {
-        var seat = new SeatResult(1, "SomeAgent", "{\"a\":1,\"b\":\"x;y\"}", "Gizah", "B", 50, 3, 1, 0.5);
+        SeatResult seat = new(1, "SomeAgent", "{\"a\":1,\"b\":\"x;y\"}", "Gizah", "B", 50, 3, 1, 0.5);
         string row = ResultsCsvWriter.FormatRow("run1", 4, 2, 99, seat);
 
         List<string> fields = ResultsCsvWriter.SplitRow(row);

@@ -58,7 +58,7 @@ public class AnalysisTests
     [TestMethod]
     public void Wilson_MatchesTheTextbookValues()
     {
-        var (low, high) = Analysis.Wilson(50, 100);
+        (double low, double high) = Analysis.Wilson(50, 100);
         Assert.AreEqual(0.4038, low, 1e-4);
         Assert.AreEqual(0.5962, high, 1e-4);
 
@@ -74,9 +74,9 @@ public class AnalysisTests
     [TestMethod]
     public void MeanSe_IsTheStandardErrorOfTheMean()
     {
-        var (mean, se) = Analysis.MeanAndStandardError(new[] { 1.0, 2, 3, 4 });
+        (double mean, double standardError) = Analysis.MeanAndStandardError(new[] { 1.0, 2, 3, 4 });
         Assert.AreEqual(2.5, mean, 1e-12);
-        Assert.AreEqual(Math.Sqrt(5.0 / 3 / 4), se, 1e-12);
+        Assert.AreEqual(Math.Sqrt(5.0 / 3 / 4), standardError, 1e-12);
         Assert.AreEqual((7.0, 0.0), Analysis.MeanAndStandardError(new[] { 7.0 }));
     }
 
@@ -84,7 +84,7 @@ public class AnalysisTests
     public void Groups_CountTiesAsShares_AndCompareThePairsDealByDeal()
     {
         // three deals; A beats B by 2, 4 and 6 VP; one tie for first between A and C
-        var rows = new List<ResultRow>
+        List<ResultRow> rows = new()
         {
             Row("s1", 0, 0, "A", 50, 1), Row("s1", 0, 1, "B", 48, 0), Row("s1", 0, 2, "C", 40, 0),
             Row("s2", 1, 0, "A", 50, 0.5), Row("s2", 1, 1, "B", 46, 0), Row("s2", 1, 2, "C", 50, 0.5),
@@ -116,7 +116,7 @@ public class AnalysisTests
     public void Compare_UsesOnlyTheDealsBothPlayed_AveragingRepeats()
     {
         // a sweep: value x plays deals s1, s2; value y plays s2 (twice, e.g. two seatings) and s3
-        var rows = new List<ResultRow>
+        List<ResultRow> rows = new()
         {
             Row("s1", 0, 0, "x", 50, 1), Row("s2", 1, 0, "x", 40, 0),
             Row("s2", 2, 0, "y", 30, 0), Row("s2", 3, 1, "y", 36, 0), Row("s3", 4, 0, "y", 60, 1),
@@ -133,7 +133,7 @@ public class AnalysisTests
     [TestMethod]
     public void PlayerLabels_NameTheSettingsThatDiffer_AndKeepTheSweptAgentApart()
     {
-        var labels = Analysis.PlayerLabels(new[]
+        Dictionary<string, string> labels = Analysis.PlayerLabels(new[]
         {
             ("k1", "MctsAgent", "{\"ExplorationConstant\":0.3,\"IterationBudget\":1000}", true),
             ("k2", "MctsAgent", "{\"ExplorationConstant\":1.2,\"IterationBudget\":1000}", true),
@@ -157,7 +157,7 @@ public class AnalysisTests
             "run", "--players", "RandomAgent,SettingsTestAgent:Weight=0..1,RandomAgent,RandomAgent",
             "--steps", "3", "--games", "2", "--seed", "1", "--rotate", "yes",
         }));
-        var swept = new SweptSeat(plan.Sweep!.Seat, plan.Games, plan.Rotations);
+        SweptSeat swept = new(plan.Sweep!.Seat, plan.Games, plan.Rotations);
 
         for (int gameIndex = 0; gameIndex < plan.Total; gameIndex++)
         {
@@ -186,7 +186,8 @@ public class AnalysisTests
             }));
 
         Assert.AreEqual(Commands.Ok, exit);
-        var groups = ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.csv")).ToList();
+        List<Dictionary<string, string>> groups =
+            ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.csv")).ToList();
         // the swept agent at c=0 and c=1 (C defaults to 1, so c=1 equals the opponent's settings), the opponent,
         // RandomAgent
         CollectionAssert.AreEquivalent(
@@ -195,7 +196,8 @@ public class AnalysisTests
         Assert.IsTrue(
             groups.All(group => group["games"] == ExpectedGamesOf(group["label"])),
             "each value: 3 deals x 3 seatings; the others play in both values' games");
-        var pairs = ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.pairs.csv")).ToList();
+        List<Dictionary<string, string>> pairs =
+            ResultsCsvWriter.ReadRows(Path.Combine(_directory, "summary.pairs.csv")).ToList();
         Assert.AreEqual(6, pairs.Count);
         Assert.IsTrue(pairs.All(pair => pair["deals"] == "3"));
     }

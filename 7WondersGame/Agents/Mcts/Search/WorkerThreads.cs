@@ -31,7 +31,7 @@ internal sealed class WorkerThreads
     /// </summary>
     public void Run(int workerCount, int threads)
     {
-        var options = new ParallelOptions { MaxDegreeOfParallelism = threads };
+        ParallelOptions options = new() { MaxDegreeOfParallelism = threads };
         System.Threading.Tasks.Parallel.For(0, workerCount, options, RunWorker);
     }
 

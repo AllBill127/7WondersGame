@@ -78,14 +78,14 @@ public static class PaymentPlanner
         if (cost is Dictionary<Resource, int> dictionary)
         {
             // (the costs are dictionaries; enumerating one through the interface would allocate)
-            foreach (var (resource, amount) in dictionary)
+            foreach ((Resource resource, int amount) in dictionary)
             {
                 missing |= AddMissing(buyer, need, resource, amount);
             }
         }
         else
         {
-            foreach (var (resource, amount) in cost)
+            foreach ((Resource resource, int amount) in cost)
             {
                 missing |= AddMissing(buyer, need, resource, amount);
             }

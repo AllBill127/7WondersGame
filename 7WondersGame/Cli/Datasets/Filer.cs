@@ -51,7 +51,7 @@ public static class Filer
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        await using (var writer = new StreamWriter(path))
+        await using (StreamWriter writer = new(path))
         {
             await writer.WriteLineAsync($"{HeaderPrefix} {players}");
             for (int dealIndex = 0; dealIndex < deals.Count; dealIndex++)
@@ -86,7 +86,7 @@ public static class Filer
     {
         int lineIndex = 0;
         int players = ParseHeader(NextNonEmptyLine(lines, ref lineIndex), name);
-        var deals = new List<List<int>[]>();
+        List<List<int>[]> deals = new();
         string? line = NextNonEmptyLine(lines, ref lineIndex);
         while (line != null)
         {
@@ -112,7 +112,7 @@ public static class Filer
     private static List<int>[] ParseDeal(IReadOnlyList<string> lines, ref int nextLineIndex, string name,
                                          int gameNumber)
     {
-        var deal = new List<int>[DealSections.Length];
+        List<int>[] deal = new List<int>[DealSections.Length];
         for (int section = 0; section < DealSections.Length; section++)
         {
             if (NextNonEmptyLine(lines, ref nextLineIndex) != DealSections[section])
@@ -181,7 +181,7 @@ public static class Filer
 
     private static List<int> ParseIds(string line, string name, int lineNumber)
     {
-        var ids = new List<int>();
+        List<int> ids = new();
         foreach (string part in line.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
             if (!int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id))
@@ -252,7 +252,7 @@ public static class Filer
     /// </summary>
     private static Dictionary<CardId, int> CountCardsOfEra(List<int> deck, int era, string where)
     {
-        var counts = new Dictionary<CardId, int>();
+        Dictionary<CardId, int> counts = new();
         foreach (int id in deck)
         {
             if (!CardsDataset.GameCards.TryGetValue((CardId)id, out Card? card))

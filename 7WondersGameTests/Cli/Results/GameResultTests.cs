@@ -14,7 +14,7 @@ public class GameResultTests
     [TestMethod]
     public void Rank_HighestVPWins()
     {
-        var standings = Rank((0, 40, 0), (1, 50, 0), (2, 45, 0));
+        List<PlayerStanding> standings = Rank((0, 40, 0), (1, 50, 0), (2, 45, 0));
 
         CollectionAssert.AreEqual(new[] { 3, 1, 2 }, standings.Select(standing => standing.Rank).ToArray());
         CollectionAssert.AreEqual(new[] { 0.0, 1.0, 0.0 }, standings.Select(standing => standing.WinShare).ToArray());
@@ -23,7 +23,7 @@ public class GameResultTests
     [TestMethod]
     public void Rank_VPTie_MoreCoinsWins()
     {
-        var standings = Rank((0, 50, 3), (1, 50, 7), (2, 45, 20));
+        List<PlayerStanding> standings = Rank((0, 50, 3), (1, 50, 7), (2, 45, 20));
 
         CollectionAssert.AreEqual(new[] { 2, 1, 3 }, standings.Select(standing => standing.Rank).ToArray());
         CollectionAssert.AreEqual(new[] { 0.0, 1.0, 0.0 }, standings.Select(standing => standing.WinShare).ToArray());
@@ -32,7 +32,7 @@ public class GameResultTests
     [TestMethod]
     public void Rank_FullTieForFirst_SharesWin()
     {
-        var standings = Rank((0, 50, 4), (1, 30, 0), (2, 50, 4));
+        List<PlayerStanding> standings = Rank((0, 50, 4), (1, 30, 0), (2, 50, 4));
 
         CollectionAssert.AreEqual(new[] { 1, 3, 1 }, standings.Select(standing => standing.Rank).ToArray());
         CollectionAssert.AreEqual(new[] { 0.5, 0.0, 0.5 }, standings.Select(standing => standing.WinShare).ToArray());
@@ -41,10 +41,10 @@ public class GameResultTests
     [TestMethod]
     public void Rank_ThreeWayTie_EachGetsAThird()
     {
-        var standings = Rank((0, 40, 2), (1, 40, 2), (2, 40, 2));
+        List<PlayerStanding> standings = Rank((0, 40, 2), (1, 40, 2), (2, 40, 2));
 
         Assert.IsTrue(standings.All(standing => standing.Rank == 1));
-        foreach (var standing in standings)
+        foreach (PlayerStanding standing in standings)
         {
             Assert.AreEqual(1.0 / 3, standing.WinShare, 1e-12);
         }
@@ -53,7 +53,7 @@ public class GameResultTests
     [TestMethod]
     public void Rank_TieBelowFirst_SharesRank_NoWinShare()
     {
-        var standings = Rank((0, 60, 0), (1, 40, 1), (2, 40, 1), (3, 10, 0));
+        List<PlayerStanding> standings = Rank((0, 60, 0), (1, 40, 1), (2, 40, 1), (3, 10, 0));
 
         CollectionAssert.AreEqual(new[] { 1, 2, 2, 4 }, standings.Select(standing => standing.Rank).ToArray());
         Assert.AreEqual(1.0, standings.Sum(standing => standing.WinShare), 1e-12);

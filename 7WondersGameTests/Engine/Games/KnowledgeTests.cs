@@ -23,7 +23,7 @@ public class KnowledgeTests
 {
     private static Game NewGame(int players, int gameIndex)
     {
-        var game = new Game(Seeding.GameSeed(31, players * 100 + gameIndex));
+        Game game = new(Seeding.GameSeed(31, players * 100 + gameIndex));
 
         // a mix, so wonder stages, discards, Babylon B and Halikarnassos all happen
         for (int seat = 0; seat < players; seat++)
@@ -51,8 +51,8 @@ public class KnowledgeTests
     /// <summary>Every pending player chooses from the same state, then all their moves are submitted.</summary>
     private static void PlayOneStep(Game game)
     {
-        List<int> pendingSeats = new List<int>(game.PendingPlayers());
-        List<Move> moves = new List<Move>();
+        List<int> pendingSeats = new(game.PendingPlayers());
+        List<Move> moves = new();
         foreach (int seat in pendingSeats)
         {
             moves.Add(game.Agents[seat].Choose(new GameView(game, seat)));
@@ -73,7 +73,7 @@ public class KnowledgeTests
 
     private static bool SubsetOf(IEnumerable<Card> part, IEnumerable<Card> whole)
     {
-        var wholeCounts = Count(whole);
+        Dictionary<CardId, int> wholeCounts = Count(whole);
         return Count(part).All(cardCount => wholeCounts.GetValueOrDefault(cardCount.Key) >= cardCount.Value);
     }
 
@@ -180,7 +180,7 @@ public class KnowledgeTests
     [DataRow(7)]
     public void ASample_KeepsWhatTheSeatKnows_AndEveryCardAddsUp(int players)
     {
-        var random = new Random(1);
+        Random random = new(1);
         for (int gameIndex = 0; gameIndex < 4; gameIndex++)
         {
             Game game = NewGame(players, gameIndex);
@@ -241,12 +241,12 @@ public class KnowledgeTests
     /// <summary>No card more often than it exists, players + 2 guilds in all, and full decks for later eras.</summary>
     private static void CheckEveryCardAddsUp(Game sample, int players, string where)
     {
-        var everything = sample.Players
+        List<Card> everything = sample.Players
             .SelectMany(player => player.BuiltCards.Concat(player.Hand))
             .Concat(sample.DiscardPile)
             .Concat(sample.Decks.SelectMany(deck => deck))
             .ToList();
-        foreach (var (id, count) in Count(everything))
+        foreach ((CardId id, int count) in Count(everything))
         {
             Card card = CardsDataset.GameCards[id];
             int copies = CopiesInGame(card, players);
@@ -328,12 +328,12 @@ public class KnowledgeTests
     [TestMethod]
     public void ASample_PlaysToTheEnd()
     {
-        var random = new Random(3);
+        Random random = new(3);
         for (int players = 3; players <= 7; players += 2)
         {
             Game game = NewGame(players, 5);
             Game sample = Determinization.Sample(game, 0, game.KnowledgeOf(0), random);
-            List<IAgent> heuristicAgents = new List<IAgent>();
+            List<IAgent> heuristicAgents = new();
             for (int seat = 0; seat < players; seat++)
             {
                 heuristicAgents.Add(new HeuristicAgent());

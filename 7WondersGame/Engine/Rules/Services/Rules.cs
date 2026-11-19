@@ -40,7 +40,7 @@ public static partial class Rules
     /// </summary>
     public static List<Card> BuildableCards(this PlayerState player, List<Card> cards, bool everyCardFree = false)
     {
-        List<Card> buildableCards = new List<Card>();
+        List<Card> buildableCards = new();
         foreach (Card card in cards)
         {
             // the same card can't be built twice

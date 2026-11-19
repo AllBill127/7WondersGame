@@ -38,7 +38,7 @@ public sealed class WonderBoard
         Production = production;
         Stages = stages;
 
-        var highest = new Dictionary<Resource, int>();
+        Dictionary<Resource, int> highest = new();
         for (Resource resource = Resource.Wood; resource <= Resource.Papyrus; resource++)
         {
             highest[resource] = HighestCostOf(stages, resource);

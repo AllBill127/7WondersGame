@@ -126,7 +126,7 @@ public sealed class RunPlan
     /// </summary>
     public List<AgentSpecification> SeatsFor(int rotation)
     {
-        var seats = new List<AgentSpecification>(Players.Count);
+        List<AgentSpecification> seats = new(Players.Count);
         for (int seat = 0; seat < Players.Count; seat++)
         {
             int listedPosition = ListedPositionInSeat(seat, rotation);
@@ -224,7 +224,7 @@ public sealed class RunPlan
                     "run");
             }
 
-            var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> options = new(StringComparer.OrdinalIgnoreCase);
             string? description = null;
             foreach (JsonProperty property in doc.RootElement.EnumerateObject())
             {
@@ -257,7 +257,7 @@ public sealed class RunPlan
 
     private static JsonDocument ParseExperimentJson(string path)
     {
-        var jsonOptions = new JsonDocumentOptions
+        JsonDocumentOptions jsonOptions = new()
         {
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Skip,
@@ -311,7 +311,7 @@ public sealed class RunPlan
     /// <summary>A players list of the file as one comma-separated line-up.</summary>
     private static string PlayersText(JsonElement players, string path)
     {
-        var specificationTexts = new List<string>();
+        List<string> specificationTexts = new();
         foreach (JsonElement player in players.EnumerateArray())
         {
             if (player.ValueKind != JsonValueKind.String)

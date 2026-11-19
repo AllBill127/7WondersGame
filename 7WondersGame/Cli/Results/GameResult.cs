@@ -19,10 +19,10 @@ public static class GameResult
     /// </summary>
     public static List<PlayerStanding> Rank(IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
     {
-        var standings = new List<PlayerStanding>(players.Count);
+        List<PlayerStanding> standings = new(players.Count);
         for (int seat = 0; seat < players.Count; seat++)
         {
-            var player = players[seat];
+            (int Id, int VictoryPoints, int Coins) player = players[seat];
             int better = CountPlayersBeating(player, players);
             standings.Add(new PlayerStanding(player.Id, player.VictoryPoints, player.Coins, better + 1, 0));
         }
@@ -43,7 +43,7 @@ public static class GameResult
     /// <summary>Standings of the players by their victory points and coins now, in the same order.</summary>
     public static List<PlayerStanding> Rank(IReadOnlyList<PlayerState> players)
     {
-        var scores = new List<(int Id, int VictoryPoints, int Coins)>(players.Count);
+        List<(int Id, int VictoryPoints, int Coins)> scores = new(players.Count);
         for (int seat = 0; seat < players.Count; seat++)
         {
             PlayerState player = players[seat];
@@ -58,7 +58,7 @@ public static class GameResult
     public static List<SeatResult> ForPlayers(IReadOnlyList<PlayerState> players, IReadOnlyList<IAgent> agents)
     {
         List<PlayerStanding> standings = Rank(players);
-        var results = new List<SeatResult>(players.Count);
+        List<SeatResult> results = new(players.Count);
         for (int seat = 0; seat < players.Count; seat++)
         {
             results.Add(ResultOf(players[seat], agents[seat], standings[seat]));

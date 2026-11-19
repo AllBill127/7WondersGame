@@ -70,7 +70,7 @@ public class GoldenMasterTests
 
     private static List<string> PlayAll()
     {
-        var lines = new List<string>();
+        List<string> lines = new();
         for (int players = 3; players <= 7; players++)
         {
             for (int gameIndex = 0; gameIndex < GamesPerPlayerCount; gameIndex++)
@@ -86,7 +86,7 @@ public class GoldenMasterTests
     private static List<string> PlayGame(int players, int gameIndex)
     {
         ulong seed = Seeding.GameSeed(RunSeed, players * 1000 + gameIndex);
-        var game = new Game(seed);
+        Game game = new(seed);
 
         // rotate the line-up so every agent plays every seat
         for (int seat = 0; seat < players; seat++)
@@ -98,7 +98,7 @@ public class GoldenMasterTests
         game.SetUpRandomGame();
         game.Loop(record: true);
 
-        var lines = new List<string>();
+        List<string> lines = new();
         string prefix = $"p{players} g{gameIndex} seed={seed}";
         foreach (PlayerState player in game.Players)
         {

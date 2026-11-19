@@ -31,7 +31,7 @@ public class MctsAgentTests
 
     private static Game NewGame(ulong seed, params IAgent[] agents)
     {
-        var game = new Game(seed) { Agents = agents.ToList() };
+        Game game = new(seed) { Agents = agents.ToList() };
         game.SetUpRandomGame();
         return game;
     }
@@ -130,7 +130,7 @@ public class MctsAgentTests
     public void TheDeterminizedSearch_DoesntDependOnHiddenCards()
     {
         // two deals that differ only in what seat 0 can't see: the other hands and the later decks
-        var deal = new Game(11) { Agents = { new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent() } };
+        Game deal = new(11) { Agents = { new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent() } };
         deal.SetUpRandomGame();
         List<int> wonders = deal.Players.Select(player => (int)player.Wonder.Id).ToList();
         List<int> era1 = CardIds(deal.Decks[0]);
@@ -142,8 +142,8 @@ public class MctsAgentTests
             .ToList();
         List<int> era2Reversed = CardIds(deal.Decks[1].AsEnumerable().Reverse());
         List<int> era3Reversed = CardIds(deal.Decks[2].AsEnumerable().Reverse());
-        var first = new[] { era1, CardIds(deal.Decks[1]), CardIds(deal.Decks[2]), wonders };
-        var second = new[] { swapped, era2Reversed, era3Reversed, wonders };
+        List<int>[] first = new[] { era1, CardIds(deal.Decks[1]), CardIds(deal.Decks[2]), wonders };
+        List<int>[] second = new[] { swapped, era2Reversed, era3Reversed, wonders };
 
         Assert.AreEqual(SearchFromDeal(first, ""), SearchFromDeal(second, ""));
         Assert.AreEqual(SearchFromDeal(first, ":TreeShape=Duct"), SearchFromDeal(second, ":TreeShape=Duct"));
@@ -157,7 +157,7 @@ public class MctsAgentTests
     // seat 0's first choice in a game dealt from the dataset deal
     private static Move SearchFromDeal(List<int>[] dataset, string settings)
     {
-        var game = new Game(11) { Agents = { new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent() } };
+        Game game = new(11) { Agents = { new HeuristicAgent(), new HeuristicAgent(), new HeuristicAgent() } };
         game.SetUpGameFromDataset(dataset);
         return Mcts(":IterationBudget=200" + settings).Choose(new GameView(game, 0));
     }
@@ -189,7 +189,7 @@ public class MctsAgentTests
         Game game = NewGame(9, Mcts(":IterationBudget=25"), new HeuristicAgent(), new HeuristicAgent());
         game.Loop(record: true);
 
-        var statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
+        JsonElement statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
         Assert.IsTrue(searches >= 15, game.Results[0].AgentStatisticsJson);
         Assert.AreEqual(25L * searches, statistics.GetProperty("iterations").GetInt64());
@@ -228,7 +228,7 @@ public class MctsAgentTests
         Game game = NewGame(9, searcher, new HeuristicAgent(), new HeuristicAgent());
         game.Loop(record: true);
 
-        var statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
+        JsonElement statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
         string statisticsJson = game.Results[0].AgentStatisticsJson;
         Assert.AreEqual(40L * searches, statistics.GetProperty("iterations").GetInt64(), statisticsJson);
@@ -265,7 +265,7 @@ public class MctsAgentTests
     [TestMethod]
     public void AgainstRandomPlayers_ItScoresMore()
     {
-        var averageVictoryPoints = new double[3];
+        double[] averageVictoryPoints = new double[3];
         for (int gameIndex = 0; gameIndex < 4; gameIndex++)
         {
             Game game = NewGame(Seeding.GameSeed(21, gameIndex), Mcts(":IterationBudget=30"), new RandomAgent(),

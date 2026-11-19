@@ -79,14 +79,14 @@ public sealed class ResultRow
     public static List<ResultRow> Read(IEnumerable<Dictionary<string, string>> csvRows)
     {
         List<ResultRow> rows = csvRows.Select(FromCsv).ToList();
-        var players = rows
+        Dictionary<(string RunId, long GameIndex), int> players = rows
             .GroupBy(row => (row.RunId, row.GameIndex))
             .ToDictionary(game => game.Key, game => game.Count());
 
-        var withPlayers = new List<ResultRow>(rows.Count);
+        List<ResultRow> withPlayers = new(rows.Count);
         foreach (ResultRow row in rows)
         {
-            var game = (row.RunId, row.GameIndex);
+            (string RunId, long GameIndex) game = (row.RunId, row.GameIndex);
             withPlayers.Add(row.WithPlayers(players[game]));
         }
         return withPlayers;
@@ -95,7 +95,7 @@ public sealed class ResultRow
     /// <summary>One CSV row (column → value), the player count not yet known (0).</summary>
     private static ResultRow FromCsv(Dictionary<string, string> csvRow)
     {
-        var invariantCulture = CultureInfo.InvariantCulture;
+        CultureInfo invariantCulture = CultureInfo.InvariantCulture;
         return new ResultRow(
             csvRow["runId"],
             long.Parse(csvRow["gameIndex"], invariantCulture),

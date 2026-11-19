@@ -57,7 +57,7 @@ public class SetupTests
 
     private static Game NewGame(ulong seed)
     {
-        Game game = new Game(seed);
+        Game game = new(seed);
         for (int agentIndex = 0; agentIndex < 3; agentIndex++)
         {
             game.Agents.Add(new RandomAgent());

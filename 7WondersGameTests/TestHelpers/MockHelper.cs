@@ -13,7 +13,7 @@ internal class MockHelper
     /// <returns>List of A and B Wonders</returns>
     public static List<WonderBoardProgress> MockWonders()
     {
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.BabylonA),
@@ -37,7 +37,7 @@ internal class MockHelper
     /// <summary>One player per wonder, seated in that order, each with its west and east neighbour set.</summary>
     public static List<PlayerState> MockPlayers(List<WonderBoardProgress> wonders)
     {
-        List<PlayerState> players = new List<PlayerState>();
+        List<PlayerState> players = new();
         for (int seat = 0; seat < wonders.Count; seat++)
         {
             players.Add(new PlayerState(seat) { Wonder = wonders[seat] });

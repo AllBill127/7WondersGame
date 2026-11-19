@@ -19,8 +19,8 @@ public class PlayerCopyTests
     /// <summary>A game played some way into era 2 by heuristic players.</summary>
     private static Game MidGame()
     {
-        var heuristicAgent = new HeuristicAgent();
-        var game = new Game(Seeding.GameSeed(77, 0));
+        HeuristicAgent heuristicAgent = new();
+        Game game = new(Seeding.GameSeed(77, 0));
         for (int seat = 0; seat < 4; seat++)
         {
             game.Agents.Add(new HeuristicAgent());
@@ -30,8 +30,8 @@ public class PlayerCopyTests
         while (game.Era < 2 || game.Turn % Game.TurnsPerEra < 3)
         {
             // every pending player chooses from the same state, then all moves are submitted
-            List<int> pendingSeats = new List<int>(game.PendingPlayers());
-            List<Move> moves = new List<Move>();
+            List<int> pendingSeats = new(game.PendingPlayers());
+            List<Move> moves = new();
             foreach (int seat in pendingSeats)
             {
                 moves.Add(heuristicAgent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardPile));

@@ -70,7 +70,7 @@ public sealed class PlayerState
     /// </summary>
     public PlayerState Clone()
     {
-        var copy = (PlayerState)MemberwiseClone();
+        PlayerState copy = (PlayerState)MemberwiseClone();
         copy.Wonder = Wonder.Clone();
         copy.Hand = new List<Card>(Hand);
         copy.BuiltCards = new List<Card>(BuiltCards);
@@ -121,7 +121,7 @@ public sealed class PlayerState
     /// </summary>
     public static List<PlayerState> CloneTable(IReadOnlyList<PlayerState> players)
     {
-        List<PlayerState> copies = new List<PlayerState>(players.Count);
+        List<PlayerState> copies = new(players.Count);
         foreach (PlayerState player in players)
         {
             copies.Add(player.Clone());

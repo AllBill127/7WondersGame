@@ -29,7 +29,7 @@ internal sealed class KnowledgeTracker
 
     private List<Card>[,] NewHands()
     {
-        var hands = new List<Card>[_playerCount, _playerCount];
+        List<Card>[,] hands = new List<Card>[_playerCount, _playerCount];
         for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
         {
             for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)
@@ -42,7 +42,7 @@ internal sealed class KnowledgeTracker
 
     private List<Card>[] NewCardListPerSeat()
     {
-        var lists = new List<Card>[_playerCount];
+        List<Card>[] lists = new List<Card>[_playerCount];
         for (int seat = 0; seat < _playerCount; seat++)
         {
             lists[seat] = new List<Card>();
@@ -53,7 +53,7 @@ internal sealed class KnowledgeTracker
     /// <summary>A copy of what the seat knows now.</summary>
     public SeatKnowledge Of(int seat)
     {
-        var hands = new List<IReadOnlyList<Card>>(_playerCount);
+        List<IReadOnlyList<Card>> hands = new(_playerCount);
         for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)
         {
             hands.Add(_inHand[seat, holderSeat].ToList());
@@ -137,7 +137,7 @@ internal sealed class KnowledgeTracker
     /// </summary>
     public void HandsPassing(IReadOnlyList<PlayerState> players, bool west)
     {
-        var next = NewHands();
+        List<Card>[,] next = NewHands();
         for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
         {
             for (int holderSeat = 0; holderSeat < _playerCount; holderSeat++)

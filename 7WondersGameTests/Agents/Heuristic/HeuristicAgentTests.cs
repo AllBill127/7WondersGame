@@ -31,7 +31,7 @@ public class HeuristicAgentTests
     private static List<PlayerState> Table(WonderId playerWonder, WonderId east, WonderId west)
     {
         // MockPlayers seats them in a ring: seat 0's east is seat 1, its west seat 2
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(playerWonder),
             new WonderBoardProgress(east),
@@ -51,7 +51,7 @@ public class HeuristicAgentTests
     /// </summary>
     private static HeuristicAgent Plain()
     {
-        var weights = new HeuristicWeights { NextPlayerDenialWeight = 0, CivilianCardBonusEra1 = 0 };
+        HeuristicWeights weights = new() { NextPlayerDenialWeight = 0, CivilianCardBonusEra1 = 0 };
         return new HeuristicAgent { Weights = weights };
     }
 
@@ -72,7 +72,7 @@ public class HeuristicAgentTests
     {
         for (int gameIndex = 0; gameIndex < 3; gameIndex++)
         {
-            var game = new Game(Seeding.GameSeed(77, players * 10 + gameIndex));
+            Game game = new(Seeding.GameSeed(77, players * 10 + gameIndex));
             for (int seat = 0; seat < players; seat++)
             {
                 game.Agents.Add(new HeuristicAgent());
@@ -82,11 +82,11 @@ public class HeuristicAgentTests
 
             while (game.Phase != Phase.GameOver)
             {
-                var moves = new List<(int Seat, Move Move)>();
+                List<(int Seat, Move Move)> moves = new();
                 foreach (int seat in game.PendingPlayers())
                 {
                     string before = Snapshot(game);
-                    var agent = (HeuristicAgent)game.Agents[seat];
+                    HeuristicAgent agent = (HeuristicAgent)game.Agents[seat];
                     Move fromView = agent.Choose(new GameView(game, seat));
                     // the same choice made on the game's own state must not change it
                     Move fromState = agent.Choose(game.Players[seat], game.Phase, game.Era, game.DiscardPile);
@@ -97,7 +97,7 @@ public class HeuristicAgentTests
                     moves.Add((seat, fromView));
                 }
 
-                foreach (var (seat, move) in moves)
+                foreach ((int seat, Move move) in moves)
                 {
                     game.Submit(seat, move);
                 }
@@ -128,7 +128,7 @@ public class HeuristicAgentTests
     {
         AgentSpecification specification =
             AgentSpecification.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2:NextPlayerDenialWeight=0");
-        var agent = (HeuristicAgent)AgentCatalog.Create(specification);
+        HeuristicAgent agent = (HeuristicAgent)AgentCatalog.Create(specification);
 
         Assert.AreEqual(0.2, agent.Weights.CoinValueInVictoryPoints);
         Assert.AreEqual(0.0, agent.Weights.NextPlayerDenialWeight);
@@ -144,7 +144,7 @@ public class HeuristicAgentTests
     {
         AgentCatalog.Create(AgentSpecification.Parse("HeuristicAgent:CoinValueInVictoryPoints=0.2"));
 
-        var fresh = (HeuristicAgent)AgentCatalog.Create(AgentSpecification.Parse("HeuristicAgent"));
+        HeuristicAgent fresh = (HeuristicAgent)AgentCatalog.Create(AgentSpecification.Parse("HeuristicAgent"));
         // every weight is a setting, so equal settings JSON means equal weights
         Assert.AreEqual(((IAgent)new HeuristicAgent()).ConfigurationJson(), ((IAgent)fresh).ConfigurationJson());
         Assert.AreNotEqual(0.2, fresh.Weights.CoinValueInVictoryPoints);
@@ -155,7 +155,7 @@ public class HeuristicAgentTests
     [TestMethod]
     public void Marketplace_CountsEachNeighboursOwnBoard()
     {
-        var weights = new HeuristicWeights();
+        HeuristicWeights weights = new();
         // Gizah makes stone; Alexandria glass and Halikarnassos loom, which the Marketplace makes cheaper
         PlayerState player = Table(WonderId.GizahA, WonderId.AlexandriaA, WonderId.HalikarnassosA)[0];
         PlayerState rawNeighbours = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.OlympiaA)[0];
@@ -225,7 +225,7 @@ public class HeuristicAgentTests
     {
         // the board doesn't matter for the choice; Gizah A needs no clay, so Clay Pool is worth nothing
         PlayerState player = Table(WonderId.GizahA, WonderId.RhodosA, WonderId.EphesosA)[0];
-        var pile = new List<Card> { CardOf(CardId.Altar), CardOf(CardId.Pawnshop), CardOf(CardId.ClayPool) };
+        List<Card> pile = new() { CardOf(CardId.Altar), CardOf(CardId.Pawnshop), CardOf(CardId.ClayPool) };
 
         Move move = Plain().Choose(player, Phase.DiscardPileBuild, 1, pile);
 

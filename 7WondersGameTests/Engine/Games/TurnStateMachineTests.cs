@@ -37,8 +37,8 @@ public class TurnStateMachineTests
     private static Game ThreePlayers(WonderId seat0Wonder, WonderId seat1Wonder, WonderId seat2Wonder,
                                      params CardId[][] hands)
     {
-        Game game = new Game(seed: 0);
-        var wonders = new List<WonderBoardProgress>
+        Game game = new(seed: 0);
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(seat0Wonder),
             new WonderBoardProgress(seat1Wonder),
@@ -253,11 +253,11 @@ public class TurnStateMachineTests
     [TestMethod]
     public void Loop_NoAgentSeesAnotherChoice()
     {
-        var spies = new List<Spy>();
-        var game = new Game(Seeding.GameSeed(7, 0));
+        List<Spy> spies = new();
+        Game game = new(Seeding.GameSeed(7, 0));
         for (int seat = 0; seat < 4; seat++)
         {
-            Spy spy = new Spy { Game = game };
+            Spy spy = new() { Game = game };
             spies.Add(spy);
             game.Agents.Add(spy);
         }
@@ -273,7 +273,7 @@ public class TurnStateMachineTests
     // the line-up rotates by game, so every agent plays every seat
     private static Game NewGame(int players, int gameIndex, int agentKindCount)
     {
-        var game = new Game(Seeding.GameSeed(0xE1, players * 1000 + gameIndex));
+        Game game = new(Seeding.GameSeed(0xE1, players * 1000 + gameIndex));
         for (int seat = 0; seat < players; seat++)
         {
             int agentKind = (gameIndex + seat) % agentKindCount;
@@ -347,7 +347,7 @@ public class TurnStateMachineTests
     [TestMethod]
     public void SubmittingOneByOne_InReverseSeatOrder_MatchesLoop()
     {
-        var phasesSeen = new HashSet<Phase>();
+        HashSet<Phase> phasesSeen = new();
         for (int players = 3; players <= 7; players++)
         {
             for (int gameIndex = 0; gameIndex < 16; gameIndex++)
@@ -369,7 +369,7 @@ public class TurnStateMachineTests
     public void SteppingThroughCopies_MatchesLoop()
     {
         // HeuristicAgent makes no random draws, so its choices don't depend on the copy's seed
-        var phasesSeen = new HashSet<Phase>();
+        HashSet<Phase> phasesSeen = new();
         for (int players = 3; players <= 7; players++)
         {
             for (int gameIndex = 0; gameIndex < 8; gameIndex++)

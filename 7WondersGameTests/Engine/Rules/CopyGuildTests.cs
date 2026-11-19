@@ -17,7 +17,7 @@ public class CopyGuildTests
     public void CopyGuild_EffectActive_And_Single_GuildCopyable_ReturnsTrue_PlayerBuiltCardsContainGuild()
     {
         // Arrange
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>()
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.OlympiaB),
@@ -48,7 +48,7 @@ public class CopyGuildTests
     public void CopyGuild_EffectActive_And_Multiple_GuildsCopyable_ReturnsTrue_PlayerBuiltCardsContainBestGuild()
     {
         // Arrange
-        List<WonderBoardProgress> wonder = new List<WonderBoardProgress>()
+        List<WonderBoardProgress> wonder = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.OlympiaB),
@@ -85,7 +85,7 @@ public class CopyGuildTests
     public void CopyGuild_EffectActive_And_No_GuildCopyable_ReturnsFalse_PlayerBuiltCardsDoesntContainGuild()
     {
         // Arrange
-        List<WonderBoardProgress> wonder = new List<WonderBoardProgress>()
+        List<WonderBoardProgress> wonder = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.OlympiaB),
@@ -112,7 +112,7 @@ public class CopyGuildTests
 
     private static List<PlayerState> OlympiaBWithStage3()
     {
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.OlympiaB),
@@ -126,7 +126,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_Craftsmens_CountsTwoVPPerGreyCard()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         // Workers: 3 brown cards next door = 3 VP. Craftsmens: 2 grey cards x 2 = 4 VP.
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Craftsmens]);
@@ -146,7 +146,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_CopiedGuild_IsCountedByOwnShipowners()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Shipowners]);
         // Spies is worth 0 VP on its own, but copying it still adds 1 VP through Shipowners.
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Spies]);
@@ -161,7 +161,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_Scientists_GivesWildcard_WhenWorthMost()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         // Own science: 2 gears, 2 compasses, 1 tablet = 16 VP; with a wildcard tablet = 26 VP (+10).
         players[1].Resources[Resource.Gear] = 2;
         players[1].Resources[Resource.Compass] = 2;
@@ -182,7 +182,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_NotChosenScientists_GivesNoWildcard()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         // No science symbols, so Scientists is worth 1 VP; Workers is worth 2 VP.
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Scientists]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
@@ -198,7 +198,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_Tie_GoesToFirstCandidate_WestFirst()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         // Both worth 1 VP: Workers (1 brown card next door) at west, Traders (1 yellow card next door) at east.
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Traders]);
@@ -214,7 +214,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_GuildAlreadyOwned_IsNotCopiedAgain()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
@@ -226,7 +226,7 @@ public class CopyGuildTests
     [TestMethod]
     public void CopyGuild_LeavesVictoryPointsUnchanged()
     {
-        var players = OlympiaBWithStage3();
+        List<PlayerState> players = OlympiaBWithStage3();
         players[1].VictoryPoints = 42;
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
 

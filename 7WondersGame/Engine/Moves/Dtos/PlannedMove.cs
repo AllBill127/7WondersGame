@@ -52,7 +52,7 @@ public sealed class PlannedMove
     /// <summary>A copy of this move marked as Halikarnassos' free build from the discard pile.</summary>
     public PlannedMove AsDiscardPileBuild()
     {
-        PlannedMove discardPileBuild = new PlannedMove(Player, Action, Card, Source, Payment, CoinCost);
+        PlannedMove discardPileBuild = new(Player, Action, Card, Source, Payment, CoinCost);
         discardPileBuild.FromDiscardPile = true;
         return discardPileBuild;
     }

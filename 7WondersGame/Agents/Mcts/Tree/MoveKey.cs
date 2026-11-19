@@ -41,8 +41,8 @@ internal readonly struct MoveKey : IEquatable<MoveKey>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        var hash = new HashCode();
-        foreach (var move in _moves)
+        HashCode hash = new();
+        foreach ((int Seat, Move Move) move in _moves)
         {
             hash.Add(move);
         }

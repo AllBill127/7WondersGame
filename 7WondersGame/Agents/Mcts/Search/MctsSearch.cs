@@ -171,7 +171,7 @@ internal sealed class MctsSearch
     private void Iterate()
     {
         Game searchGame = Sample(_rootGame, _random);
-        var path = Descend(searchGame, _random);
+        List<(Node Node, List<(int Seat, Move Move)> Moves)> path = Descend(searchGame, _random);
         Backup(path, Rollout(searchGame, _random));
     }
 
@@ -191,18 +191,18 @@ internal sealed class MctsSearch
     /// </summary>
     private List<(Node Node, List<(int Seat, Move Move)> Moves)> Descend(Game searchGame, Random random)
     {
-        var path = new List<(Node Node, List<(int Seat, Move Move)> Moves)>();
+        List<(Node Node, List<(int Seat, Move Move)> Moves)> path = new();
         Node node = _tree;
         while (searchGame.Phase != Phase.GameOver)
         {
             List<(int Seat, Move Move)> moves = ChooseMoves(node, searchGame, random);
             path.Add((node, moves));
-            foreach (var (seat, move) in moves)
+            foreach ((int seat, Move move) in moves)
             {
                 searchGame.Submit(seat, move);
             }
 
-            var key = new MoveKey(moves);
+            MoveKey key = new(moves);
             if (!node.Children.TryGetValue(key, out Node? child))
             {
                 // a new node: roll out from it
@@ -220,9 +220,9 @@ internal sealed class MctsSearch
     {
         double[] reward = result.Reward;
         double myWin = result.MyWin;
-        foreach (var (node, moves) in path)
+        foreach ((Node node, List<(int Seat, Move Move)> moves) in path)
         {
-            foreach (var seatAndMove in moves)
+            foreach ((int Seat, Move Move) seatAndMove in moves)
             {
                 MoveStatistics moveStatistics = node.Statistics[seatAndMove];
                 moveStatistics.Visits++;
@@ -261,7 +261,7 @@ internal sealed class MctsSearch
             }
             return;
         }
-        var workerThreads = new WorkerThreads(work);
+        WorkerThreads workerThreads = new(work);
         workerThreads.Run(count, threads);
         _otherThreadBytes += workerThreads.OtherThreadBytes;
     }
@@ -295,7 +295,7 @@ internal sealed class MctsSearch
 
         RunWorkers(workerCount, RunRootWorker);
 
-        var merged = new Node();
+        Node merged = new();
         foreach (MctsSearch rootWorker in _rootWorkers)
         {
             AddRootStatistics(merged, rootWorker._tree);
@@ -328,7 +328,7 @@ internal sealed class MctsSearch
     /// </summary>
     private void AddRootStatistics(Node merged, Node workerRoot)
     {
-        foreach (var key in workerRoot.Order)
+        foreach ((int Seat, Move Move) key in workerRoot.Order)
         {
             MoveStatistics workerMoveStatistics = workerRoot.Statistics[key];
             if (!merged.Statistics.TryGetValue(key, out MoveStatistics? sum))
@@ -360,7 +360,7 @@ internal sealed class MctsSearch
         do
         {
             Game searchGame = Sample(_rootGame, _random);
-            var path = Descend(searchGame, _random);
+            List<(Node Node, List<(int Seat, Move Move)> Moves)> path = Descend(searchGame, _random);
             for (int worker = 0; worker < workerCount; worker++)
             {
                 if (worker == 0)
@@ -376,7 +376,7 @@ internal sealed class MctsSearch
 
             RunWorkers(workerCount, RunLeafRollout);
 
-            foreach (var result in _leafResults)
+            foreach ((double[] Reward, double MyWin) result in _leafResults)
             {
                 Backup(path, result);
             }
@@ -448,8 +448,8 @@ internal sealed class MctsSearch
     private void RunTreeIteration(Game rootGame, Random random)
     {
         Game searchGame = Sample(rootGame, random);
-        var path = DescendHoldingLock(searchGame, random);
-        var result = Rollout(searchGame, random);
+        List<(Node Node, List<(int Seat, Move Move)> Moves)> path = DescendHoldingLock(searchGame, random);
+        (double[] Reward, double MyWin) result = Rollout(searchGame, random);
         BackupHoldingLock(path, result);
     }
 
@@ -458,7 +458,7 @@ internal sealed class MctsSearch
         EnterTree();
         try
         {
-            var path = Descend(searchGame, random);
+            List<(Node Node, List<(int Seat, Move Move)> Moves)> path = Descend(searchGame, random);
             AddVirtualLoss(path, _configuration.VirtualLossVisits);
             return path;
         }
@@ -502,9 +502,9 @@ internal sealed class MctsSearch
         {
             return;
         }
-        foreach (var (node, moves) in path)
+        foreach ((Node node, List<(int Seat, Move Move)> moves) in path)
         {
-            foreach (var seatAndMove in moves)
+            foreach ((int Seat, Move Move) seatAndMove in moves)
             {
                 node.Statistics[seatAndMove].Visits += count;
             }
@@ -548,7 +548,7 @@ internal sealed class MctsSearch
     private List<(int Seat, Move Move)> ChooseDuct(Node node, Game searchGame, Random random)
     {
         IReadOnlyList<int> pending = searchGame.PendingPlayers();
-        var moves = new List<(int Seat, Move Move)>();
+        List<(int Seat, Move Move)> moves = new();
         // an index loop: a foreach over the interface would allocate an enumerator
         for (int pendingIndex = 0; pendingIndex < pending.Count; pendingIndex++)
         {
@@ -585,7 +585,7 @@ internal sealed class MctsSearch
     /// </summary>
     private static List<Move> CountAvailableAndListUntried(Node node, int seat, List<Move> legal)
     {
-        var untried = new List<Move>();
+        List<Move> untried = new();
         foreach (Move move in legal)
         {
             if (node.Statistics.TryGetValue((seat, move), out MoveStatistics? moveStatistics))
@@ -675,7 +675,7 @@ internal sealed class MctsSearch
     {
         Move? best = null;
         double bestValue = double.NegativeInfinity;
-        foreach (var key in _tree.Order)
+        foreach ((int Seat, Move Move) key in _tree.Order)
         {
             if (key.Seat != _searchingSeat)
             {
@@ -771,7 +771,7 @@ internal sealed class MctsSearch
     {
         int era = searchGame.Era;
         bool eraEnd = _configuration.RolloutEnd == MctsRolloutEnd.EraEnd;
-        var moves = new List<(int Seat, Move Move)>(_playerCount);
+        List<(int Seat, Move Move)> moves = new(_playerCount);
         while (searchGame.Phase != Phase.GameOver && !(eraEnd && searchGame.Era != era))
         {
             // everyone chooses from the same state, as in a real game
@@ -782,7 +782,7 @@ internal sealed class MctsSearch
                 int seat = pending[pendingIndex];
                 moves.Add((seat, RolloutMove(searchGame, seat, random)));
             }
-            foreach (var (seat, move) in moves)
+            foreach ((int seat, Move move) in moves)
             {
                 searchGame.Submit(seat, move);
             }
@@ -835,7 +835,7 @@ internal sealed class MctsSearch
         {
             free = player.BuildableCards(hand, everyCardFree: true);
         }
-        var options = new List<MoveAction>(4);
+        List<MoveAction> options = new(4);
         if (buildable.Count > 0)
         {
             options.Add(MoveAction.Build);
@@ -896,7 +896,7 @@ internal sealed class MctsSearch
         }
         List<PlayerStanding> standings = GameResult.Rank(players);
 
-        var reward = new double[_playerCount];
+        double[] reward = new double[_playerCount];
         for (int seat = 0; seat < _playerCount; seat++)
         {
             reward[seat] = RewardFor(seat, players, standings);

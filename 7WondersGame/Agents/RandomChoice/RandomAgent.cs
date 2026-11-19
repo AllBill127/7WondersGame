@@ -71,7 +71,7 @@ public class RandomAgent : IAgent
     /// Discard.</summary>
     private static MoveAction ChooseAction(GameView view)
     {
-        var options = new List<MoveAction>
+        List<MoveAction> options = new()
         {
             MoveAction.Build,
             MoveAction.BuildWithOlympiaFreeBuild,

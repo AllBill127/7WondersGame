@@ -24,8 +24,8 @@ public class SimultaneousResolutionTests
     /// <summary>Three Gizah A players without coins.</summary>
     private static Game GameWithoutCoins()
     {
-        Game game = new Game(seed: 0);
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        Game game = new(seed: 0);
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.GizahA),
@@ -59,7 +59,7 @@ public class SimultaneousResolutionTests
     /// <summary>Each of the seats builds the first card of its hand, listed in the given seat order.</summary>
     private static List<(PlayerState, Move, List<Card>)> Moves(Game game, params int[] seats)
     {
-        List<(PlayerState, Move, List<Card>)> moves = new List<(PlayerState, Move, List<Card>)>();
+        List<(PlayerState, Move, List<Card>)> moves = new();
         foreach (int seat in seats)
         {
             PlayerState player = game.Players[seat];
@@ -98,7 +98,7 @@ public class SimultaneousResolutionTests
         game.Players[2].Hand.Add(lumberYard);
         game.Submit(0, new Move(MoveAction.Build, Stockade));
         game.Submit(1, new Move(MoveAction.Build, Baths));
-        Move lastMove = new Move(MoveAction.Build, lumberYard);
+        Move lastMove = new(MoveAction.Build, lumberYard);
         Assert.ThrowsException<InvalidOperationException>(() => game.Submit(2, lastMove));
     }
 

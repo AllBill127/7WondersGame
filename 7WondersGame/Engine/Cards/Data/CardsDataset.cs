@@ -274,7 +274,7 @@ public static class CardsDataset
     /// <summary>The cards keyed by their id, in the order given.</summary>
     private static Dictionary<CardId, Card> ById(Card[] cards)
     {
-        Dictionary<CardId, Card> table = new Dictionary<CardId, Card>();
+        Dictionary<CardId, Card> table = new();
         foreach (Card card in cards)
         {
             table.Add(card.Id, card);
@@ -286,7 +286,7 @@ public static class CardsDataset
     private static Dictionary<CardId, Card> Combine(IReadOnlyDictionary<CardId, Card> first,
                                                     IReadOnlyDictionary<CardId, Card> second)
     {
-        Dictionary<CardId, Card> combined = new Dictionary<CardId, Card>();
+        Dictionary<CardId, Card> combined = new();
         foreach (Card card in first.Values)
         {
             combined.Add(card.Id, card);

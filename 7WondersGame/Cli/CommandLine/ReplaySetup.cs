@@ -61,7 +61,7 @@ internal sealed class ReplaySetup
         List<Dictionary<string, string>> recorded = RecordedRows(csv, runId, gameIndex);
         List<AgentSpecification> specifications = recorded.Select(RecordedSpecification).ToList();
         ulong gameSeed = ulong.Parse(recorded[0]["seed"], InvariantCulture);
-        var setup = new ReplaySetup(specifications, gameSeed, datasetName, deal, recorded);
+        ReplaySetup setup = new(specifications, gameSeed, datasetName, deal, recorded);
         setup.UseRunDataset(csv, runId, recorded);
         return setup;
     }

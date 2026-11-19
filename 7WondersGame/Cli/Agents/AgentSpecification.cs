@@ -24,7 +24,8 @@ public sealed class AgentSpecification
     /// <summary>Comma-separated specifications, one per seat in seat order.</summary>
     public static List<AgentSpecification> ParseList(string text)
     {
-        var specifications = text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        List<AgentSpecification> specifications = text
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(Parse)
             .ToList();
         if (specifications.Count == 0)
@@ -40,7 +41,7 @@ public sealed class AgentSpecification
     public static AgentSpecification Parse(string text)
     {
         string[] parts = text.Split(':', StringSplitOptions.TrimEntries);
-        var settings = new List<KeyValuePair<string, string>>();
+        List<KeyValuePair<string, string>> settings = new();
         foreach (string part in parts.Skip(1))
         {
             settings.Add(ParseSetting(part, text));

@@ -43,7 +43,7 @@ public static class Determinization
 
         // every card of eras 1 to now, with the guilds in play: the ones the seat has seen, plus random others
         List<Card> seen = CardsSeen(players, seat, known, inPile, buried);
-        var pool = new List<Card>();
+        List<Card> pool = new();
         for (int deckEra = 1; deckEra <= era; deckEra++)
         {
             pool.AddRange(Deck(deckEra, playerCount, seen, random));
@@ -56,7 +56,7 @@ public static class Determinization
         List<Card> pileKnown = TakeOutOfPool(pool, inPile);
 
         // cards seen in a hand that this guess says were buried or discarded since
-        var goneFaceDown = new List<Card>();
+        List<Card> goneFaceDown = new();
         List<Card>?[] hands = HandsOfSeenCards(players, seat, known, pool, goneFaceDown, random);
         FillHandsWithUnseenCards(players, seat, hands, pool, era, random);
 
@@ -104,7 +104,7 @@ public static class Determinization
     private static List<Card> CardsSeen(List<PlayerState> players, int seat, SeatKnowledge? known,
                                         IReadOnlyList<Card> inPile, IReadOnlyList<Card> buried)
     {
-        var seen = new List<Card>();
+        List<Card> seen = new();
         foreach (PlayerState player in players)
         {
             seen.AddRange(player.BuiltCards);
@@ -140,7 +140,7 @@ public static class Determinization
     /// <summary>The cards that were still in the pool, in their order; each is taken out of it.</summary>
     private static List<Card> TakeOutOfPool(List<Card> pool, IReadOnlyList<Card> cards)
     {
-        var taken = new List<Card>();
+        List<Card> taken = new();
         foreach (Card card in cards)
         {
             if (pool.Remove(card))
@@ -158,7 +158,7 @@ public static class Determinization
     private static List<Card>?[] HandsOfSeenCards(List<PlayerState> players, int seat, SeatKnowledge? known,
                                                   List<Card> pool, List<Card> goneFaceDown, Random random)
     {
-        var hands = new List<Card>?[players.Count];
+        List<Card>?[] hands = new List<Card>?[players.Count];
         for (int handOwnerSeat = 0; handOwnerSeat < players.Count; handOwnerSeat++)
         {
             if (handOwnerSeat == seat)
@@ -177,7 +177,7 @@ public static class Determinization
     /// <summary>A new list of the first <paramref name="count"/> cards (all of them if there are fewer).</summary>
     private static List<Card> FirstCards(List<Card> cards, int count)
     {
-        var first = new List<Card>();
+        List<Card> first = new();
         for (int cardIndex = 0; cardIndex < count && cardIndex < cards.Count; cardIndex++)
         {
             first.Add(cards[cardIndex]);
@@ -231,7 +231,7 @@ public static class Determinization
     /// <summary>A new list of the pool's cards of this era, in pool order.</summary>
     private static List<Card> CardsOfEra(List<Card> pool, int era)
     {
-        var cardsOfEra = new List<Card>();
+        List<Card> cardsOfEra = new();
         foreach (Card card in pool)
         {
             if (card.Era == era)
@@ -249,7 +249,7 @@ public static class Determinization
     private static List<Card> DiscardPileGuess(Game copy, int seat, List<Card> pileKnown, List<Card> goneFaceDown,
                                                List<Card> pool, Random random)
     {
-        var unplacedCards = new List<Card>(goneFaceDown);
+        List<Card> unplacedCards = new(goneFaceDown);
         unplacedCards.AddRange(pool);
         Shuffle(unplacedCards, random);
         int unknownInPile = copy.DiscardPile.Count - pileKnown.Count;
@@ -290,7 +290,7 @@ public static class Determinization
     /// </summary>
     private static List<Card> Deck(int era, int players, IReadOnlyList<Card> seen, Random random)
     {
-        var deck = new List<Card>();
+        List<Card> deck = new();
         foreach (Card card in CardsDataset.Cards.Values)
         {
             if (card.Era != era)
@@ -314,7 +314,7 @@ public static class Determinization
     /// </summary>
     private static List<Card> GuildsInPlay(int players, IReadOnlyList<Card> seen, Random random)
     {
-        var guilds = new List<Card>();
+        List<Card> guilds = new();
         foreach (Card card in seen)
         {
             if (card.Type == CardType.Guild && !guilds.Contains(card))
@@ -323,7 +323,7 @@ public static class Determinization
             }
         }
 
-        var others = new List<Card>();
+        List<Card> others = new();
         foreach (Card guild in CardsDataset.GuildCards.Values)
         {
             if (!guilds.Contains(guild))

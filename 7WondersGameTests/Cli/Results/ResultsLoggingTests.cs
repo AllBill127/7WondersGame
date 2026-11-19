@@ -38,7 +38,7 @@ public class ResultsLoggingTests
     {
         Game game = NewGame(3);
         game.SetUpRandomGame();
-        var wonders = game.Players.Select(player => player.Wonder.Id.ToString()).ToList();
+        List<string> wonders = game.Players.Select(player => player.Wonder.Id.ToString()).ToList();
 
         Dictionary<int, int> scores = game.Loop(record: true);
 
@@ -72,14 +72,14 @@ public class ResultsLoggingTests
     public void ConfigurationJson_ListsTheAgentsOwnSettings()
     {
         Assert.AreEqual("{}", new RandomAgent().ConfigurationJson());
-        var agent = new SettingsTestAgent { Weight = 2.5 };
+        SettingsTestAgent agent = new() { Weight = 2.5 };
         Assert.AreEqual("{\"Iterations\":100,\"Weight\":2.5}", agent.ConfigurationJson());
     }
 
     [TestMethod]
     public void FormatRow_QuotesJsonAndUsesInvariantNumbers()
     {
-        var seat = new SeatResult(
+        SeatResult seat = new(
             2,
             "SomeAgent",
             "{\"c\":1.5,\"n\":2}",
@@ -104,12 +104,12 @@ public class ResultsLoggingTests
         string path = Path.Combine(_directory, "sub", "results.csv");
         SeatResult[] game = Seats(3);
 
-        using (var writer = new ResultsCsvWriter(path))
+        using (ResultsCsvWriter writer = new(path))
         {
             writer.WriteGame("runA", 0, 0, 11, game);
         }
 
-        using (var writer = new ResultsCsvWriter(path))
+        using (ResultsCsvWriter writer = new(path))
         {
             writer.WriteGame("runB", 0, 0, 12, game);
         }
@@ -134,13 +134,16 @@ public class ResultsLoggingTests
     public void Writer_KeepsEachGamesRowsWholeUnderParallelWrites()
     {
         string path = Path.Combine(_directory, "parallel.csv");
-        using (var writer = new ResultsCsvWriter(path))
+        using (ResultsCsvWriter writer = new(path))
         {
-            ParallelGameWriter gameWriter = new ParallelGameWriter(writer);
+            ParallelGameWriter gameWriter = new(writer);
             Parallel.For(0, 200, gameWriter.WriteGame);
         }
 
-        var rows = File.ReadAllLines(path).Skip(1).Select(line => line.Split(ResultsCsvWriter.Separator)).ToList();
+        List<string[]> rows = File.ReadAllLines(path)
+            .Skip(1)
+            .Select(line => line.Split(ResultsCsvWriter.Separator))
+            .ToList();
         Assert.AreEqual(600, rows.Count);
         Assert.IsTrue(rows.All(row => row.Length == ResultsCsvWriter.Columns.Length));
         // a game's 3 rows are written together
@@ -159,7 +162,7 @@ public class ResultsLoggingTests
 
     private static Game NewGame(ulong seed)
     {
-        Game game = new Game(seed);
+        Game game = new(seed);
         game.Agents.Add(new RandomAgent());
         game.Agents.Add(new HeuristicAgent());
         game.Agents.Add(new RandomAgent());

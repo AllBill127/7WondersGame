@@ -58,7 +58,7 @@ public static class Commands
     public static async Task<int> Run(CliArguments cli, string[] args)
     {
         RunPlan plan = RunPlan.FromCli(cli);
-        var (level, levelSource) = Logging.Resolve(plan.LogLevel);
+        (LogEventLevel level, string levelSource) = Logging.Resolve(plan.LogLevel);
         Logging.Configure(level);
 
         List<List<int>[]>? deals = null;
@@ -74,7 +74,7 @@ public static class Commands
         string manifestPath = Path.Combine(runDirectory, $"{runId}.run.json");
         string? experimentCopy = CopyExperimentFile(plan, runDirectory, runId);
 
-        var manifest = new RunManifest
+        RunManifest manifest = new()
         {
             RunId = runId,
             RunSeed = plan.Seed,
@@ -87,9 +87,9 @@ public static class Commands
         LogRunStart(plan, manifest, csvPath, level, levelSource);
         WarnIfClockBudget(plan.Players, plan.Sweep, plan.Parallel);
 
-        var runClock = Stopwatch.StartNew();
+        Stopwatch runClock = Stopwatch.StartNew();
         GameRunner runner;
-        using (var writer = new ResultsCsvWriter(csvPath))
+        using (ResultsCsvWriter writer = new(csvPath))
         {
             runner = new GameRunner(plan, runId, deals, writer, runClock);
             runner.PlayAll();
@@ -130,7 +130,7 @@ public static class Commands
     /// </summary>
     private static Dictionary<string, string> ManifestSettings(RunPlan plan, string? experimentCopy, string logText)
     {
-        var settings = new Dictionary<string, string>
+        Dictionary<string, string> settings = new()
         {
             ["command"] = "run",
             ["players"] = string.Join(",", plan.Players),
@@ -268,7 +268,7 @@ public static class Commands
     /// <summary>The agents of the line-up that search for a time, each listed once.</summary>
     private static List<string> TimedAgents(List<AgentSpecification> specifications, Sweep? sweep)
     {
-        var timed = new List<string>();
+        List<string> timed = new();
         for (int seat = 0; seat < specifications.Count; seat++)
         {
             double? value = null;
@@ -294,7 +294,7 @@ public static class Commands
     public static async Task<int> Replay(CliArguments cli)
     {
         cli.AllowOnly("from", "run", "game", "players", "game-seed", "dataset", "deal", "log-level");
-        var (level, _) = Logging.Resolve(cli.Get("log-level"), LogEventLevel.Debug);
+        (LogEventLevel level, _) = Logging.Resolve(cli.Get("log-level"), LogEventLevel.Debug);
         Logging.Configure(level);
 
         string? datasetName = cli.Get("dataset");
@@ -343,7 +343,7 @@ public static class Commands
             deals = await LoadDataset(setup.DatasetName, setup.Specifications.Count, dealsNeeded);
         }
 
-        var game = new Game(setup.GameSeed)
+        Game game = new(setup.GameSeed)
         {
             Agents = setup.Specifications.Select(specification => AgentCatalog.Create(specification)).ToList(),
             Trace = Log.Logger,
@@ -442,7 +442,7 @@ public static class Commands
         int? comparedGroup = cli.GetInt("compare-with", 1, groups.Count);
         // all pairs of many groups (e.g. 14 wonders: 91 pairs) is a long list where some differ by chance alone
         bool allPairs = comparedGroup != null || groups.Count <= Analysis.MostGroupsForAllPairs;
-        var pairs = new List<PairStatistics>();
+        List<PairStatistics> pairs = new();
         if (allPairs)
         {
             pairs = Analysis.Pairs(rows, grouping, groups, comparedGroup);
@@ -494,7 +494,7 @@ public static class Commands
     /// <summary>Where the swept agent sits in each run that had a range setting, by run id.</summary>
     private static Dictionary<string, SweptSeat> SweptSeats(List<string> runs, string csv)
     {
-        var sweeps = new Dictionary<string, SweptSeat>();
+        Dictionary<string, SweptSeat> sweeps = new();
         foreach (string run in runs)
         {
             RunManifest? manifest = RunManifest.Load(Path.Combine(Path.GetDirectoryName(csv)!, $"{run}.run.json"));
@@ -586,7 +586,7 @@ public static class Commands
         string outputName = cli.GetOrDefault("output", $"gameDataset_{seats}p_{games}g.txt");
         string outputPath = Path.GetFullPath(Path.Combine(ProgramDirectory, outputName));
 
-        var gameDatasets = new List<List<int>[]>();
+        List<List<int>[]> gameDatasets = new();
         for (int dealIndex = 0; dealIndex < games; dealIndex++)
         {
             gameDatasets.Add(DealOf(seed, dealIndex, seats));
@@ -604,16 +604,16 @@ public static class Commands
     /// </summary>
     private static List<int>[] DealOf(ulong seed, int gameIndex, int seats)
     {
-        var agents = new List<IAgent>(seats);
+        List<IAgent> agents = new(seats);
         for (int seat = 0; seat < seats; seat++)
         {
             agents.Add(new RandomAgent());
         }
-        var game = new Game(Seeding.GameSeed(seed, gameIndex)) { Agents = agents };
+        Game game = new(Seeding.GameSeed(seed, gameIndex)) { Agents = agents };
         game.SetUpRandomGame();
 
         int decksAndWonders = Game.LastEra + 1;
-        var deal = new List<int>[decksAndWonders];
+        List<int>[] deal = new List<int>[decksAndWonders];
         for (int era = 0; era < Game.LastEra; era++)
         {
             deal[era] = new List<int>();
@@ -624,7 +624,7 @@ public static class Commands
         }
 
         // the wonders come after the decks
-        var wonders = new List<int>();
+        List<int> wonders = new();
         foreach (PlayerState player in game.Players)
         {
             wonders.Add((int)player.Wonder.Id);
@@ -646,13 +646,13 @@ public static class Commands
     /// <summary>The agents, each with its settings, their types and defaults.</summary>
     public static string AgentsText()
     {
-        var text = new StringBuilder();
+        StringBuilder text = new();
         text.AppendLine("Agents (use in --players as Name[:setting=value...]):");
         text.AppendLine();
         foreach (AgentCatalogEntry entry in AgentCatalog.Entries)
         {
             text.AppendLine($"  {entry.Name,-32} {entry.Description}");
-            foreach (var (name, type, value) in AgentCatalog.SettingsOf(entry))
+            foreach ((string name, Type type, object? value) in AgentCatalog.SettingsOf(entry))
             {
                 text.AppendLine($"      {name,-40} {type.Name,-24} default {ShownValue(value)}");
             }

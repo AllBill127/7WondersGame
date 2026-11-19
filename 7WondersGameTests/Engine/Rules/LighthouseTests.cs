@@ -18,7 +18,7 @@ public class LighthouseTests
 {
     private static PlayerState PlayerWithTwoYellowCards()
     {
-        List<WonderBoardProgress> wonders = new List<WonderBoardProgress>
+        List<WonderBoardProgress> wonders = new()
         {
             new WonderBoardProgress(WonderId.GizahA),
             new WonderBoardProgress(WonderId.BabylonA),
@@ -34,7 +34,7 @@ public class LighthouseTests
     [TestMethod]
     public void BuildCard_Lighthouse_CountsItselfForCoins()
     {
-        var player = PlayerWithTwoYellowCards();
+        PlayerState player = PlayerWithTwoYellowCards();
         Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
         Assert.IsTrue(MoveTestHelper.BuildCard(player, lighthouse, new List<Card> { lighthouse }, true));
@@ -47,7 +47,7 @@ public class LighthouseTests
     [TestMethod]
     public void BuildCard_Lighthouse_CountsItselfInTheScore()
     {
-        var player = PlayerWithTwoYellowCards();
+        PlayerState player = PlayerWithTwoYellowCards();
         Card lighthouse = CardsDataset.GameCards[CardId.Lighthouse];
 
         Assert.IsTrue(MoveTestHelper.BuildCard(player, lighthouse, new List<Card> { lighthouse }, true));

@@ -13,14 +13,14 @@ public class DatasetFileTests
     /// <summary>The deal <see cref="Game.SetUpRandomGame"/> makes, as a dataset deal.</summary>
     private static List<int>[] Deal(int players, ulong seed)
     {
-        var game = new Game(seed);
+        Game game = new(seed);
         for (int seat = 0; seat < players; seat++)
         {
             game.Agents.Add(new RandomAgent());
         }
 
         game.SetUpRandomGame();
-        var deal = new List<int>[4];
+        List<int>[] deal = new List<int>[4];
         for (int era = 0; era < 3; era++)
         {
             deal[era] = game.Decks[era].Select(card => (int)card.Id).ToList();
@@ -32,7 +32,7 @@ public class DatasetFileTests
 
     private static string[] Lines(int players, params List<int>[][] deals)
     {
-        var lines = new List<string> { $"Players: {players}" };
+        List<string> lines = new() { $"Players: {players}" };
         for (int dealIndex = 0; dealIndex < deals.Length; dealIndex++)
         {
             lines.Add($"Game {dealIndex}:");
@@ -55,10 +55,10 @@ public class DatasetFileTests
         string path = Path.Combine(Path.GetTempPath(), $"dataset-{Guid.NewGuid():N}.txt");
         try
         {
-            var deals = new List<List<int>[]> { Deal(4, 1), Deal(4, 2) };
+            List<List<int>[]> deals = new() { Deal(4, 1), Deal(4, 2) };
             await Filer.WriteGameDatasetToFile(path, 4, deals);
 
-            var (players, read) = await Filer.ReadGameDatasetFromFile(path);
+            (int players, List<List<int>[]> read) = await Filer.ReadGameDatasetFromFile(path);
 
             Assert.AreEqual(4, players);
             Assert.AreEqual(2, read.Count);
@@ -106,7 +106,7 @@ public class DatasetFileTests
         Assert.IsTrue(files.Length > 0);
         foreach (FileInfo file in files)
         {
-            var (players, deals) = Filer.Parse(File.ReadAllLines(file.FullName), file.Name);
+            (int players, List<List<int>[]> deals) = Filer.Parse(File.ReadAllLines(file.FullName), file.Name);
             StringAssert.StartsWith(file.Name, $"gameDataset_{players}p_{deals.Count}g");
         }
     }
@@ -116,7 +116,8 @@ public class DatasetFileTests
     {
         string[] lines = Lines(3, Deal(3, 1));
         string[] linesWithoutHeader = lines.Skip(1).ToArray();
-        var exception = Assert.ThrowsException<InvalidDataException>(() => Filer.Parse(linesWithoutHeader, "old.txt"));
+        InvalidDataException exception =
+            Assert.ThrowsException<InvalidDataException>(() => Filer.Parse(linesWithoutHeader, "old.txt"));
         StringAssert.Contains(exception.Message, "Players:");
     }
 

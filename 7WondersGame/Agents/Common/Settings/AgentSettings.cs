@@ -13,7 +13,7 @@ public static class AgentSettings
     /// </summary>
     public static string ConfigurationJson(this IAgent agent)
     {
-        var settingValues = new SortedDictionary<string, object?>(StringComparer.Ordinal);
+        SortedDictionary<string, object?> settingValues = new(StringComparer.Ordinal);
         foreach (AgentSetting setting in Of(agent.GetType()))
         {
             settingValues.Add(setting.Name, JsonValueOf(setting, agent));
@@ -29,12 +29,12 @@ public static class AgentSettings
     /// </summary>
     public static IEnumerable<AgentSetting> Of(Type agentType)
     {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (name, field) in Fields(agentType, includeGroups: true))
+        HashSet<string> seen = new(StringComparer.Ordinal);
+        foreach ((string name, FieldInfo field) in Fields(agentType, includeGroups: true))
         {
             if (IsSettingsGroup(field.FieldType))
             {
-                foreach (var (inner, innerField) in Fields(field.FieldType, includeGroups: false))
+                foreach ((string inner, FieldInfo innerField) in Fields(field.FieldType, includeGroups: false))
                 {
                     if (seen.Add(inner))
                     {
@@ -63,12 +63,15 @@ public static class AgentSettings
     /// <summary>The type's setting fields and their names, the type's own first, then its base classes'.</summary>
     private static IEnumerable<(string Name, FieldInfo Field)> Fields(Type type, bool includeGroups)
     {
-        var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        BindingFlags flags = BindingFlags.Instance
+                             | BindingFlags.Public
+                             | BindingFlags.NonPublic
+                             | BindingFlags.DeclaredOnly;
         for (Type? declaringType = type;
              declaringType != null && declaringType != typeof(object);
              declaringType = declaringType.BaseType)
         {
-            foreach (var field in declaringType.GetFields(flags))
+            foreach (FieldInfo field in declaringType.GetFields(flags))
             {
                 if (IsSetting(field, includeGroups))
                 {
