@@ -218,7 +218,7 @@ public class WonderDataTests
             // The east neighbour's Workers Guild is worth 1 VP per brown card next door.
             player.EastNeighbour.BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
             player.WestNeighbour.BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
-            Assert.IsTrue(player.CopyGuild(), "copy a neighbour's guild");
+            Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(player), "copy a neighbour's guild");
         }
     }
 

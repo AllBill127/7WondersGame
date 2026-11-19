@@ -5,12 +5,13 @@ using _7WondersGame.Engine.Players.Entities;
 
 namespace _7WondersGame.Engine.Rules.Services;
 
-public static partial class Rules
+/// <summary>Olympia B stage 3: copying a neighbour's guild at the end of the game.</summary>
+public static class GuildCopying
 {
     /// <summary>
     /// Olympia B stage 3: at the end of the game, copy one guild built by a neighbour, as if built. <br/>
-    /// - each candidate is scored with the real CalculateScore(); the best one is kept (ties go to the first
-    ///   candidate, west then east) <br/>
+    /// - each candidate is scored with the real <see cref="Scoring.CalculateScore"/>; the best one is kept (ties go
+    ///   to the first candidate, west then east) <br/>
     /// - the copy stays in BuiltCards, so Shipowners counts it and a copied Scientists Guild gives its wildcard <br/>
     /// - a guild the player already has is skipped (no two identical structures) <br/>
     /// - should be called before calculating scores <br/>
@@ -18,7 +19,7 @@ public static partial class Rules
     ///          https://rules.dized.com/7-wonders/rule/symbols/guilds
     /// </summary>
     /// <returns>true if a guild was copied; otherwise false</returns>
-    public static bool CopyGuild(this PlayerState player)
+    public static bool CopyBestNeighbourGuild(PlayerState player)
     {
         if (!PlayerAbilities.Has(player, Ability.CopyGuild))
         {

@@ -34,7 +34,7 @@ public class CopyGuildTests
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
 
         // Test
-        bool copyGuildSuccess = players[1].CopyGuild();
+        bool copyGuildSuccess = GuildCopying.CopyBestNeighbourGuild(players[1]);
 
         // Evaluate
         Assert.IsTrue(copyGuildSuccess);
@@ -69,7 +69,7 @@ public class CopyGuildTests
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Circus]);
 
         // Test
-        bool copyGuildSuccess = players[1].CopyGuild();
+        bool copyGuildSuccess = GuildCopying.CopyBestNeighbourGuild(players[1]);
 
         // Evaluate
         Assert.IsTrue(copyGuildSuccess);
@@ -100,7 +100,7 @@ public class CopyGuildTests
         int builtCardCountBefore = players[1].BuiltCards.Count;
 
         // Test
-        bool copyGuildSuccess = players[1].CopyGuild();
+        bool copyGuildSuccess = GuildCopying.CopyBestNeighbourGuild(players[1]);
 
         // Evaluate
         Assert.IsFalse(copyGuildSuccess);
@@ -136,7 +136,7 @@ public class CopyGuildTests
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Loom]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Press]);
 
-        Assert.IsTrue(players[1].CopyGuild());
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Craftsmens]));
         Assert.IsFalse(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
@@ -151,7 +151,7 @@ public class CopyGuildTests
         // Spies is worth 0 VP on its own, but copying it still adds 1 VP through Shipowners.
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Spies]);
 
-        Assert.IsTrue(players[1].CopyGuild());
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
 
         // Shipowners: 0 brown + 0 grey + 2 guilds (own Shipowners and the copied Spies). Spies: 0 military next door.
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Spies]));
@@ -172,7 +172,7 @@ public class CopyGuildTests
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.StonePit]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Scientists]);
 
-        Assert.IsTrue(players[1].CopyGuild());
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Scientists]));
         Assert.AreEqual(1, PlayerAbilities.ScienceWildcards(players[1]));
@@ -189,7 +189,7 @@ public class CopyGuildTests
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.StonePit]);
 
-        Assert.IsTrue(players[1].CopyGuild());
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
         Assert.AreEqual(0, PlayerAbilities.ScienceWildcards(players[1]));
@@ -205,7 +205,7 @@ public class CopyGuildTests
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
         players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Tavern]);
 
-        Assert.IsTrue(players[1].CopyGuild());
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
         Assert.IsFalse(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Traders]));
@@ -219,7 +219,7 @@ public class CopyGuildTests
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
 
-        Assert.IsFalse(players[1].CopyGuild());
+        Assert.IsFalse(GuildCopying.CopyBestNeighbourGuild(players[1]));
         Assert.AreEqual(1, players[1].BuiltCards.Count);
     }
 
@@ -230,7 +230,7 @@ public class CopyGuildTests
         players[1].VictoryPoints = 42;
         players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
 
-        Assert.IsTrue(players[1].CopyGuild());
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
         Assert.AreEqual(42, players[1].VictoryPoints);
     }
 }

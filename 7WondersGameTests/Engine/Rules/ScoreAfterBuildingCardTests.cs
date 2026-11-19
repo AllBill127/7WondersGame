@@ -17,7 +17,7 @@ public class ScoreAfterBuildingCardTests
         Card card = CardsDataset.GameCards[id];
         Assert.IsTrue(MoveTestHelper.BuildCard(player, card, new List<Card> { card }, true));
         Battles.FightEraBattles(player, era);
-        player.CopyGuild();
+        GuildCopying.CopyBestNeighbourGuild(player);
         return Scoring.CalculateScore(player);
     }
 

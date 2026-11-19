@@ -870,7 +870,7 @@ public class Game
         foreach (PlayerState player in Players)
         {
             // Copies a neighbor guild before scoring if the player has the ability to do so.
-            bool copied = player.CopyGuild();
+            bool copied = GuildCopying.CopyBestNeighbourGuild(player);
             if (copied && Tracing)
             {
                 Trace.Debug("Seat {Seat} copies {Guild} from a neighbour (Olympia B)",

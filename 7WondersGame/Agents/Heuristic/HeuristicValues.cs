@@ -147,7 +147,7 @@ public sealed class HeuristicValues
     private int ScoreIfEraEnded(PlayerState scratchPlayer)
     {
         Battles.FightEraBattles(scratchPlayer, _era);
-        scratchPlayer.CopyGuild();
+        GuildCopying.CopyBestNeighbourGuild(scratchPlayer);
         return Scoring.CalculateScore(scratchPlayer);
     }
 
