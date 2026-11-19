@@ -553,7 +553,7 @@ public class Game
 
     private void BuildFromDiscardPile(PlayerState player, Card card)
     {
-        PlannedMove? planned = player.PlanDiscardPileBuild(card, DiscardPile);
+        PlannedMove? planned = MovePlanning.PlanDiscardPileBuild(player, card, DiscardPile);
         if (planned == null)
         {
             throw MoveFailed(player, "build from the discard pile", card);
@@ -956,7 +956,7 @@ public class Game
                 continue;
             }
 
-            PlannedMove? plannedMove = player.PlanMove(move.Action, card, submitted.Source);
+            PlannedMove? plannedMove = MovePlanning.PlanMove(player, move.Action, card, submitted.Source);
             if (plannedMove == null)
             {
                 throw MoveFailed(player, move.Action.ToString(), card);
