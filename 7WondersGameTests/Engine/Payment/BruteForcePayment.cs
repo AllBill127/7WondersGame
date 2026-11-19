@@ -221,11 +221,12 @@ internal sealed class BruteForcePayment
         bool cheap;
         if (Raw.Contains(resource))
         {
-            cheap = _buyer.Has(Ability.RawMaterialsCheapFromBothNeighbours) || HasRawDiscountWith(seller);
+            cheap = PlayerAbilities.Has(_buyer, Ability.RawMaterialsCheapFromBothNeighbours)
+                    || HasRawDiscountWith(seller);
         }
         else
         {
-            cheap = _buyer.Has(Ability.ManufacturedGoodsCheapFromBothNeighbours);
+            cheap = PlayerAbilities.Has(_buyer, Ability.ManufacturedGoodsCheapFromBothNeighbours);
         }
 
         if (cheap)
@@ -240,9 +241,9 @@ internal sealed class BruteForcePayment
     {
         if (seller == West)
         {
-            return _buyer.Has(Ability.RawMaterialsCheapFromWestNeighbour);
+            return PlayerAbilities.Has(_buyer, Ability.RawMaterialsCheapFromWestNeighbour);
         }
 
-        return _buyer.Has(Ability.RawMaterialsCheapFromEastNeighbour);
+        return PlayerAbilities.Has(_buyer, Ability.RawMaterialsCheapFromEastNeighbour);
     }
 }

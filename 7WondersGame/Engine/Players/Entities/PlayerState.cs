@@ -2,6 +2,7 @@
 using _7WondersGame.Engine.Cards.Enums;
 using _7WondersGame.Engine.Effects.Enums;
 using _7WondersGame.Engine.Games.Entities;
+using _7WondersGame.Engine.Rules.Services;
 using _7WondersGame.Engine.Wonders.Entities;
 
 namespace _7WondersGame.Engine.Players.Entities;
@@ -60,7 +61,7 @@ public sealed class PlayerState
 
     /// <summary>
     /// The lasting abilities the built cards gave (trading posts, Marketplace). The board's come from its stage;
-    /// check both with <see cref="Rules.Has"/>.
+    /// check both with <see cref="PlayerAbilities.Has"/>.
     /// </summary>
     public Ability Abilities { get; set; } = Ability.None;
 

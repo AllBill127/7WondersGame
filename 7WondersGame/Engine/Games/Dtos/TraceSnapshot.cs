@@ -31,7 +31,7 @@ internal sealed class TraceSnapshot
         List<string> flags = new();
         foreach (Ability ability in Enum.GetValues<Ability>())
         {
-            if (ability != Ability.None && player.Has(ability))
+            if (ability != Ability.None && PlayerAbilities.Has(player, ability))
             {
                 flags.Add(ability.ToString());
             }

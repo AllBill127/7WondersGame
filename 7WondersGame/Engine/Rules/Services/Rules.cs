@@ -150,7 +150,7 @@ public static partial class Rules
     /// <summary>Olympia A stage 2: one free card per era, while the era's charge is unused.</summary>
     private static PlannedMove? PlanFreeOnceBuild(this PlayerState player, Card card, List<Card> source)
     {
-        if (!player.Has(Ability.OlympiaFreeBuildEachEra) || !player.OlympiaFreeBuildAvailable)
+        if (!PlayerAbilities.Has(player, Ability.OlympiaFreeBuildEachEra) || !player.OlympiaFreeBuildAvailable)
         {
             return null;
         }
@@ -325,24 +325,5 @@ public static partial class Rules
             }
         }
         return amount;
-    }
-
-    // =========== Abilities ===========
-    /// <summary>Does a built card or wonder stage give the player this ability?</summary>
-    public static bool Has(this PlayerState player, Ability ability)
-    {
-        Ability allAbilities = player.Abilities | player.Wonder.Abilities;
-        return (allAbilities & ability) != 0;
-    }
-
-    /// <summary>Science symbols of the player's choice: Scientists Guild, Babylon.</summary>
-    public static int ScienceWildcards(this PlayerState player)
-    {
-        int wildcards = player.Wonder.ScienceWildcards;
-        foreach (Card card in player.BuiltCards)
-        {
-            wildcards += card.ScienceWildcards;
-        }
-        return wildcards;
     }
 }

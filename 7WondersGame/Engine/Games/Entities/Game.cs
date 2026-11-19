@@ -619,7 +619,7 @@ public class Game
             case Phase.ChooseMoves:
                 return true;
             case Phase.SeventhCard:
-                return player.Has(Ability.PlaySeventhCard) && player.Hand.Count > 0;
+                return PlayerAbilities.Has(player, Ability.PlaySeventhCard) && player.Hand.Count > 0;
             case Phase.DiscardPileBuild:
                 return player.HalikarnassosDiscardBuildPending;
             default:
@@ -699,7 +699,7 @@ public class Game
         foreach (PlayerState player in Players)
         {
             // Olympia A stage 2: one free card per era
-            player.OlympiaFreeBuildAvailable = player.Has(Ability.OlympiaFreeBuildEachEra);
+            player.OlympiaFreeBuildAvailable = PlayerAbilities.Has(player, Ability.OlympiaFreeBuildEachEra);
             player.Battle(Era);
         }
         if (Tracing)

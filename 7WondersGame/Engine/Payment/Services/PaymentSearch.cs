@@ -84,11 +84,11 @@ internal sealed class PaymentSearch
                 ownSources.Add(choiceMask);
             }
         }
-        if (buyer.Has(Ability.AnyRawMaterialEachTurn))
+        if (PlayerAbilities.Has(buyer, Ability.AnyRawMaterialEachTurn))
         {
             ownSources.Add(Raw);
         }
-        if (buyer.Has(Ability.AnyManufacturedGoodEachTurn))
+        if (PlayerAbilities.Has(buyer, Ability.AnyManufacturedGoodEachTurn))
         {
             ownSources.Add(Manufactured);
         }
@@ -102,13 +102,13 @@ internal sealed class PaymentSearch
     {
         if (isRaw)
         {
-            if (buyer.Has(rawTradingPost | Ability.RawMaterialsCheapFromBothNeighbours))
+            if (PlayerAbilities.Has(buyer, rawTradingPost | Ability.RawMaterialsCheapFromBothNeighbours))
             {
                 return DiscountedTradePrice;
             }
             return StandardTradePrice;
         }
-        if (buyer.Has(Ability.ManufacturedGoodsCheapFromBothNeighbours))
+        if (PlayerAbilities.Has(buyer, Ability.ManufacturedGoodsCheapFromBothNeighbours))
         {
             return DiscountedTradePrice;
         }

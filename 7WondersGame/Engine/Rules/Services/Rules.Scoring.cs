@@ -68,7 +68,7 @@ public static partial class Rules
     /// <returns>true if a guild was copied; otherwise false</returns>
     public static bool CopyGuild(this PlayerState player)
     {
-        if (!player.Has(Ability.CopyGuild))
+        if (!PlayerAbilities.Has(player, Ability.CopyGuild))
         {
             return false;
         }
@@ -201,7 +201,7 @@ public static partial class Rules
         int gear = player.Resources[Resource.Gear];
         int tablet = player.Resources[Resource.Tablet];
         int compass = player.Resources[Resource.Compass];
-        return BestScienceScore(gear, compass, tablet, player.ScienceWildcards());
+        return BestScienceScore(gear, compass, tablet, PlayerAbilities.ScienceWildcards(player));
     }
 
     /// <summary>

@@ -401,11 +401,11 @@ public sealed class HeuristicValues
                 count++;
             }
         }
-        if (!isNeighbor && IsRaw(resource) && player.Has(Ability.AnyRawMaterialEachTurn))
+        if (!isNeighbor && IsRaw(resource) && PlayerAbilities.Has(player, Ability.AnyRawMaterialEachTurn))
         {
             count++;
         }
-        if (!isNeighbor && IsGood(resource) && player.Has(Ability.AnyManufacturedGoodEachTurn))
+        if (!isNeighbor && IsGood(resource) && PlayerAbilities.Has(player, Ability.AnyManufacturedGoodEachTurn))
         {
             count++;
         }
@@ -431,9 +431,9 @@ public sealed class HeuristicValues
         int west = RawCards(_player.WestNeighbour);
         int east = RawCards(_player.EastNeighbour);
         int plenty = _weights.NeighbourRawMaterialCardsForCheapTrade;
-        bool cheapFromEast = _player.Has(Ability.RawMaterialsCheapFromEastNeighbour) && east >= plenty;
-        bool cheapFromWest = _player.Has(Ability.RawMaterialsCheapFromWestNeighbour) && west >= plenty;
-        bool cheapFromEither = _player.Has(Ability.RawMaterialsCheapFromBothNeighbours)
+        bool cheapFromEast = PlayerAbilities.Has(_player, Ability.RawMaterialsCheapFromEastNeighbour) && east >= plenty;
+        bool cheapFromWest = PlayerAbilities.Has(_player, Ability.RawMaterialsCheapFromWestNeighbour) && west >= plenty;
+        bool cheapFromEither = PlayerAbilities.Has(_player, Ability.RawMaterialsCheapFromBothNeighbours)
                                && Math.Max(west, east) >= plenty;
         return cheapFromEast || cheapFromWest || cheapFromEither;
     }

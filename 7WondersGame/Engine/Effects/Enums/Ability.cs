@@ -1,11 +1,12 @@
 ﻿using _7WondersGame.Engine.Players.Entities;
+using _7WondersGame.Engine.Rules.Services;
 
 namespace _7WondersGame.Engine.Effects.Enums;
 
 /// <summary>
 /// Lasting abilities a card or wonder stage gives. A card's go into <see cref="PlayerState.Abilities"/> when it is
 /// built; a wonder's are read from the board's stage (<see cref="Wonders.Wonder.Abilities"/>).
-/// Check them with <see cref="Rules.Has"/>.
+/// Check them with <see cref="PlayerAbilities.Has"/>.
 /// </summary>
 [Flags]
 public enum Ability

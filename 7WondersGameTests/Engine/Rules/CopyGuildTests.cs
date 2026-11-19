@@ -175,7 +175,7 @@ public class CopyGuildTests
         Assert.IsTrue(players[1].CopyGuild());
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Scientists]));
-        Assert.AreEqual(1, players[1].ScienceWildcards());
+        Assert.AreEqual(1, PlayerAbilities.ScienceWildcards(players[1]));
         Assert.AreEqual(26, players[1].CalculateScientificScore());
     }
 
@@ -192,7 +192,7 @@ public class CopyGuildTests
         Assert.IsTrue(players[1].CopyGuild());
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
-        Assert.AreEqual(0, players[1].ScienceWildcards());
+        Assert.AreEqual(0, PlayerAbilities.ScienceWildcards(players[1]));
     }
 
     [TestMethod]
