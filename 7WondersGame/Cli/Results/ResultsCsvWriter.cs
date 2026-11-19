@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using _7WondersGame.Cli.Common;
 
 namespace _7WondersGame.Cli.Results;
 
@@ -35,7 +36,7 @@ public sealed class ResultsCsvWriter : IDisposable
     public ResultsCsvWriter(string filePath)
     {
         FilePath = Path.GetFullPath(filePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+        Directory.CreateDirectory(FilePaths.DirectoryOf(FilePath));
 
         bool isNew = !File.Exists(FilePath) || new FileInfo(FilePath).Length == 0;
         if (!isNew)

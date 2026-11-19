@@ -172,7 +172,8 @@ public class Game
         copy.DiscardPile = new List<Card>(this.DiscardPile);
 
         copy.Phase = this.Phase;
-        if (this._waiting != null)
+        copy._hasStarted = this._hasStarted;
+        if (this._hasStarted)
         {
             copy._waiting = (bool[])this._waiting.Clone();
         }
@@ -378,8 +379,10 @@ public class Game
     /// <summary>What the game is waiting for.</summary>
     public Phase Phase { get; private set; } = Phase.ChooseMoves;
 
-    // who still has to decide in this phase; null until the first phase starts
-    private bool[]? _waiting;
+    // whether the first phase has started (and _waiting and _chosen have one entry per seat)
+    private bool _hasStarted;
+    // who still has to decide in this phase
+    private bool[] _waiting = Array.Empty<bool>();
     // ChooseMoves: the moves already in, held until everyone has chosen
     private Move?[] _chosen = Array.Empty<Move?>();
 
@@ -388,7 +391,7 @@ public class Game
     {
         StartIfNeeded();
         List<int> pending = new();
-        for (int seat = 0; seat < _waiting!.Length; seat++)
+        for (int seat = 0; seat < _waiting.Length; seat++)
         {
             if (_waiting[seat])
             {
@@ -402,14 +405,14 @@ public class Game
     private bool IsPending(int seat)
     {
         StartIfNeeded();
-        bool isSeat = seat >= 0 && seat < _waiting!.Length;
-        return isSeat && _waiting![seat];
+        bool isSeat = seat >= 0 && seat < _waiting.Length;
+        return isSeat && _waiting[seat];
     }
 
     /// <summary>Has anyone still to decide in this phase?</summary>
     private bool AnyoneWaiting()
     {
-        foreach (bool waiting in _waiting!)
+        foreach (bool waiting in _waiting)
         {
             if (waiting)
             {
@@ -473,7 +476,7 @@ public class Game
     private void SubmitChosenMove(int seat, Move move)
     {
         _chosen[seat] = move;
-        _waiting![seat] = false;
+        _waiting[seat] = false;
         if (AnyoneWaiting())
         {
             return;
@@ -506,7 +509,12 @@ public class Game
         List<(PlayerState, Move, List<Card>)> moves = new(Players.Count);
         foreach (PlayerState player in Players)
         {
-            moves.Add((player, _chosen[player.Seat]!, player.Hand));
+            Move? chosenMove = _chosen[player.Seat];
+            if (chosenMove == null)
+            {
+                throw new InvalidOperationException($"Seat {player.Seat} has no move in yet.");
+            }
+            moves.Add((player, chosenMove, player.Hand));
         }
         return moves;
     }
@@ -515,7 +523,7 @@ public class Game
     private void SubmitSeventhCardMove(PlayerState player, Move move)
     {
         ResolveMoves(new[] { (player, move, player.Hand) });
-        _waiting![player.Seat] = false;
+        _waiting[player.Seat] = false;
         if (!AnyoneWaiting())
         {
             AfterSeventhCard();
@@ -536,7 +544,7 @@ public class Game
             player.HalikarnassosDiscardBuildPending = false;
         }
 
-        _waiting![player.Seat] = false;
+        _waiting[player.Seat] = false;
         if (!AnyoneWaiting())
         {
             AfterDiscardPileBuild();
@@ -562,10 +570,11 @@ public class Game
 
     private void StartIfNeeded()
     {
-        if (_waiting != null)
+        if (_hasStarted)
         {
             return;
         }
+        _hasStarted = true;
         _waiting = new bool[Players.Count];
         _chosen = new Move?[Players.Count];
         if (AllErasPlayed())
@@ -589,7 +598,7 @@ public class Game
         Phase = phase;
         foreach (PlayerState player in Players)
         {
-            _waiting![player.Seat] = MustDecideIn(phase, player);
+            _waiting[player.Seat] = MustDecideIn(phase, player);
             // Halikarnassos looks through the discard pile to choose
             if (phase == Phase.DiscardPileBuild && player.HalikarnassosDiscardBuildPending)
             {
@@ -706,7 +715,7 @@ public class Game
     {
         Trace.Debug("=== Game over ===");
         Phase = Phase.GameOver;
-        Array.Clear(_waiting!);
+        Array.Clear(_waiting);
     }
 
     private void StartNextEra()
@@ -775,6 +784,18 @@ public class Game
     /// Final results of the last <see cref="Loop(bool)"/> run with record = true; null otherwise.
     /// </summary>
     public List<SeatResult>? Results { get; private set; }
+
+    /// <summary>
+    /// <see cref="Results"/> of a game played with record = true. Throws if the game wasn't played that way.
+    /// </summary>
+    public List<SeatResult> RecordedResults()
+    {
+        if (Results == null)
+        {
+            throw new InvalidOperationException("The game has no results: play it with Loop(record: true).");
+        }
+        return Results;
+    }
 
     /// <summary>
     /// Plays the game to the end and scores it.

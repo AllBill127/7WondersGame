@@ -70,11 +70,8 @@ public class PlayerCopyTests
         string[] knownFields =
         {
             "<BuiltCards>k__BackingField",
-            "<EastNeighbour>k__BackingField",
             "<Hand>k__BackingField",
             "<Seat>k__BackingField",
-            "<WestNeighbour>k__BackingField",
-            "<Wonder>k__BackingField",
             "Abilities",
             "DefeatTokens",
             "HalikarnassosDiscardBuildPending",
@@ -82,6 +79,9 @@ public class PlayerCopyTests
             "Resources",
             "VictoryPoints",
             "VictoryTokens",
+            "_eastNeighbour",
+            "_westNeighbour",
+            "_wonder",
         };
         CollectionAssert.AreEqual(
             knownFields,

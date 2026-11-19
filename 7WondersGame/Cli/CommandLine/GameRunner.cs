@@ -83,9 +83,9 @@ internal sealed class GameRunner
         try
         {
             game.Loop(record: true);
-            _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, game.Results!);
+            _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, game.RecordedResults());
             int done = Interlocked.Increment(ref _completed);
-            LogGameDone(log, slot, game.Results!, done, watch.Elapsed);
+            LogGameDone(log, slot, game.RecordedResults(), done, watch.Elapsed);
         }
         catch (Exception exception)
         {
@@ -135,7 +135,11 @@ internal sealed class GameRunner
         {
             return "";
         }
-        return $" ({sweep.Setting}={value!.Value.ToString("0.####", InvariantCulture)})";
+        if (value == null)
+        {
+            throw new InvalidOperationException($"A game of the {sweep.Setting} range has no value of it.");
+        }
+        return $" ({sweep.Setting}={value.Value.ToString("0.####", InvariantCulture)})";
     }
 
     private static string Summary(IEnumerable<SeatResult> seats)

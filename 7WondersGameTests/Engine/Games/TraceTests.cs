@@ -108,7 +108,7 @@ public class TraceTests
     // the stats column holds search times, which differ between any two runs; the game itself doesn't
     private static string Outcome(Game game)
     {
-        IEnumerable<string> seatOutcomes = game.Results!
+        IEnumerable<string> seatOutcomes = game.RecordedResults()
             .Select(result => $"{result.VictoryPoints} {result.Coins} {result.Rank}");
         return string.Join(" | ", seatOutcomes);
     }
@@ -148,7 +148,7 @@ public class TraceTests
             "Debug hides Verbose");
 
         // the score breakdown adds up to the final VP
-        foreach (SeatResult seat in game.Results!)
+        foreach (SeatResult seat in game.RecordedResults())
         {
             string line = ScoreLineOf(seat, lines);
             int total = int.Parse(line.Split(':')[1].Trim().Split(' ')[0]);

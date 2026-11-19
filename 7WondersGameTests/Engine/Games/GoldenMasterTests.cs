@@ -29,7 +29,9 @@ public class GoldenMasterTests
 
     private static string MasterPath([CallerFilePath] string thisFile = "")
     {
-        return Path.Combine(Path.GetDirectoryName(thisFile)!, "GoldenMaster", "golden-master.txt");
+        string? testFolder = Path.GetDirectoryName(thisFile);
+        Assert.IsNotNull(testFolder);
+        return Path.Combine(testFolder, "GoldenMaster", "golden-master.txt");
     }
 
     [TestMethod]
@@ -40,7 +42,9 @@ public class GoldenMasterTests
 
         if (Environment.GetEnvironmentVariable(RecordEnvironmentVariable) == "1")
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            string? masterFolder = Path.GetDirectoryName(path);
+            Assert.IsNotNull(masterFolder);
+            Directory.CreateDirectory(masterFolder);
             File.WriteAllText(path, string.Join("\n", actual) + "\n");
             Assert.Inconclusive($"Recorded {actual.Count} lines to {path}. " +
                                 $"Unset {RecordEnvironmentVariable} and commit the file.");

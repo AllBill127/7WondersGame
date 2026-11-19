@@ -2,6 +2,7 @@
 using _7WondersGame.Cli.Agents;
 using _7WondersGame.Cli.Arguments;
 using _7WondersGame.Cli.CommandLine;
+using _7WondersGame.Cli.Common;
 
 namespace _7WondersGame.Cli.Experiments;
 
@@ -151,7 +152,7 @@ public sealed class RunPlan
         if (cli.Has("experiment"))
         {
             CheckOnlyMachineOptionsWithExperiment(cli);
-            experiment = Path.GetFullPath(cli.Get("experiment")!);
+            experiment = Path.GetFullPath(cli.Require("experiment"));
             (Dictionary<string, string> fileOptions, description) = LoadExperiment(experiment);
             cli = cli.WithDefaults(fileOptions);
         }
@@ -291,7 +292,7 @@ public sealed class RunPlan
         switch (value.ValueKind)
         {
             case JsonValueKind.String:
-                return value.GetString()!;
+                return JsonText.StringOf(value);
             case JsonValueKind.Number:
                 return value.GetRawText();
             case JsonValueKind.True:
@@ -321,7 +322,7 @@ public sealed class RunPlan
                     "\"MctsAgent:ExplorationConstant=1.2\".",
                     "run");
             }
-            specificationTexts.Add(player.GetString()!);
+            specificationTexts.Add(JsonText.StringOf(player));
         }
         return string.Join(",", specificationTexts);
     }
@@ -333,7 +334,7 @@ public sealed class RunPlan
         {
             return dataset;
         }
-        string beside = Path.Combine(Path.GetDirectoryName(path)!, dataset);
+        string beside = Path.Combine(FilePaths.DirectoryOf(path), dataset);
         if (File.Exists(beside))
         {
             return Path.GetFullPath(beside);

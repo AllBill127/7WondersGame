@@ -8,6 +8,7 @@ using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.Mcts.Configuration.Enums;
 using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Agents;
+using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
@@ -91,7 +92,7 @@ public class MctsAgentTests
             // a move the rules don't allow would throw
             game.Loop(record: true);
             Assert.AreEqual(Phase.GameOver, game.Phase);
-            StringAssert.Contains(game.Results![1].AgentStatisticsJson, "\"searches\":");
+            StringAssert.Contains(game.RecordedResults()[1].AgentStatisticsJson, "\"searches\":");
         }
     }
 
@@ -188,12 +189,13 @@ public class MctsAgentTests
     {
         Game game = NewGame(9, Mcts(":IterationBudget=25"), new HeuristicAgent(), new HeuristicAgent());
         game.Loop(record: true);
+        List<SeatResult> results = game.RecordedResults();
 
-        JsonElement statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
+        JsonElement statistics = JsonDocument.Parse(results[0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
-        Assert.IsTrue(searches >= 15, game.Results[0].AgentStatisticsJson);
+        Assert.IsTrue(searches >= 15, results[0].AgentStatisticsJson);
         Assert.AreEqual(25L * searches, statistics.GetProperty("iterations").GetInt64());
-        Assert.AreEqual("{}", game.Results[1].AgentStatisticsJson);
+        Assert.AreEqual("{}", results[1].AgentStatisticsJson);
         Assert.IsTrue(statistics.GetProperty("allocatedMegabytes").GetDouble() > 0,
                       "it measures the memory its searches allocate");
     }
@@ -227,10 +229,11 @@ public class MctsAgentTests
         MctsAgent searcher = Mcts($":IterationBudget=40:Parallelisation={variant}:ParallelWorkerCount={workers}");
         Game game = NewGame(9, searcher, new HeuristicAgent(), new HeuristicAgent());
         game.Loop(record: true);
+        List<SeatResult> results = game.RecordedResults();
 
-        JsonElement statistics = JsonDocument.Parse(game.Results![0].AgentStatisticsJson).RootElement;
+        JsonElement statistics = JsonDocument.Parse(results[0].AgentStatisticsJson).RootElement;
         int searches = statistics.GetProperty("searches").GetInt32();
-        string statisticsJson = game.Results[0].AgentStatisticsJson;
+        string statisticsJson = results[0].AgentStatisticsJson;
         Assert.AreEqual(40L * searches, statistics.GetProperty("iterations").GetInt64(), statisticsJson);
         // one worker is the plain search, with the plain statistics
         Assert.AreEqual(workers > 1, statistics.TryGetProperty("parallelWorkerCount", out _), statisticsJson);

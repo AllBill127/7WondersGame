@@ -22,8 +22,26 @@ public sealed class PlayerState
     /// <summary>The seat: Game.Players[Seat] is this player.</summary>
     public int Seat { get; }
 
-    /// <summary>The player's wonder board and how many of its stages are built.</summary>
-    public WonderBoardProgress Wonder { get; set; } = null!;
+    /// <summary>
+    /// The player's wonder board and how many of its stages are built. Throws until the game is set up.
+    /// </summary>
+    public WonderBoardProgress Wonder
+    {
+        get
+        {
+            if (_wonder == null)
+            {
+                throw NotSetUp("wonder board");
+            }
+            return _wonder;
+        }
+        set
+        {
+            _wonder = value;
+        }
+    }
+
+    private WonderBoardProgress? _wonder;
 
     /// <summary>The cards in the player's hand this turn.</summary>
     public List<Card> Hand { get; set; } = new();
@@ -58,11 +76,49 @@ public sealed class PlayerState
     /// <summary>Production, science symbols, coins and shields.</summary>
     public ResourceCounts Resources = new() { [Resource.Coins] = 3 };
 
-    /// <summary>The neighbour to the east.</summary>
-    public PlayerState EastNeighbour { get; set; } = null!;
+    /// <summary>The neighbour to the east. Throws until the players are seated.</summary>
+    public PlayerState EastNeighbour
+    {
+        get
+        {
+            if (_eastNeighbour == null)
+            {
+                throw NotSetUp("east neighbour");
+            }
+            return _eastNeighbour;
+        }
+        set
+        {
+            _eastNeighbour = value;
+        }
+    }
 
-    /// <summary>The neighbour to the west.</summary>
-    public PlayerState WestNeighbour { get; set; } = null!;
+    private PlayerState? _eastNeighbour;
+
+    /// <summary>The neighbour to the west. Throws until the players are seated.</summary>
+    public PlayerState WestNeighbour
+    {
+        get
+        {
+            if (_westNeighbour == null)
+            {
+                throw NotSetUp("west neighbour");
+            }
+            return _westNeighbour;
+        }
+        set
+        {
+            _westNeighbour = value;
+        }
+    }
+
+    private PlayerState? _westNeighbour;
+
+    /// <summary>The error for reading a part of the player the game's setup hasn't given yet.</summary>
+    private InvalidOperationException NotSetUp(string part)
+    {
+        return new InvalidOperationException($"Seat {Seat} has no {part} yet: set up the game first.");
+    }
 
     /// <summary>
     /// A copy of everything. The copy's neighbours are still this player's neighbours; a copy of a whole table

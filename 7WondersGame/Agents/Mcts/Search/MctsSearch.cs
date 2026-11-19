@@ -879,7 +879,11 @@ internal sealed class MctsSearch
             case MoveAction.Build:
                 return buildable;
             case MoveAction.BuildWithOlympiaFreeBuild:
-                return free!;
+                if (free == null)
+                {
+                    throw new InvalidOperationException("Olympia's free build was chosen without its free cards.");
+                }
+                return free;
             default:
                 return hand;
         }

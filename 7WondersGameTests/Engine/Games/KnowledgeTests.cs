@@ -113,7 +113,8 @@ public class KnowledgeTests
         int halikarnassosLooks = 0;
         for (int observerSeat = 0; observerSeat < players; observerSeat++)
         {
-            SeatKnowledge knowledge = game.KnowledgeOf(observerSeat)!;
+            SeatKnowledge? knowledge = game.KnowledgeOf(observerSeat);
+            Assert.IsNotNull(knowledge);
             string where = $"observer {observerSeat}, {game.Phase}, turn {game.Turn}";
             Assert.IsTrue(SameCards(knowledge.InHand[observerSeat], game.Players[observerSeat].Hand), where);
             for (int handOwnerSeat = 0; handOwnerSeat < players; handOwnerSeat++)
@@ -160,8 +161,10 @@ public class KnowledgeTests
         game.Submit(2, new Move(MoveAction.Discard, game.Players[2].Hand[0]));
 
         // era 1 passes west: seat 0's old hand is now seat 2's, seat 1's is seat 0's
-        SeatKnowledge seat0 = game.KnowledgeOf(0)!;
-        SeatKnowledge seat1 = game.KnowledgeOf(1)!;
+        SeatKnowledge? seat0 = game.KnowledgeOf(0);
+        Assert.IsNotNull(seat0);
+        SeatKnowledge? seat1 = game.KnowledgeOf(1);
+        Assert.IsNotNull(seat1);
         CollectionAssert.Contains(seat0.InPile.ToList(), discarded);
         Assert.AreEqual(6, seat0.InHand[2].Count);
         CollectionAssert.DoesNotContain(seat0.InHand[2].ToList(), discarded);
@@ -199,7 +202,8 @@ public class KnowledgeTests
     /// <summary>A guess at the hidden cards for <paramref name="seat"/> keeps everything the seat knows.</summary>
     private static void CheckASampleFor(Game game, int seat, int players, Random random)
     {
-        SeatKnowledge known = game.KnowledgeOf(seat)!;
+        SeatKnowledge? known = game.KnowledgeOf(seat);
+        Assert.IsNotNull(known);
         Game sample = Determinization.Sample(game, seat, known, random);
         string where = $"seat {seat}, {game.Phase}, turn {game.Turn}";
 
@@ -293,7 +297,8 @@ public class KnowledgeTests
             }
         }
 
-        SeatKnowledge known = game.KnowledgeOf(0)!;
+        SeatKnowledge? known = game.KnowledgeOf(0);
+        Assert.IsNotNull(known);
         Assert.AreEqual(0, known.InHand[1].Count, "era 1 passes west, so seat 1's hand hasn't reached seat 0");
 
         // the same public state and knowledge, other hidden cards: seat 1's unseen hand, the later decks, the pile

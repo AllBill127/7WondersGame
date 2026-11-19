@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.Json;
+using _7WondersGame.Cli.Common;
 
 namespace _7WondersGame.Cli.Results;
 
@@ -47,7 +48,7 @@ public sealed class RunManifest
     /// <summary>Writes the manifest as indented JSON.</summary>
     public void Save(string path)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        Directory.CreateDirectory(FilePaths.DirectoryOf(Path.GetFullPath(path)));
         File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
 

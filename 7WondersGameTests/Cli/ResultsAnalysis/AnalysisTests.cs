@@ -98,7 +98,8 @@ public class AnalysisTests
         Assert.AreEqual(0.5, groups[0].WinRate, 1e-12);
         Assert.AreEqual(1.0 / 3, groups[0].FairShare, 1e-12);
 
-        PairStatistics pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
+        PairStatistics? pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1]);
+        Assert.IsNotNull(pair);
         Assert.AreEqual(3, pair.Deals);
         Assert.AreEqual(4, pair.VictoryPointDifference, 1e-12);
         double expectedStandardError = Analysis.MeanAndStandardError(new[] { 2.0, 4, 6 }).StandardError;
@@ -123,7 +124,8 @@ public class AnalysisTests
         };
         List<GroupStatistics> groups = Analysis.Groups(rows, GroupBy.Agent);
 
-        PairStatistics pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1])!;
+        PairStatistics? pair = Analysis.Compare(rows, GroupBy.Agent, groups[0], groups[1]);
+        Assert.IsNotNull(pair);
 
         Assert.AreEqual(1, pair.Deals);
         Assert.AreEqual(40 - 33, pair.VictoryPointDifference, 1e-12);
@@ -157,7 +159,9 @@ public class AnalysisTests
             "run", "--players", "RandomAgent,SettingsTestAgent:Weight=0..1,RandomAgent,RandomAgent",
             "--steps", "3", "--games", "2", "--seed", "1", "--rotate", "yes",
         }));
-        SweptSeat swept = new(plan.Sweep!.Seat, plan.Games, plan.Rotations);
+        Sweep? sweep = plan.Sweep;
+        Assert.IsNotNull(sweep);
+        SweptSeat swept = new(sweep.Seat, plan.Games, plan.Rotations);
 
         for (int gameIndex = 0; gameIndex < plan.Total; gameIndex++)
         {

@@ -27,7 +27,8 @@ internal sealed class Spy : IAgent
     /// <summary>Records what the view shows, then chooses a random move.</summary>
     public Move Choose(GameView view)
     {
-        Game game = Game!;
+        Game? game = Game;
+        Assert.IsNotNull(game, "Set the spy's Game before the game is played.");
         if (game.SomeMovesSubmitted)
         {
             SawAnotherChoice = true;

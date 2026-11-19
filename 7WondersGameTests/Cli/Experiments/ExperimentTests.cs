@@ -1,4 +1,5 @@
-﻿using _7WondersGame.Cli.Arguments;
+﻿using _7WondersGame.Cli.Agents;
+using _7WondersGame.Cli.Arguments;
 using _7WondersGame.Cli.CommandLine;
 using _7WondersGame.Cli.Experiments;
 using _7WondersGame.Cli.Results;
@@ -81,11 +82,13 @@ public class ExperimentTests
             "--seed", "1");
 
         Assert.AreEqual(12, plan.Total);
+        Sweep? sweep = plan.Sweep;
+        Assert.IsNotNull(sweep);
         for (int gameIndex = 0; gameIndex < 12; gameIndex++)
         {
             GameSlot slot = plan.At(gameIndex);
             Assert.AreEqual((gameIndex / 4, gameIndex % 4, 0), (slot.Step, slot.Deal, slot.Rotation));
-            Assert.AreEqual(plan.Sweep!.ValueAt(gameIndex / 4), slot.Value);
+            Assert.AreEqual(sweep.ValueAt(gameIndex / 4), slot.Value);
         }
     }
 
@@ -101,7 +104,7 @@ public class ExperimentTests
 
         Assert.AreEqual(3 * 4 * 2, plan.Total);
         GameSlot last = plan.At(plan.Total - 1);
-        Assert.AreEqual((1, 2, 3, 1.0), (last.Step, last.Deal, last.Rotation, last.Value!.Value));
+        Assert.AreEqual((1, 2, 3, 1.0), (last.Step, last.Deal, last.Rotation, last.Value));
     }
 
     [TestMethod]
@@ -195,7 +198,8 @@ public class ExperimentTests
         string runId = rows[0]["runId"];
         string copiedFile = Path.Combine(_directory, "out", $"{runId}.experiment.json");
         Assert.AreEqual(File.ReadAllText(file), File.ReadAllText(copiedFile));
-        RunManifest manifest = RunManifest.Load(Path.Combine(_directory, "out", $"{runId}.run.json"))!;
+        RunManifest? manifest = RunManifest.Load(Path.Combine(_directory, "out", $"{runId}.run.json"));
+        Assert.IsNotNull(manifest);
         Assert.AreEqual(file, manifest.Settings["experiment"]);
         Assert.AreEqual(2 * 3, manifest.GamesCompleted);
         Assert.AreEqual(Environment.ProcessorCount, manifest.Machine.LogicalCores, "where it ran");

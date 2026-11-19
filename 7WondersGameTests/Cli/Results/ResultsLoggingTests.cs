@@ -42,7 +42,7 @@ public class ResultsLoggingTests
 
         Dictionary<int, int> scores = game.Loop(record: true);
 
-        List<SeatResult> results = game.Results!;
+        List<SeatResult> results = game.RecordedResults();
         Assert.AreEqual(3, results.Count);
         for (int seat = 0; seat < 3; seat++)
         {

@@ -7,6 +7,7 @@ using _7WondersGame.Agents.Mcts;
 using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Arguments;
+using _7WondersGame.Cli.Common;
 
 namespace _7WondersGame.Cli.Agents;
 
@@ -266,7 +267,7 @@ public static class AgentCatalog
     {
         if (value.ValueKind == JsonValueKind.String)
         {
-            return value.GetString()!;
+            return JsonText.StringOf(value);
         }
         return value.GetRawText();
     }

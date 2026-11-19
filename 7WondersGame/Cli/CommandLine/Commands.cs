@@ -6,6 +6,7 @@ using _7WondersGame.Agents.Common.Interfaces;
 using _7WondersGame.Agents.RandomChoice;
 using _7WondersGame.Cli.Agents;
 using _7WondersGame.Cli.Arguments;
+using _7WondersGame.Cli.Common;
 using _7WondersGame.Cli.Datasets;
 using _7WondersGame.Cli.Experiments;
 using _7WondersGame.Cli.Logs;
@@ -70,7 +71,7 @@ public static class Commands
         string csvPath = Path.GetFullPath(OutputPath(plan.Output));
         DateTime started = DateTime.UtcNow;
         string runId = RunManifest.NewRunId(started, plan.Seed);
-        string runDirectory = Path.GetDirectoryName(csvPath)!;
+        string runDirectory = FilePaths.DirectoryOf(csvPath);
         string manifestPath = Path.Combine(runDirectory, $"{runId}.run.json");
         string? experimentCopy = CopyExperimentFile(plan, runDirectory, runId);
 
@@ -321,7 +322,7 @@ public static class Commands
             setup.GameSeed.ToString("x16"), DealNote(setup), string.Join(", ", setup.Specifications));
         game.Loop(record: true);
 
-        foreach (SeatResult seatResult in game.Results!)
+        foreach (SeatResult seatResult in game.RecordedResults())
         {
             Log.Information("Seat {Seat} {Agent} {Wonder}{Side}: {VP} VP, {Coins} coins, rank {Rank}",
                 seatResult.Seat, seatResult.Agent, seatResult.Wonder, seatResult.Side, seatResult.VictoryPoints,
@@ -339,7 +340,7 @@ public static class Commands
         List<List<int>[]>? deals = null;
         if (setup.DatasetName != null)
         {
-            int dealsNeeded = setup.Deal!.Value + 1;
+            int dealsNeeded = setup.DealIndex() + 1;
             deals = await LoadDataset(setup.DatasetName, setup.Specifications.Count, dealsNeeded);
         }
 
@@ -350,7 +351,8 @@ public static class Commands
         };
         if (deals != null)
         {
-            game.SetUpGameFromDataset(deals[setup.Deal!.Value]);
+            int dealIndex = setup.DealIndex();
+            game.SetUpGameFromDataset(deals[dealIndex]);
         }
         else
         {
@@ -371,7 +373,7 @@ public static class Commands
     /// <summary>Says whether the replayed game ended as the results CSV recorded it, and why it may not have.</summary>
     private static void CompareWithRecorded(List<Dictionary<string, string>> recorded, Game game)
     {
-        if (SameAsRecorded(recorded, game.Results!))
+        if (SameAsRecorded(recorded, game.RecordedResults()))
         {
             Log.Information("Same result as recorded in the CSV.");
         }
@@ -497,7 +499,8 @@ public static class Commands
         Dictionary<string, SweptSeat> sweeps = new();
         foreach (string run in runs)
         {
-            RunManifest? manifest = RunManifest.Load(Path.Combine(Path.GetDirectoryName(csv)!, $"{run}.run.json"));
+            string manifestPath = Path.Combine(FilePaths.DirectoryOf(csv), $"{run}.run.json");
+            RunManifest? manifest = RunManifest.Load(manifestPath);
             SweptSeat? swept = SweptSeat.From(manifest);
             if (swept != null)
             {
@@ -561,9 +564,9 @@ public static class Commands
         string outputPath = outputName;
         if (!Path.IsPathRooted(outputName))
         {
-            outputPath = Path.Combine(Path.GetDirectoryName(csv)!, outputName);
+            outputPath = Path.Combine(FilePaths.DirectoryOf(csv), outputName);
         }
-        string outputDirectory = Path.GetDirectoryName(outputPath)!;
+        string outputDirectory = FilePaths.DirectoryOf(outputPath);
         string pairsPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(outputPath) + ".pairs.csv");
 
         Directory.CreateDirectory(outputDirectory);

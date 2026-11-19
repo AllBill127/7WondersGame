@@ -32,6 +32,11 @@ public sealed class AgentCatalogEntry
     /// <summary>Makes a new agent with its default settings.</summary>
     public IAgent Create()
     {
-        return (IAgent)Activator.CreateInstance(AgentType)!;
+        object? created = Activator.CreateInstance(AgentType);
+        if (created is not IAgent agent)
+        {
+            throw new InvalidOperationException($"{AgentType.Name} could not be created as an agent.");
+        }
+        return agent;
     }
 }

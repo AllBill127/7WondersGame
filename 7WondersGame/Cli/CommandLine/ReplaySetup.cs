@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using _7WondersGame.Cli.Agents;
 using _7WondersGame.Cli.Arguments;
+using _7WondersGame.Cli.Common;
 using _7WondersGame.Cli.Experiments;
 using _7WondersGame.Cli.Results;
 
@@ -35,6 +36,16 @@ internal sealed class ReplaySetup
 
     /// <summary>The deal's number in the dataset file.</summary>
     public int? Deal { get; private set; }
+
+    /// <summary>The deal's number in the dataset file, for a replay from a dataset; throws without one.</summary>
+    public int DealIndex()
+    {
+        if (Deal == null)
+        {
+            throw new InvalidOperationException($"No deal number to replay from the dataset {DatasetName}.");
+        }
+        return Deal.Value;
+    }
 
     /// <summary>The game's rows in the results CSV, in seat order, or null when replaying from a seed.</summary>
     public List<Dictionary<string, string>>? Recorded { get; }
@@ -127,7 +138,7 @@ internal sealed class ReplaySetup
     /// </summary>
     private void UseRunDataset(string csv, string runId, List<Dictionary<string, string>> recorded)
     {
-        string manifestPath = Path.Combine(Path.GetDirectoryName(csv)!, $"{runId}.run.json");
+        string manifestPath = Path.Combine(FilePaths.DirectoryOf(csv), $"{runId}.run.json");
         RunManifest? manifest = RunManifest.Load(manifestPath);
         if (manifest == null)
         {

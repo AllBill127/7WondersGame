@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using _7WondersGame.Cli.Common;
 using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
@@ -50,7 +51,7 @@ public static class Filer
             CheckDeal(deals[dealIndex], players, $"deal {dealIndex}");
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        Directory.CreateDirectory(FilePaths.DirectoryOf(Path.GetFullPath(path)));
         await using (StreamWriter writer = new(path))
         {
             await writer.WriteLineAsync($"{HeaderPrefix} {players}");
