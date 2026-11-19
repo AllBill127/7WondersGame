@@ -18,7 +18,7 @@ public class ScoreAfterBuildingCardTests
         Assert.IsTrue(MoveTestHelper.BuildCard(player, card, new List<Card> { card }, true));
         Battles.FightEraBattles(player, era);
         player.CopyGuild();
-        return player.CalculateScore();
+        return Scoring.CalculateScore(player);
     }
 
     private static List<PlayerState> ThreePlayersWithoutCoins()

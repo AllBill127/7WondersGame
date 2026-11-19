@@ -56,7 +56,7 @@ public sealed class PlayerState
     /// <summary>The battles lost (each is -1 point).</summary>
     public int DefeatTokens { get; set; }
 
-    /// <summary>Set by <see cref="Rules.CalculateScore"/>.</summary>
+    /// <summary>Set by <see cref="Scoring.CalculateScore"/>.</summary>
     public int VictoryPoints { get; set; }
 
     /// <summary>

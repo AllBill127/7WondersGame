@@ -148,7 +148,7 @@ public sealed class HeuristicValues
     {
         Battles.FightEraBattles(scratchPlayer, _era);
         scratchPlayer.CopyGuild();
-        return scratchPlayer.CalculateScore();
+        return Scoring.CalculateScore(scratchPlayer);
     }
 
     // =========== bonuses ===========

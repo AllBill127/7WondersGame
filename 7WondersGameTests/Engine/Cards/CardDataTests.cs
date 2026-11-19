@@ -198,7 +198,7 @@ public class CardDataTests
     public void CivilianCard_GivesRulebookVP(string name, int victoryPoints)
     {
         PlayerState player = BuildForFree(name);
-        Assert.AreEqual(victoryPoints, player.CalculateCivilianScore());
+        Assert.AreEqual(victoryPoints, Scoring.CalculateCivilianScore(player));
     }
 
     [DataTestMethod]

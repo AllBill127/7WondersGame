@@ -877,7 +877,7 @@ public class Game
                     player.Seat,
                     LastBuiltCard(player).Name);
             }
-            player.CalculateScore();
+            Scoring.CalculateScore(player);
         }
         if (Tracing)
         {
@@ -1249,13 +1249,13 @@ public class Game
                 player.Seat,
                 AgentName(player.Seat),
                 player.VictoryPoints,
-                player.CalculateMilitaryScore(),
-                player.CalculateMoneyScore(),
-                player.CalculateWonderScore(),
-                player.CalculateCivilianScore(),
-                player.CalculateCommercialScore(),
-                player.CalculateGuildScore(),
-                player.CalculateScientificScore(),
+                Scoring.CalculateMilitaryScore(player),
+                Scoring.CalculateMoneyScore(player),
+                Scoring.CalculateWonderScore(player),
+                Scoring.CalculateCivilianScore(player),
+                Scoring.CalculateCommercialScore(player),
+                Scoring.CalculateGuildScore(player),
+                Scoring.CalculateScientificScore(player),
                 player.Resources[Resource.Coins]);
         }
     }

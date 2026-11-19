@@ -125,7 +125,7 @@ public class WonderDataTests
         SetResources(player, stageCost);
         int victoryPointsBefore = player.Wonder.WonderPoints(player);
         int shieldsBefore = player.Resources[Resource.Shields];
-        int scienceBefore = player.CalculateScientificScore();
+        int scienceBefore = Scoring.CalculateScientificScore(player);
         Ability abilitiesBefore = player.Wonder.Abilities;
         player.OlympiaFreeBuildAvailable = false;
         player.HalikarnassosDiscardBuildPending = false;
@@ -200,7 +200,7 @@ public class WonderDataTests
         Assert.AreEqual(effect == "CopyGuild", gained.HasFlag(Ability.CopyGuild), "copy a guild");
         Assert.AreEqual(
             expectedScienceGain,
-            player.CalculateScientificScore() - scienceBefore,
+            Scoring.CalculateScientificScore(player) - scienceBefore,
             "science wildcard");
 
         if (effect == "RawWildcard")

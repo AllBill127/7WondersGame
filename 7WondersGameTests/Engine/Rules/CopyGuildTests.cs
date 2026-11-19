@@ -140,7 +140,7 @@ public class CopyGuildTests
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Craftsmens]));
         Assert.IsFalse(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
-        Assert.AreEqual(4, players[1].CalculateGuildScore());
+        Assert.AreEqual(4, Scoring.CalculateGuildScore(players[1]));
     }
 
     [TestMethod]
@@ -155,7 +155,7 @@ public class CopyGuildTests
 
         // Shipowners: 0 brown + 0 grey + 2 guilds (own Shipowners and the copied Spies). Spies: 0 military next door.
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Spies]));
-        Assert.AreEqual(2, players[1].CalculateGuildScore());
+        Assert.AreEqual(2, Scoring.CalculateGuildScore(players[1]));
     }
 
     [TestMethod]
@@ -176,7 +176,7 @@ public class CopyGuildTests
 
         Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Scientists]));
         Assert.AreEqual(1, PlayerAbilities.ScienceWildcards(players[1]));
-        Assert.AreEqual(26, players[1].CalculateScientificScore());
+        Assert.AreEqual(26, Scoring.CalculateScientificScore(players[1]));
     }
 
     [TestMethod]

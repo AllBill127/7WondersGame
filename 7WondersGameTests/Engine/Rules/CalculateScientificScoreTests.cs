@@ -5,8 +5,6 @@ using _7WondersGame.Engine.Rules.Services;
 using _7WondersGame.Engine.Wonders.Entities;
 using _7WondersGame.Engine.Wonders.Enums;
 using _7WondersGameTests.TestHelpers;
-// this namespace is called Rules too, so the class needs another name here
-using RulesClass = _7WondersGame.Engine.Rules.Services.Rules;
 
 namespace _7WondersGameTests.Engine.Rules;
 
@@ -61,7 +59,7 @@ public class CalculateScientificScoreTests
             player.Wonder.BuiltStageCount = 2;
         }
 
-        Assert.AreEqual(expected, player.CalculateScientificScore());
+        Assert.AreEqual(expected, Scoring.CalculateScientificScore(player));
     }
 
     [TestMethod]
@@ -74,10 +72,10 @@ public class CalculateScientificScoreTests
                 for (int tablets = 0; tablets <= 4; tablets++)
                 {
                     int bestWithOneWildcard = BestScoreWithOneWildcardByHand(gears, compasses, tablets);
-                    Assert.AreEqual(bestWithOneWildcard, RulesClass.BestScienceScore(gears, compasses, tablets, 1),
+                    Assert.AreEqual(bestWithOneWildcard, Scoring.BestScienceScore(gears, compasses, tablets, 1),
                                     $"{gears},{compasses},{tablets} k=1");
                     Assert.IsTrue(
-                        RulesClass.BestScienceScore(gears, compasses, tablets, 2) >= bestWithOneWildcard,
+                        Scoring.BestScienceScore(gears, compasses, tablets, 2) >= bestWithOneWildcard,
                         $"{gears},{compasses},{tablets} k=2 never worse than k=1");
                 }
             }
@@ -90,9 +88,9 @@ public class CalculateScientificScoreTests
         int moreGears = gear + 1;
         int moreCompasses = compass + 1;
         int moreTablets = tablet + 1;
-        int onGear = RulesClass.ScienceScore(moreGears, compass, tablet);
-        int onCompass = RulesClass.ScienceScore(gear, moreCompasses, tablet);
-        int onTablet = RulesClass.ScienceScore(gear, compass, moreTablets);
+        int onGear = Scoring.ScienceScore(moreGears, compass, tablet);
+        int onCompass = Scoring.ScienceScore(gear, moreCompasses, tablet);
+        int onTablet = Scoring.ScienceScore(gear, compass, moreTablets);
         return Math.Max(onGear, Math.Max(onCompass, onTablet));
     }
 }

@@ -41,7 +41,7 @@ public class LighthouseTests
 
         // 3 starting coins + 3 yellow cards (Marketplace, Tavern, Lighthouse)
         Assert.AreEqual(6, player.Resources[Resource.Coins]);
-        Assert.AreEqual(3, player.CalculateCommercialScore());
+        Assert.AreEqual(3, Scoring.CalculateCommercialScore(player));
     }
 
     [TestMethod]
@@ -54,6 +54,6 @@ public class LighthouseTests
         Battles.FightEraBattles(player, 3);
 
         // 3 VP from the Lighthouse + 6 coins / 3 = 2 VP (no shields anywhere, so no military points)
-        Assert.AreEqual(5, player.CalculateScore());
+        Assert.AreEqual(5, Scoring.CalculateScore(player));
     }
 }

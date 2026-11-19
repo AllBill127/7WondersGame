@@ -898,7 +898,7 @@ internal sealed class MctsSearch
         foreach (PlayerState player in players)
         {
             player.CopyGuild();
-            player.CalculateScore();
+            Scoring.CalculateScore(player);
         }
         List<PlayerStanding> standings = GameResult.Rank(players);
 
