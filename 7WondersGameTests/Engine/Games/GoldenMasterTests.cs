@@ -12,7 +12,7 @@ namespace _7WondersGameTests.Engine.Games;
 
 /// <summary>
 /// The golden master. 200 seeded games (40 for each player count, 3 to 7) played through
-/// <see cref="Game.Loop"/> with the heuristic and random agents, and their final state, are stored in
+/// <see cref="Match.Play"/> with the heuristic and random agents, and their final state, are stored in
 /// GoldenMaster/golden-master.txt. A refactoring step must reproduce it exactly. A deliberate rules
 /// change re-records it in its own commit:
 ///     set GOLDEN_MASTER_RECORD=1, run this test, unset it, and commit the new file.

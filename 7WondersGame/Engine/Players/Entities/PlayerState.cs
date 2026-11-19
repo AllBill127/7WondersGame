@@ -10,8 +10,8 @@ namespace _7WondersGame.Engine.Players.Entities;
 /// <summary>
 /// One player's city and hand: data only. The rules that read and change it are the static services in
 /// Engine/Rules/Services (<see cref="BuildRules"/>, <see cref="MovePlanning"/>, <see cref="MoveResolution"/>,
-/// <see cref="Scoring"/> and others); who decides the player's moves is the game's <see cref="Agents.IAgent"/> for
-/// that seat.
+/// <see cref="Scoring"/> and others). The engine doesn't know who decides the player's moves: whoever plays the
+/// seat submits them to the game.
 /// <see cref="Clone"/> is the one place a player is copied.
 /// </summary>
 public sealed class PlayerState

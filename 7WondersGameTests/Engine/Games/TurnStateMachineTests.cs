@@ -250,7 +250,7 @@ public class TurnStateMachineTests
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
     }
 
-    // ================= Loop =================
+    // ================= Match =================
 
     [TestMethod]
     public void Play_NoAgentSeesAnotherChoice()
@@ -347,7 +347,7 @@ public class TurnStateMachineTests
     }
 
     [TestMethod]
-    public void SubmittingOneByOne_InReverseSeatOrder_MatchesLoop()
+    public void SubmittingOneByOne_InReverseSeatOrder_PlaysLikeAMatch()
     {
         HashSet<Phase> phasesSeen = new();
         for (int players = 3; players <= 7; players++)
@@ -368,7 +368,7 @@ public class TurnStateMachineTests
     }
 
     [TestMethod]
-    public void SteppingThroughCopies_MatchesLoop()
+    public void SteppingThroughCopies_PlaysLikeAMatch()
     {
         // HeuristicAgent makes no random draws, so its choices don't depend on the copy's seed
         HashSet<Phase> phasesSeen = new();

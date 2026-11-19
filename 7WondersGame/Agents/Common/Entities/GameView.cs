@@ -72,7 +72,7 @@ public sealed class GameView
     {
         get
         {
-            return _game.AgentRandom(Seat);
+            return _game.SeatRandom(Seat);
         }
     }
 

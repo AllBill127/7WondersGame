@@ -1,10 +1,7 @@
-﻿using _7WondersGame.Agents.Common.Entities;
-using _7WondersGame.Agents.Common.Interfaces;
-using _7WondersGame.Agents.Common.Settings;
-using _7WondersGame.Cli.Results;
-using _7WondersGame.Engine.Cards.Data;
+﻿using _7WondersGame.Engine.Cards.Data;
 using _7WondersGame.Engine.Cards.Entities;
 using _7WondersGame.Engine.Cards.Enums;
+using _7WondersGame.Engine.Cards.Services;
 using _7WondersGame.Engine.Effects.Enums;
 using _7WondersGame.Engine.Games.Dtos;
 using _7WondersGame.Engine.Games.Enums;
@@ -25,18 +22,14 @@ namespace _7WondersGame.Engine.Games.Entities;
 
 /// <summary>
 /// One game: the players' state, the decks and the discard pile, and the turn rules as a state machine
-/// (<see cref="PendingPlayers"/>, <see cref="Submit"/>). <see cref="Loop"/> plays it to the end with the
-/// <see cref="Agents"/>; a search agent plays its own <see cref="DeepCopy"/>.
+/// (<see cref="PendingPlayers"/>, <see cref="Submit"/>). Whoever decides the seats' moves submits them: a match of
+/// agents plays the game to the end, a search agent plays its own <see cref="DeepCopy"/>.
 /// </summary>
 public class Game
 {
     /// <summary>The players' cities and hands, by seat (Players[seat].Seat == seat).</summary>
     public List<PlayerState> Players { get; set; }
 
-    /// <summary>
-    /// Who decides each seat's moves, by seat. <see cref="SetUpRandomGame"/> makes one player per agent.
-    /// </summary>
-    public List<IAgent> Agents { get; set; } = new();
     int PlayerCount { get; set; } = 3;
 
     /// <summary>The era being played: 1, 2 or 3 (4 once the game is over).</summary>
@@ -77,7 +70,7 @@ public class Game
     /// <summary>The seed every random draw of this game comes from.</summary>
     public ulong Seed { get; private set; }
     private readonly Random _random;
-    private readonly Dictionary<int, Random> _agentRandoms = new();
+    private readonly Dictionary<int, Random> _seatRandoms = new();
     private ulong _copyCount = 0;
 
     // what each seat knows about the hidden cards; null in a copy (see DeepCopy)
@@ -111,11 +104,6 @@ public class Game
         }
     }
 
-    private static string Names(IEnumerable<Card> cards)
-    {
-        return string.Join(", ", cards.Select(card => card.Name));
-    }
-
     /// <summary>
     /// A game whose random draws (deal, wonders, agents' choices) all come from <paramref name="seed"/>.
     /// </summary>
@@ -134,16 +122,17 @@ public class Game
     }
 
     /// <summary>
-    /// The random stream for the player in this seat. Agents draw all their random choices from it.
+    /// The random stream for the player in this seat, derived from the game's seed. Whoever decides the seat's
+    /// moves draws all its random choices from it.
     /// </summary>
-    public Random AgentRandom(int seat)
+    public Random SeatRandom(int seat)
     {
-        if (!_agentRandoms.TryGetValue(seat, out Random? agentRandom))
+        if (!_seatRandoms.TryGetValue(seat, out Random? seatRandom))
         {
-            agentRandom = Seeding.CreateRandom(Seeding.AgentSeed(Seed, seat));
-            _agentRandoms[seat] = agentRandom;
+            seatRandom = Seeding.CreateRandom(Seeding.AgentSeed(Seed, seat));
+            _seatRandoms[seat] = seatRandom;
         }
-        return agentRandom;
+        return seatRandom;
     }
 
     /// <summary>
@@ -158,8 +147,6 @@ public class Game
         Game copy = new(copySeed);
 
         copy.Players = PlayerState.CloneTable(Players);
-        // the same agents; a search may swap in others (for its rollouts, say) without touching this game
-        copy.Agents = new List<IAgent>(Agents);
         copy.PlayerCount = this.PlayerCount;
 
         copy.Era = this.Era;
@@ -369,7 +356,7 @@ public class Game
 
 
     // ============ Turn state machine ============
-    // The turn rules live here once. Loop and search agents all go through PendingPlayers and Submit.
+    // The turn rules live here once. Matches and search agents all go through PendingPlayers and Submit.
 
     /// <summary>What the game is waiting for.</summary>
     public Phase Phase { get; private set; } = Phase.ChooseMoves;
@@ -656,7 +643,7 @@ public class Game
         if (Tracing)
         {
             IEnumerable<Card> lastCards = Players.SelectMany(player => player.Hand);
-            Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, Names(lastCards));
+            Trace.Debug("End of era {Era}: last cards discarded: {Cards}", Era, CardNames.Join(lastCards));
         }
         // the cards leave the hands, so no card is in two places during a Halikarnassos build
         foreach (PlayerState player in Players)
@@ -775,95 +762,6 @@ public class Game
         return player.EastNeighbour;
     }
 
-    /// <summary>
-    /// Final results of the last <see cref="Loop(bool)"/> run with record = true; null otherwise.
-    /// </summary>
-    public List<SeatResult>? Results { get; private set; }
-
-    /// <summary>
-    /// <see cref="Results"/> of a game played with record = true. Throws if the game wasn't played that way.
-    /// </summary>
-    public List<SeatResult> RecordedResults()
-    {
-        if (Results == null)
-        {
-            throw new InvalidOperationException("The game has no results: play it with Loop(record: true).");
-        }
-        return Results;
-    }
-
-    /// <summary>
-    /// Plays the game to the end and scores it.
-    /// </summary>
-    /// <param name="record">true for a real game (not a search rollout): fill <see cref="Results"/>.</param>
-    /// <returns>Each seat's final VP.</returns>
-    public Dictionary<int, int> Loop(bool record = false)
-    {
-        if (Agents.Count != Players.Count)
-        {
-            throw new InvalidOperationException($"{Players.Count} players but {Agents.Count} agents.");
-        }
-        if (Turn == 0 && Tracing)
-        {
-            TraceSetup();
-        }
-
-        IReadOnlyList<int> pending = PendingPlayers();
-        while (pending.Count > 0)
-        {
-            AskAndSubmit(pending);
-            pending = PendingPlayers();
-        }
-
-        ScoreAllPlayers();
-        if (Tracing)
-        {
-            TraceScores();
-        }
-        if (record)
-        {
-            Results = GameResult.ForPlayers(Players, Agents);
-        }
-
-        Dictionary<int, int> scores = new();
-        foreach (PlayerState player in Players)
-        {
-            scores.Add(player.Seat, player.VictoryPoints);
-        }
-        return scores;
-    }
-
-    /// <summary>
-    /// Asks every pending seat's agent for its decision, then submits them all. Everyone chooses from a view of the
-    /// same state before any choice is submitted, so no agent sees another's choice.
-    /// </summary>
-    private void AskAndSubmit(IReadOnlyList<int> pending)
-    {
-        List<GameView> views = pending.Select(seat => new GameView(this, seat)).ToList();
-        if (Tracing)
-        {
-            TracePhaseStart(views);
-        }
-
-        List<Move> choices = new(views.Count);
-        foreach (GameView view in views)
-        {
-            choices.Add(Agents[view.Seat].Choose(view));
-        }
-        if (Tracing && Phase != Phase.DiscardPileBuild)
-        {
-            for (int choiceIndex = 0; choiceIndex < views.Count; choiceIndex++)
-            {
-                TraceChoice(views[choiceIndex].Seat, choices[choiceIndex]);
-            }
-        }
-
-        for (int choiceIndex = 0; choiceIndex < views.Count; choiceIndex++)
-        {
-            Submit(views[choiceIndex].Seat, choices[choiceIndex]);
-        }
-    }
-
     /// <summary>The end of the game: Olympia B's guild copy, then every player's final score.</summary>
     public void ScoreAllPlayers()
     {
@@ -895,15 +793,6 @@ public class Game
     {
         return new MoveNotAllowedException(player.Seat,
             $"could not {move} {card.Name} on turn {Turn} (era {Era}, game seed {Seed}).");
-    }
-
-    private string AgentName(int seat)
-    {
-        if (seat < Agents.Count)
-        {
-            return Agents[seat].Name;
-        }
-        return "no agent";
     }
 
     /// <summary>
@@ -1007,33 +896,6 @@ public class Game
         return snapshots;
     }
 
-    private void TraceSetup()
-    {
-        Trace.Debug("Game seed {Seed} (0x{SeedHex}), {Count} players", Seed, Seed.ToString("x16"), Players.Count);
-        foreach (PlayerState player in Players)
-        {
-            Trace.Debug("Seat {Seat}: {Agent} {Configuration} on {Wonder}",
-                player.Seat,
-                AgentName(player.Seat),
-                AgentConfigurationJson(player.Seat),
-                player.Wonder.Id);
-        }
-        for (int era = 0; era < Decks.Length; era++)
-        {
-            Trace.Verbose("Era {Era} deck: {Cards}", era + 1, Names(Decks[era]));
-        }
-        Trace.Debug("=== Era 1 ===");
-    }
-
-    private string AgentConfigurationJson(int seat)
-    {
-        if (seat < Agents.Count)
-        {
-            return Agents[seat].ConfigurationJson();
-        }
-        return "{}";
-    }
-
     private void TraceEraStart()
     {
         Trace.Debug("=== Era {Era} ===", Era);
@@ -1044,83 +906,6 @@ public class Game
                 Trace.Debug("Seat {Seat} may build one card for free this era (Olympia A)", player.Seat);
             }
         }
-    }
-
-    private void TraceTurnStart(IReadOnlyList<GameView> views)
-    {
-        Trace.Debug("--- Era {Era}, turn {Turn} ---", Era, Turn);
-        foreach (GameView view in views)
-        {
-            PlayerState player = Players[view.Seat];
-            Trace.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
-                player.Seat,
-                player.Resources[Resource.Coins],
-                player.Resources[Resource.Shields],
-                player.Wonder.Id,
-                player.Wonder.BuiltStageCount,
-                Names(player.Hand));
-            TracePlayable(view);
-        }
-    }
-
-    // what the agent was shown (worked out for its view, so tracing it changes nothing)
-    private void TracePlayable(GameView view)
-    {
-        Trace.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
-            view.Seat,
-            Names(view.BuildableCards),
-            view.CanBuildWonder);
-    }
-
-    private void TracePhaseStart(IReadOnlyList<GameView> views)
-    {
-        if (Phase == Phase.ChooseMoves)
-        {
-            TraceTurnStart(views);
-            return;
-        }
-        foreach (GameView view in views)
-        {
-            PlayerState player = Players[view.Seat];
-            if (Phase == Phase.SeventhCard)
-            {
-                Trace.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}",
-                    player.Seat,
-                    Names(player.Hand));
-            }
-            else
-            {
-                Trace.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", player.Seat);
-                Trace.Verbose("Discard pile: {Cards}", Names(DiscardPile));
-            }
-            TracePlayable(view);
-        }
-    }
-
-    private void TraceChoice(int seat, Move move)
-    {
-        string cardName = "-";
-        if (move.Card != null)
-        {
-            cardName = move.Card.Name;
-        }
-        Trace.Debug("Seat {Seat} chooses {Action} {Card}", seat, move.Action, cardName);
-
-        // e.g. a search's top moves; the agent made the note when it chose, so reading it changes nothing
-        string? note = LastChoiceNoteOf(seat);
-        if (note != null)
-        {
-            Trace.Debug("Seat {Seat} {Agent}: {Note}", seat, AgentName(seat), note);
-        }
-    }
-
-    private string? LastChoiceNoteOf(int seat)
-    {
-        if (seat < Agents.Count)
-        {
-            return Agents[seat].LastChoiceNote;
-        }
-        return null;
     }
 
     /// <summary>
@@ -1233,28 +1018,6 @@ public class Game
         }
         return "draw";
     }
-
-    private void TraceScores()
-    {
-        foreach (PlayerState player in Players)
-        {
-            Trace.Debug("Seat {Seat} {Agent}: {Total} VP = military {Military} + coins {Money} + wonder {Wonder} + " +
-                        "civilian {Civilian} + commercial {Commercial} + guilds {Guilds} + science {Science}; " +
-                        "{Coins} coins left",
-                player.Seat,
-                AgentName(player.Seat),
-                player.VictoryPoints,
-                Scoring.CalculateMilitaryScore(player),
-                Scoring.CalculateMoneyScore(player),
-                Scoring.CalculateWonderScore(player),
-                Scoring.CalculateCivilianScore(player),
-                Scoring.CalculateCommercialScore(player),
-                Scoring.CalculateGuildScore(player),
-                Scoring.CalculateScientificScore(player),
-                player.Resources[Resource.Coins]);
-        }
-    }
-
 
     // ================= Legal moves (for search agents) =================
     /// <summary>Every move a seat may make now. A seat with nothing to decide gets a single Skip.</summary>

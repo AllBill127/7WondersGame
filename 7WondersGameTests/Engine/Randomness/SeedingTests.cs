@@ -54,16 +54,16 @@ public class SeedingTests
     }
 
     [TestMethod]
-    public void AgentRandom_IsPerSeatAndSeeded()
+    public void SeatRandom_IsPerSeatAndSeeded()
     {
         Game firstGame = new(123);
         Game secondGame = new(123);
 
-        int[] seat0 = Draw(firstGame.AgentRandom(0));
-        CollectionAssert.AreEqual(seat0, Draw(secondGame.AgentRandom(0)), "same seed, same seat");
-        CollectionAssert.AreNotEqual(seat0, Draw(new Game(123).AgentRandom(1)), "other seat");
-        CollectionAssert.AreNotEqual(seat0, Draw(new Game(124).AgentRandom(0)), "other seed");
-        Assert.AreSame(firstGame.AgentRandom(0), firstGame.AgentRandom(0), "one stream per seat");
+        int[] seat0 = Draw(firstGame.SeatRandom(0));
+        CollectionAssert.AreEqual(seat0, Draw(secondGame.SeatRandom(0)), "same seed, same seat");
+        CollectionAssert.AreNotEqual(seat0, Draw(new Game(123).SeatRandom(1)), "other seat");
+        CollectionAssert.AreNotEqual(seat0, Draw(new Game(124).SeatRandom(0)), "other seed");
+        Assert.AreSame(firstGame.SeatRandom(0), firstGame.SeatRandom(0), "one stream per seat");
     }
 
     [TestMethod]
@@ -76,11 +76,11 @@ public class SeedingTests
         for (int copyIndex = 0; copyIndex < 5; copyIndex++)
         {
             Game copy = searched.DeepCopy();
-            Draw(copy.AgentRandom(0));
+            Draw(copy.SeatRandom(0));
             copy.LegalMovesPruned(0);
         }
 
-        CollectionAssert.AreEqual(Draw(untouched.AgentRandom(0)), Draw(searched.AgentRandom(0)), "agent stream");
+        CollectionAssert.AreEqual(Draw(untouched.SeatRandom(0)), Draw(searched.SeatRandom(0)), "agent stream");
         CollectionAssert.AreEqual(
             untouched.LegalMovesPruned(0).Select(MoveText).ToList(),
             searched.LegalMovesPruned(0).Select(MoveText).ToList(),
