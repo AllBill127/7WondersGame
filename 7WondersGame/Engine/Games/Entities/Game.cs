@@ -504,9 +504,9 @@ public class Game
     }
 
     /// <summary>Every player's held move, with the hand it is made from.</summary>
-    private List<(PlayerState, Move, List<Card>)> ChosenMovesOfAllPlayers()
+    private List<SubmittedMove> ChosenMovesOfAllPlayers()
     {
-        List<(PlayerState, Move, List<Card>)> moves = new(Players.Count);
+        List<SubmittedMove> moves = new(Players.Count);
         foreach (PlayerState player in Players)
         {
             Move? chosenMove = _chosen[player.Seat];
@@ -514,7 +514,7 @@ public class Game
             {
                 throw new InvalidOperationException($"Seat {player.Seat} has no move in yet.");
             }
-            moves.Add((player, chosenMove, player.Hand));
+            moves.Add(new SubmittedMove(player, chosenMove, player.Hand));
         }
         return moves;
     }
@@ -522,7 +522,7 @@ public class Game
     /// <summary>Babylon B: the last card of the hand, played on its own.</summary>
     private void SubmitSeventhCardMove(PlayerState player, Move move)
     {
-        ResolveMoves(new[] { (player, move, player.Hand) });
+        ResolveMoves(new[] { new SubmittedMove(player, move, player.Hand) });
         _waiting[player.Seat] = false;
         if (!AnyoneWaiting())
         {
@@ -918,7 +918,7 @@ public class Game
     /// the cards and wonder stages arrive. Coins received can't be spent in the same turn, and seat order doesn't
     /// change the result.
     /// </summary>
-    public void ResolveMoves(IReadOnlyList<(PlayerState Player, Move Move, List<Card> Source)> moves)
+    public void ResolveMoves(IReadOnlyList<SubmittedMove> moves)
     {
         TraceSnapshot[]? before = null;
         if (Tracing)
@@ -942,19 +942,21 @@ public class Game
     /// <summary>
     /// Checks and prices every move against the same state; throws, changing nothing, if one isn't allowed.
     /// </summary>
-    private PlannedMove?[] PlanAllMoves(IReadOnlyList<(PlayerState Player, Move Move, List<Card> Source)> moves)
+    private PlannedMove?[] PlanAllMoves(IReadOnlyList<SubmittedMove> moves)
     {
         PlannedMove?[] planned = new PlannedMove?[moves.Count];
         for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)
         {
-            (PlayerState player, Move move, List<Card> source) = moves[moveIndex];
+            SubmittedMove submitted = moves[moveIndex];
+            PlayerState player = submitted.Player;
+            Move move = submitted.Move;
             Card? card = move.Card;
             if (move.Action == MoveAction.Skip || card == null)
             {
                 continue;
             }
 
-            PlannedMove? plannedMove = player.PlanMove(move.Action, card, source);
+            PlannedMove? plannedMove = player.PlanMove(move.Action, card, submitted.Source);
             if (plannedMove == null)
             {
                 throw MoveFailed(player, move.Action.ToString(), card);
@@ -1001,7 +1003,7 @@ public class Game
     // Read-only: these only read state that is already computed.
 
     private static TraceSnapshot[] SnapshotsBefore(
-        IReadOnlyList<(PlayerState Player, Move Move, List<Card> Source)> moves)
+        IReadOnlyList<SubmittedMove> moves)
     {
         TraceSnapshot[] snapshots = new TraceSnapshot[moves.Count];
         for (int moveIndex = 0; moveIndex < moves.Count; moveIndex++)

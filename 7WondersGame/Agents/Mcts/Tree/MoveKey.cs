@@ -1,16 +1,14 @@
-﻿using _7WondersGame.Engine.Moves.Dtos;
-
-namespace _7WondersGame.Agents.Mcts.Tree;
+﻿namespace _7WondersGame.Agents.Mcts.Tree;
 
 /// <summary>
 /// The moves made at a node (one in a sequential tree, everyone pending in DUCT): the key of the child.
 /// </summary>
 internal readonly struct MoveKey : IEquatable<MoveKey>
 {
-    private readonly (int Seat, Move Move)[] _moves;
+    private readonly SeatMove[] _moves;
 
     /// <summary>A key of the moves, in their order (the list is copied).</summary>
-    public MoveKey(List<(int Seat, Move Move)> moves)
+    public MoveKey(List<SeatMove> moves)
     {
         _moves = moves.ToArray();
     }
@@ -42,7 +40,7 @@ internal readonly struct MoveKey : IEquatable<MoveKey>
     public override int GetHashCode()
     {
         HashCode hash = new();
-        foreach ((int Seat, Move Move) move in _moves)
+        foreach (SeatMove move in _moves)
         {
             hash.Add(move);
         }

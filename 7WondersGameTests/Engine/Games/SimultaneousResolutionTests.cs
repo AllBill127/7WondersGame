@@ -57,13 +57,14 @@ public class SimultaneousResolutionTests
     }
 
     /// <summary>Each of the seats builds the first card of its hand, listed in the given seat order.</summary>
-    private static List<(PlayerState, Move, List<Card>)> Moves(Game game, params int[] seats)
+    private static List<SubmittedMove> Moves(Game game, params int[] seats)
     {
-        List<(PlayerState, Move, List<Card>)> moves = new();
+        List<SubmittedMove> moves = new();
         foreach (int seat in seats)
         {
             PlayerState player = game.Players[seat];
-            moves.Add((player, new Move(MoveAction.Build, player.Hand[0]), player.Hand));
+            Move build = new(MoveAction.Build, player.Hand[0]);
+            moves.Add(new SubmittedMove(player, build, player.Hand));
         }
 
         return moves;

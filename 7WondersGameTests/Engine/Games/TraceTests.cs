@@ -24,11 +24,10 @@ public class TraceTests
     private const string SearchNotePattern =
         @"^Seat 1 MctsAgent: 40 iterations in \d+ ms; \w+ .+ \d+ visits, reward [\d.]+, wins \d+%";
 
-    private static (ILogger Logger, ListSink Sink) Capture(LogEventLevel level)
+    /// <summary>A logger that writes events of <paramref name="level"/> and up to <paramref name="sink"/>.</summary>
+    private static ILogger LoggerInto(ListSink sink, LogEventLevel level)
     {
-        ListSink sink = new();
-        ILogger logger = new LoggerConfiguration().MinimumLevel.Is(level).WriteTo.Sink(sink).CreateLogger();
-        return (logger, sink);
+        return new LoggerConfiguration().MinimumLevel.Is(level).WriteTo.Sink(sink).CreateLogger();
     }
 
     private static Game NewGame(ulong seed, ILogger? trace = null)
@@ -58,7 +57,8 @@ public class TraceTests
             Game silent = NewGame(seed);
             silent.Loop(record: true);
 
-            (ILogger logger, ListSink sink) = Capture(LogEventLevel.Verbose);
+            ListSink sink = new();
+            ILogger logger = LoggerInto(sink, LogEventLevel.Verbose);
             Game traced = NewGame(seed, logger);
             traced.Loop(record: true);
 
@@ -70,7 +70,8 @@ public class TraceTests
     [TestMethod]
     public void ASearchersTrace_SaysWhyItChose_AndChangesNothing()
     {
-        (ILogger logger, ListSink sink) = Capture(LogEventLevel.Debug);
+        ListSink sink = new();
+        ILogger logger = LoggerInto(sink, LogEventLevel.Debug);
         Assert.AreEqual(Outcome(PlayWithSearcher(null)), Outcome(PlayWithSearcher(logger)));
 
         List<string> notes = sink.Messages.Where(message => message.StartsWith("Seat 1 MctsAgent: ")).ToList();
@@ -116,7 +117,7 @@ public class TraceTests
     [TestMethod]
     public void DeepCopy_IsSilent()
     {
-        (ILogger logger, _) = Capture(LogEventLevel.Verbose);
+        ILogger logger = LoggerInto(new ListSink(), LogEventLevel.Verbose);
         Game game = NewGame(5, logger);
 
         Game copy = game.DeepCopy();
@@ -127,7 +128,8 @@ public class TraceTests
     [TestMethod]
     public void DebugTrace_HasTheMainSteps()
     {
-        (ILogger logger, ListSink sink) = Capture(LogEventLevel.Debug);
+        ListSink sink = new();
+        ILogger logger = LoggerInto(sink, LogEventLevel.Debug);
         Game game = NewGame(Seeding.GameSeed(77, 0), logger);
         game.Loop(record: true);
         List<string> lines = sink.Messages.ToList();

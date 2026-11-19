@@ -79,14 +79,14 @@ public sealed class ResultRow
     public static List<ResultRow> Read(IEnumerable<Dictionary<string, string>> csvRows)
     {
         List<ResultRow> rows = csvRows.Select(FromCsv).ToList();
-        Dictionary<(string RunId, long GameIndex), int> players = rows
-            .GroupBy(row => (row.RunId, row.GameIndex))
+        Dictionary<RecordedGameKey, int> players = rows
+            .GroupBy(row => new RecordedGameKey(row))
             .ToDictionary(game => game.Key, game => game.Count());
 
         List<ResultRow> withPlayers = new(rows.Count);
         foreach (ResultRow row in rows)
         {
-            (string RunId, long GameIndex) game = (row.RunId, row.GameIndex);
+            RecordedGameKey game = new(row);
             withPlayers.Add(row.WithPlayers(players[game]));
         }
         return withPlayers;

@@ -73,7 +73,7 @@ public static class Filer
     /// <exception cref="InvalidDataException">
     /// The file has no header, is malformed, or has a deal that isn't valid.
     /// </exception>
-    public static async Task<(int Players, List<List<int>[]> Deals)> ReadGameDatasetFromFile(string path)
+    public static async Task<GameDataset> ReadGameDatasetFromFile(string path)
     {
         string[] lines = await File.ReadAllLinesAsync(path);
         return Parse(lines, path);
@@ -83,7 +83,7 @@ public static class Filer
     /// The player count and the deals of a dataset file's lines (<paramref name="name"/> is for messages).
     /// </summary>
     /// <exception cref="InvalidDataException">The lines are not a valid dataset.</exception>
-    public static (int Players, List<List<int>[]> Deals) Parse(IReadOnlyList<string> lines, string name)
+    public static GameDataset Parse(IReadOnlyList<string> lines, string name)
     {
         int lineIndex = 0;
         int players = ParseHeader(NextNonEmptyLine(lines, ref lineIndex), name);
@@ -106,7 +106,7 @@ public static class Filer
         {
             throw new InvalidDataException($"{name} has no deals.");
         }
-        return (players, deals);
+        return new GameDataset(players, deals);
     }
 
     /// <summary>The deal after a game's heading: each section's heading and its line of ids.</summary>

@@ -59,7 +59,9 @@ public static class Commands
     public static async Task<int> Run(CliArguments cli, string[] args)
     {
         RunPlan plan = RunPlan.FromCli(cli);
-        (LogEventLevel level, string levelSource) = Logging.Resolve(plan.LogLevel);
+        LogLevelChoice logLevel = Logging.Resolve(plan.LogLevel);
+        LogEventLevel level = logLevel.Level;
+        string levelSource = logLevel.Source;
         Logging.Configure(level);
 
         List<List<int>[]>? deals = null;
@@ -295,7 +297,7 @@ public static class Commands
     public static async Task<int> Replay(CliArguments cli)
     {
         cli.AllowOnly("from", "run", "game", "players", "game-seed", "dataset", "deal", "log-level");
-        (LogEventLevel level, _) = Logging.Resolve(cli.Get("log-level"), LogEventLevel.Debug);
+        LogEventLevel level = Logging.Resolve(cli.Get("log-level"), LogEventLevel.Debug).Level;
         Logging.Configure(level);
 
         string? datasetName = cli.Get("dataset");
@@ -655,9 +657,10 @@ public static class Commands
         foreach (AgentCatalogEntry entry in AgentCatalog.Entries)
         {
             text.AppendLine($"  {entry.Name,-32} {entry.Description}");
-            foreach ((string name, Type type, object? value) in AgentCatalog.SettingsOf(entry))
+            foreach (AgentSettingDefault setting in AgentCatalog.SettingsOf(entry))
             {
-                text.AppendLine($"      {name,-40} {type.Name,-24} default {ShownValue(value)}");
+                string shownDefault = ShownValue(setting.DefaultValue);
+                text.AppendLine($"      {setting.Name,-40} {setting.Type.Name,-24} default {shownDefault}");
             }
         }
         text.AppendLine();
@@ -723,16 +726,17 @@ public static class Commands
         {
             throw new UsageException($"Dataset file not found: {path}");
         }
-        int players;
-        List<List<int>[]> deals;
+        GameDataset dataset;
         try
         {
-            (players, deals) = await Filer.ReadGameDatasetFromFile(path);
+            dataset = await Filer.ReadGameDatasetFromFile(path);
         }
         catch (InvalidDataException exception)
         {
             throw new UsageException(exception.Message);
         }
+        int players = dataset.Players;
+        List<List<int>[]> deals = dataset.Deals;
         if (players != seats)
         {
             throw new UsageException($"{path} deals are for {players} players, but the line-up has {seats}.");

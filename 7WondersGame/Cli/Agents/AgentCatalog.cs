@@ -95,13 +95,13 @@ public static class AgentCatalog
     }
 
     /// <summary>The settings of an agent type, with their defaults.</summary>
-    public static List<(string Name, Type Type, object? Default)> SettingsOf(AgentCatalogEntry entry)
+    public static List<AgentSettingDefault> SettingsOf(AgentCatalogEntry entry)
     {
         IAgent sample = entry.Create();
-        List<(string Name, Type Type, object? Default)> settings = new();
+        List<AgentSettingDefault> settings = new();
         foreach (AgentSetting setting in AgentSettings.Of(sample.GetType()))
         {
-            settings.Add((setting.Name, setting.Type, setting.GetValue(sample)));
+            settings.Add(new AgentSettingDefault(setting.Name, setting.Type, setting.GetValue(sample)));
         }
         return settings
             .OrderBy(setting => setting.Name, StringComparer.Ordinal)

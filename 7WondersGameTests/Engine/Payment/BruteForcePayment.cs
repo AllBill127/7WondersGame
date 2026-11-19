@@ -31,7 +31,7 @@ internal sealed class BruteForcePayment
     private readonly Dictionary<Resource, int> _cost;
 
     // every either/or source: its owner (Buyer, West or East) and the resources it may give
-    private readonly List<(int Owner, Resource[] Options)> _sources = new();
+    private readonly List<EitherOrSource> _sources = new();
 
     // what each owner has of each good, with the sources' choices tried so far added
     private readonly int[,] _supply = new int[3, 7];
@@ -109,7 +109,7 @@ internal sealed class BruteForcePayment
         Resource[] needed = options.Where(resource => _cost.GetValueOrDefault(resource) > 0).ToArray();
         if (needed.Length > 0)
         {
-            _sources.Add((owner, needed));
+            _sources.Add(new EitherOrSource(owner, needed));
         }
     }
 

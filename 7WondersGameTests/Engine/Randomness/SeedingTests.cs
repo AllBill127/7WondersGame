@@ -28,8 +28,12 @@ public class SeedingTests
         for (ulong runSeed = 1; runSeed <= 10; runSeed++)
         {
             ulong seed = Seeding.GameSeed(runSeed, 0);
-            (string setupA, List<int> scoresA) = PlayGame(seed);
-            (string setupB, List<int> scoresB) = PlayGame(seed);
+            Game gameA = SetUpGame(seed);
+            string setupA = SetupText(gameA);
+            List<int> scoresA = PlayToTheEnd(gameA);
+            Game gameB = SetUpGame(seed);
+            string setupB = SetupText(gameB);
+            List<int> scoresB = PlayToTheEnd(gameB);
 
             Assert.AreEqual(setupA, setupB, $"deal, seed {seed}");
             CollectionAssert.AreEqual(scoresA, scoresB, $"final scores, seed {seed}");
@@ -40,7 +44,7 @@ public class SeedingTests
     public void DifferentGameIndex_GivesDifferentDeal()
     {
         List<string> setups = Enumerable.Range(0, 10)
-            .Select(gameIndex => PlayGame(Seeding.GameSeed(7, gameIndex)).setup)
+            .Select(gameIndex => SetupText(SetUpGame(Seeding.GameSeed(7, gameIndex))))
             .ToList();
 
         Assert.AreEqual(10, setups.Distinct().Count());
@@ -105,12 +109,17 @@ public class SeedingTests
         return game;
     }
 
-    /// <returns>The deal as text, and each seat's final VP.</returns>
-    private static (string setup, List<int> scores) PlayGame(ulong seed)
+    /// <summary>A game of the seed, dealt and not played yet.</summary>
+    private static Game SetUpGame(ulong seed)
     {
         Game game = NewGame(seed);
         game.SetUpRandomGame();
+        return game;
+    }
 
+    /// <summary>The deal of a game set up and not played yet, as text: the era decks and the wonder boards.</summary>
+    private static string SetupText(Game game)
+    {
         List<string> dealParts = new();
         foreach (List<Card> deck in game.Decks)
         {
@@ -118,14 +127,17 @@ public class SeedingTests
         }
 
         dealParts.Add(string.Join(",", game.Players.Select(player => player.Wonder.Id)));
-        string setup = string.Join(" | ", dealParts);
+        return string.Join(" | ", dealParts);
+    }
 
+    /// <summary>Plays the game to the end; each seat's final VP, in seat order.</summary>
+    private static List<int> PlayToTheEnd(Game game)
+    {
         Dictionary<int, int> scores = game.Loop();
-        List<int> scoresInSeatOrder = scores
+        return scores
             .OrderBy(seatScore => seatScore.Key)
             .Select(seatScore => seatScore.Value)
             .ToList();
-        return (setup, scoresInSeatOrder);
     }
 
     private static string DeckText(List<Card> deck)

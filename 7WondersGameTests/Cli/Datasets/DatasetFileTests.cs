@@ -58,9 +58,10 @@ public class DatasetFileTests
             List<List<int>[]> deals = new() { Deal(4, 1), Deal(4, 2) };
             await Filer.WriteGameDatasetToFile(path, 4, deals);
 
-            (int players, List<List<int>[]> read) = await Filer.ReadGameDatasetFromFile(path);
+            GameDataset dataset = await Filer.ReadGameDatasetFromFile(path);
+            List<List<int>[]> read = dataset.Deals;
 
-            Assert.AreEqual(4, players);
+            Assert.AreEqual(4, dataset.Players);
             Assert.AreEqual(2, read.Count);
             for (int dealIndex = 0; dealIndex < 2; dealIndex++)
             {
@@ -106,8 +107,8 @@ public class DatasetFileTests
         Assert.IsTrue(files.Length > 0);
         foreach (FileInfo file in files)
         {
-            (int players, List<List<int>[]> deals) = Filer.Parse(File.ReadAllLines(file.FullName), file.Name);
-            StringAssert.StartsWith(file.Name, $"gameDataset_{players}p_{deals.Count}g");
+            GameDataset dataset = Filer.Parse(File.ReadAllLines(file.FullName), file.Name);
+            StringAssert.StartsWith(file.Name, $"gameDataset_{dataset.Players}p_{dataset.Deals.Count}g");
         }
     }
 

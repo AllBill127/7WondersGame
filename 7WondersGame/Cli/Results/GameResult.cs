@@ -17,14 +17,14 @@ public static class GameResult
     /// <summary>
     /// Standings in the same order as the input.
     /// </summary>
-    public static List<PlayerStanding> Rank(IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
+    public static List<PlayerStanding> Rank(IReadOnlyList<FinalScore> players)
     {
         List<PlayerStanding> standings = new(players.Count);
         for (int seat = 0; seat < players.Count; seat++)
         {
-            (int Id, int VictoryPoints, int Coins) player = players[seat];
+            FinalScore player = players[seat];
             int better = CountPlayersBeating(player, players);
-            standings.Add(new PlayerStanding(player.Id, player.VictoryPoints, player.Coins, better + 1, 0));
+            standings.Add(new PlayerStanding(player.Seat, player.VictoryPoints, player.Coins, better + 1, 0));
         }
 
         // the players tied for first share the win
@@ -43,11 +43,11 @@ public static class GameResult
     /// <summary>Standings of the players by their victory points and coins now, in the same order.</summary>
     public static List<PlayerStanding> Rank(IReadOnlyList<PlayerState> players)
     {
-        List<(int Id, int VictoryPoints, int Coins)> scores = new(players.Count);
+        List<FinalScore> scores = new(players.Count);
         for (int seat = 0; seat < players.Count; seat++)
         {
             PlayerState player = players[seat];
-            scores.Add((player.Seat, player.VictoryPoints, player.Resources[Resource.Coins]));
+            scores.Add(new FinalScore(player.Seat, player.VictoryPoints, player.Resources[Resource.Coins]));
         }
         return Rank(scores);
     }
@@ -87,13 +87,12 @@ public static class GameResult
     }
 
     /// <summary>How many of <paramref name="players"/> beat <paramref name="player"/>.</summary>
-    private static int CountPlayersBeating((int Id, int VictoryPoints, int Coins) player,
-                                           IReadOnlyList<(int Id, int VictoryPoints, int Coins)> players)
+    private static int CountPlayersBeating(FinalScore player, IReadOnlyList<FinalScore> players)
     {
         int count = 0;
         for (int otherIndex = 0; otherIndex < players.Count; otherIndex++)
         {
-            if (Beats(players[otherIndex], player))
+            if (players[otherIndex].Beats(player))
             {
                 count++;
             }
@@ -112,12 +111,5 @@ public static class GameResult
             }
         }
         return winners;
-    }
-
-    private static bool Beats((int Id, int VictoryPoints, int Coins) player,
-                              (int Id, int VictoryPoints, int Coins) other)
-    {
-        return player.VictoryPoints > other.VictoryPoints
-            || (player.VictoryPoints == other.VictoryPoints && player.Coins > other.Coins);
     }
 }

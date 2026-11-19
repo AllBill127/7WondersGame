@@ -82,7 +82,7 @@ public class HeuristicAgentTests
 
             while (game.Phase != Phase.GameOver)
             {
-                List<(int Seat, Move Move)> moves = new();
+                Dictionary<int, Move> movesBySeat = new();
                 foreach (int seat in game.PendingPlayers())
                 {
                     string before = Snapshot(game);
@@ -94,12 +94,12 @@ public class HeuristicAgentTests
                     Assert.AreEqual(fromView, fromState, $"seat {seat}, turn {game.Turn}");
                     Assert.AreEqual(before, Snapshot(game), $"seat {seat}, turn {game.Turn}");
                     CollectionAssert.Contains(game.LegalMoves(seat), fromView, $"seat {seat}, turn {game.Turn}");
-                    moves.Add((seat, fromView));
+                    movesBySeat.Add(seat, fromView);
                 }
 
-                foreach ((int seat, Move move) in moves)
+                foreach (KeyValuePair<int, Move> seatMove in movesBySeat)
                 {
-                    game.Submit(seat, move);
+                    game.Submit(seatMove.Key, seatMove.Value);
                 }
             }
         }

@@ -153,8 +153,9 @@ public sealed class RunPlan
         {
             CheckOnlyMachineOptionsWithExperiment(cli);
             experiment = Path.GetFullPath(cli.Require("experiment"));
-            (Dictionary<string, string> fileOptions, description) = LoadExperiment(experiment);
-            cli = cli.WithDefaults(fileOptions);
+            ExperimentFile experimentFile = LoadExperiment(experiment);
+            description = experimentFile.Description;
+            cli = cli.WithDefaults(experimentFile.Options);
         }
 
         List<AgentSpecification> players = ParsePlayers(cli.Require("players"), "run");
@@ -209,7 +210,7 @@ public sealed class RunPlan
     /// (<see cref="FileKeys"/>, any case). players may be a list; true/false mean yes/no.
     /// A relative dataset name is looked for next to the file first.
     /// </summary>
-    public static (Dictionary<string, string> Options, string? Description) LoadExperiment(string path)
+    public static ExperimentFile LoadExperiment(string path)
     {
         if (!File.Exists(path))
         {
@@ -252,7 +253,7 @@ public sealed class RunPlan
                 }
                 options[key] = value;
             }
-            return (options, description);
+            return new ExperimentFile(options, description);
         }
     }
 

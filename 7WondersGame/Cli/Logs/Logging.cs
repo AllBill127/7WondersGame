@@ -25,25 +25,25 @@ public static class Logging
     /// then the <see cref="EnvironmentVariable"/> environment variable, then the build (Debug builds: debug, Release:
     /// info).
     /// </summary>
-    public static (LogEventLevel Level, string Source) Resolve(string? option, LogEventLevel? commandDefault = null)
+    public static LogLevelChoice Resolve(string? option, LogEventLevel? commandDefault = null)
     {
         if (option != null)
         {
-            return (Parse(option, "--log-level"), "--log-level");
+            return new LogLevelChoice(Parse(option, "--log-level"), "--log-level");
         }
         if (commandDefault != null)
         {
-            return (commandDefault.Value, "command default");
+            return new LogLevelChoice(commandDefault.Value, "command default");
         }
         string? env = Environment.GetEnvironmentVariable(EnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(env))
         {
-            return (Parse(env, EnvironmentVariable), EnvironmentVariable);
+            return new LogLevelChoice(Parse(env, EnvironmentVariable), EnvironmentVariable);
         }
 #if DEBUG
-        return (LogEventLevel.Debug, "Debug build");
+        return new LogLevelChoice(LogEventLevel.Debug, "Debug build");
 #else
-        return (LogEventLevel.Information, "Release build");
+        return new LogLevelChoice(LogEventLevel.Information, "Release build");
 #endif
     }
 

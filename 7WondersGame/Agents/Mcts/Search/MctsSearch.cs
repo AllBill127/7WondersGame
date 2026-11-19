@@ -58,7 +58,7 @@ internal sealed class MctsSearch
     private MctsSearch[] _rootWorkers = Array.Empty<MctsSearch>();
     private Game[] _workerGames = Array.Empty<Game>();
     private Random[] _workerStreams = Array.Empty<Random>();
-    private (double[] Reward, double MyWin)[] _leafResults = Array.Empty<(double[] Reward, double MyWin)>();
+    private RolloutResult[] _leafResults = Array.Empty<RolloutResult>();
     private int _treeIterationsStarted;
 
     /// <param name="configuration">The agent's settings.</param>
@@ -171,7 +171,7 @@ internal sealed class MctsSearch
     private void Iterate()
     {
         Game searchGame = Sample(_rootGame, _random);
-        List<(Node Node, List<(int Seat, Move Move)> Moves)> path = Descend(searchGame, _random);
+        List<SelectionStep> path = Descend(searchGame, _random);
         Backup(path, Rollout(searchGame, _random));
     }
 
@@ -189,17 +189,17 @@ internal sealed class MctsSearch
     /// Selection and expansion: walks down from the root, making the tree policy's moves in
     /// <paramref name="searchGame"/>, until it adds a new node (or the game ends). Returns the moves made at each node.
     /// </summary>
-    private List<(Node Node, List<(int Seat, Move Move)> Moves)> Descend(Game searchGame, Random random)
+    private List<SelectionStep> Descend(Game searchGame, Random random)
     {
-        List<(Node Node, List<(int Seat, Move Move)> Moves)> path = new();
+        List<SelectionStep> path = new();
         Node node = _tree;
         while (searchGame.Phase != Phase.GameOver)
         {
-            List<(int Seat, Move Move)> moves = ChooseMoves(node, searchGame, random);
-            path.Add((node, moves));
-            foreach ((int seat, Move move) in moves)
+            List<SeatMove> moves = ChooseMoves(node, searchGame, random);
+            path.Add(new SelectionStep(node, moves));
+            foreach (SeatMove seatMove in moves)
             {
-                searchGame.Submit(seat, move);
+                searchGame.Submit(seatMove.Seat, seatMove.Move);
             }
 
             MoveKey key = new(moves);
@@ -215,22 +215,21 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Backpropagation: adds a rollout's rewards to every move on the path.</summary>
-    private void Backup(List<(Node Node, List<(int Seat, Move Move)> Moves)> path,
-                        (double[] Reward, double MyWin) result)
+    private void Backup(List<SelectionStep> path, RolloutResult result)
     {
-        double[] reward = result.Reward;
-        double myWin = result.MyWin;
-        foreach ((Node node, List<(int Seat, Move Move)> moves) in path)
+        double[] rewardBySeat = result.RewardBySeat;
+        double searchingSeatWinShare = result.SearchingSeatWinShare;
+        foreach (SelectionStep step in path)
         {
-            foreach ((int Seat, Move Move) seatAndMove in moves)
+            foreach (SeatMove seatMove in step.Moves)
             {
-                MoveStatistics moveStatistics = node.Statistics[seatAndMove];
+                MoveStatistics moveStatistics = step.Node.Statistics[seatMove];
                 moveStatistics.Visits++;
                 for (int seat = 0; seat < _playerCount; seat++)
                 {
-                    moveStatistics.Total[seat] += reward[seat];
+                    moveStatistics.Total[seat] += rewardBySeat[seat];
                 }
-                moveStatistics.Wins += myWin;
+                moveStatistics.Wins += searchingSeatWinShare;
             }
         }
     }
@@ -328,7 +327,7 @@ internal sealed class MctsSearch
     /// </summary>
     private void AddRootStatistics(Node merged, Node workerRoot)
     {
-        foreach ((int Seat, Move Move) key in workerRoot.Order)
+        foreach (SeatMove key in workerRoot.Order)
         {
             MoveStatistics workerMoveStatistics = workerRoot.Statistics[key];
             if (!merged.Statistics.TryGetValue(key, out MoveStatistics? sum))
@@ -356,11 +355,11 @@ internal sealed class MctsSearch
         int workerCount = _configuration.ParallelWorkerCount;
         _workerGames = new Game[workerCount];
         _workerStreams = new Random[workerCount];
-        _leafResults = new (double[] Reward, double MyWin)[workerCount];
+        _leafResults = new RolloutResult[workerCount];
         do
         {
             Game searchGame = Sample(_rootGame, _random);
-            List<(Node Node, List<(int Seat, Move Move)> Moves)> path = Descend(searchGame, _random);
+            List<SelectionStep> path = Descend(searchGame, _random);
             for (int worker = 0; worker < workerCount; worker++)
             {
                 if (worker == 0)
@@ -376,7 +375,7 @@ internal sealed class MctsSearch
 
             RunWorkers(workerCount, RunLeafRollout);
 
-            foreach ((double[] Reward, double MyWin) result in _leafResults)
+            foreach (RolloutResult result in _leafResults)
             {
                 Backup(path, result);
             }
@@ -448,17 +447,17 @@ internal sealed class MctsSearch
     private void RunTreeIteration(Game rootGame, Random random)
     {
         Game searchGame = Sample(rootGame, random);
-        List<(Node Node, List<(int Seat, Move Move)> Moves)> path = DescendHoldingLock(searchGame, random);
-        (double[] Reward, double MyWin) result = Rollout(searchGame, random);
+        List<SelectionStep> path = DescendHoldingLock(searchGame, random);
+        RolloutResult result = Rollout(searchGame, random);
         BackupHoldingLock(path, result);
     }
 
-    private List<(Node Node, List<(int Seat, Move Move)> Moves)> DescendHoldingLock(Game searchGame, Random random)
+    private List<SelectionStep> DescendHoldingLock(Game searchGame, Random random)
     {
         EnterTree();
         try
         {
-            List<(Node Node, List<(int Seat, Move Move)> Moves)> path = Descend(searchGame, random);
+            List<SelectionStep> path = Descend(searchGame, random);
             AddVirtualLoss(path, _configuration.VirtualLossVisits);
             return path;
         }
@@ -468,8 +467,7 @@ internal sealed class MctsSearch
         }
     }
 
-    private void BackupHoldingLock(List<(Node Node, List<(int Seat, Move Move)> Moves)> path,
-                                   (double[] Reward, double MyWin) result)
+    private void BackupHoldingLock(List<SelectionStep> path, RolloutResult result)
     {
         EnterTree();
         try
@@ -496,17 +494,17 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Adds (or with a negative count takes back) visits with reward 0 on every move of the path.</summary>
-    private static void AddVirtualLoss(List<(Node Node, List<(int Seat, Move Move)> Moves)> path, int count)
+    private static void AddVirtualLoss(List<SelectionStep> path, int count)
     {
         if (count == 0)
         {
             return;
         }
-        foreach ((Node node, List<(int Seat, Move Move)> moves) in path)
+        foreach (SelectionStep step in path)
         {
-            foreach ((int Seat, Move Move) seatAndMove in moves)
+            foreach (SeatMove seatMove in step.Moves)
             {
-                node.Statistics[seatAndMove].Visits += count;
+                step.Node.Statistics[seatMove].Visits += count;
             }
         }
     }
@@ -514,7 +512,7 @@ internal sealed class MctsSearch
     // =========== tree policy ===========
 
     /// <summary>The moves made at a node: one player's (sequential tree) or every pending player's (DUCT).</summary>
-    private List<(int Seat, Move Move)> ChooseMoves(Node node, Game searchGame, Random random)
+    private List<SeatMove> ChooseMoves(Node node, Game searchGame, Random random)
     {
         if (_configuration.TreeShape == MctsTreeShape.Sequential)
         {
@@ -526,10 +524,11 @@ internal sealed class MctsSearch
     /// <summary>
     /// One player decides: the searching player whenever it is pending, otherwise the lowest pending seat.
     /// </summary>
-    private List<(int Seat, Move Move)> ChooseSequential(Node node, Game searchGame, Random random)
+    private List<SeatMove> ChooseSequential(Node node, Game searchGame, Random random)
     {
         int seat = DecidingSeat(searchGame.PendingPlayers());
-        return new List<(int Seat, Move Move)> { (seat, Choose(node, searchGame, seat, random)) };
+        Move move = Choose(node, searchGame, seat, random);
+        return new List<SeatMove> { new SeatMove(seat, move) };
     }
 
     private int DecidingSeat(IReadOnlyList<int> pending)
@@ -545,15 +544,16 @@ internal sealed class MctsSearch
     }
 
     /// <summary>DUCT: every pending player decides, each from its own statistics.</summary>
-    private List<(int Seat, Move Move)> ChooseDuct(Node node, Game searchGame, Random random)
+    private List<SeatMove> ChooseDuct(Node node, Game searchGame, Random random)
     {
         IReadOnlyList<int> pending = searchGame.PendingPlayers();
-        List<(int Seat, Move Move)> moves = new();
+        List<SeatMove> moves = new();
         // an index loop: a foreach over the interface would allocate an enumerator
         for (int pendingIndex = 0; pendingIndex < pending.Count; pendingIndex++)
         {
             int seat = pending[pendingIndex];
-            moves.Add((seat, Choose(node, searchGame, seat, random)));
+            Move move = Choose(node, searchGame, seat, random);
+            moves.Add(new SeatMove(seat, move));
         }
         return moves;
     }
@@ -588,7 +588,7 @@ internal sealed class MctsSearch
         List<Move> untried = new();
         foreach (Move move in legal)
         {
-            if (node.Statistics.TryGetValue((seat, move), out MoveStatistics? moveStatistics))
+            if (node.Statistics.TryGetValue(new SeatMove(seat, move), out MoveStatistics? moveStatistics))
             {
                 moveStatistics.Available++;
             }
@@ -605,8 +605,9 @@ internal sealed class MctsSearch
     {
         int untriedIndex = random.Next(untried.Count);
         Move move = untried[untriedIndex];
-        node.Statistics[(seat, move)] = new MoveStatistics(_playerCount) { Available = 1 };
-        node.Order.Add((seat, move));
+        SeatMove seatMove = new(seat, move);
+        node.Statistics[seatMove] = new MoveStatistics(_playerCount) { Available = 1 };
+        node.Order.Add(seatMove);
         return move;
     }
 
@@ -617,7 +618,7 @@ internal sealed class MctsSearch
         double bestValue = double.NegativeInfinity;
         foreach (Move move in legal)
         {
-            double treeValue = TreeValue(node.Statistics[(seat, move)], seat);
+            double treeValue = TreeValue(node.Statistics[new SeatMove(seat, move)], seat);
             if (treeValue > bestValue)
             {
                 best = move;
@@ -675,7 +676,7 @@ internal sealed class MctsSearch
     {
         Move? best = null;
         double bestValue = double.NegativeInfinity;
-        foreach ((int Seat, Move Move) key in _tree.Order)
+        foreach (SeatMove key in _tree.Order)
         {
             if (key.Seat != _searchingSeat)
             {
@@ -723,12 +724,12 @@ internal sealed class MctsSearch
         return string.Join(" | ", descriptions);
     }
 
-    private bool IsSearchingPlayersMove((int Seat, Move Move) key)
+    private bool IsSearchingPlayersMove(SeatMove key)
     {
         return key.Seat == _searchingSeat;
     }
 
-    private int VisitsOf((int Seat, Move Move) key)
+    private int VisitsOf(SeatMove key)
     {
         return _tree.Statistics[key].Visits;
     }
@@ -736,7 +737,7 @@ internal sealed class MctsSearch
     /// <summary>
     /// One root move for <see cref="TopMoves"/>, e.g. "Build Loom 412 visits, reward 0.61, wins 55%".
     /// </summary>
-    private string DescribeRootMove((int Seat, Move Move) key)
+    private string DescribeRootMove(SeatMove key)
     {
         MoveStatistics moveStatistics = _tree.Statistics[key];
         double averageReward = Average(moveStatistics.Total[_searchingSeat], moveStatistics.Visits);
@@ -767,11 +768,11 @@ internal sealed class MctsSearch
     // =========== rollout ===========
 
     /// <summary>Plays on to the end (of the game, or of the era if the config says so) and gives the rewards.</summary>
-    private (double[] Reward, double MyWin) Rollout(Game searchGame, Random random)
+    private RolloutResult Rollout(Game searchGame, Random random)
     {
         int era = searchGame.Era;
         bool eraEnd = _configuration.RolloutEnd == MctsRolloutEnd.EraEnd;
-        List<(int Seat, Move Move)> moves = new(_playerCount);
+        List<SeatMove> moves = new(_playerCount);
         while (searchGame.Phase != Phase.GameOver && !(eraEnd && searchGame.Era != era))
         {
             // everyone chooses from the same state, as in a real game
@@ -780,11 +781,12 @@ internal sealed class MctsSearch
             for (int pendingIndex = 0; pendingIndex < pending.Count; pendingIndex++)
             {
                 int seat = pending[pendingIndex];
-                moves.Add((seat, RolloutMove(searchGame, seat, random)));
+                Move move = RolloutMove(searchGame, seat, random);
+                moves.Add(new SeatMove(seat, move));
             }
-            foreach ((int seat, Move move) in moves)
+            foreach (SeatMove seatMove in moves)
             {
-                searchGame.Submit(seat, move);
+                searchGame.Submit(seatMove.Seat, seatMove.Move);
             }
         }
         return Score(searchGame);
@@ -890,7 +892,7 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Each seat's reward and the searching player's win share, from the scores now.</summary>
-    private (double[] Reward, double MyWin) Score(Game searchGame)
+    private RolloutResult Score(Game searchGame)
     {
         List<PlayerState> players = PlayersToScore(searchGame);
         foreach (PlayerState player in players)
@@ -905,7 +907,7 @@ internal sealed class MctsSearch
         {
             reward[seat] = RewardFor(seat, players, standings);
         }
-        return (reward, standings[_searchingSeat].WinShare);
+        return new RolloutResult(reward, standings[_searchingSeat].WinShare);
     }
 
     /// <summary>

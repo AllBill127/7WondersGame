@@ -58,26 +58,28 @@ public class AnalysisTests
     [TestMethod]
     public void Wilson_MatchesTheTextbookValues()
     {
-        (double low, double high) = Analysis.Wilson(50, 100);
-        Assert.AreEqual(0.4038, low, 1e-4);
-        Assert.AreEqual(0.5962, high, 1e-4);
+        ConfidenceInterval half = Analysis.Wilson(50, 100);
+        Assert.AreEqual(0.4038, half.Low, 1e-4);
+        Assert.AreEqual(0.5962, half.High, 1e-4);
 
-        (low, high) = Analysis.Wilson(0, 10);
-        Assert.AreEqual(0, low, 1e-12, "never below 0, unlike p +- 1.96 se");
-        Assert.AreEqual(0.2775, high, 1e-4);
+        ConfidenceInterval none = Analysis.Wilson(0, 10);
+        Assert.AreEqual(0, none.Low, 1e-12, "never below 0, unlike p +- 1.96 se");
+        Assert.AreEqual(0.2775, none.High, 1e-4);
 
-        (low, high) = Analysis.Wilson(10, 10);
-        Assert.AreEqual(0.7225, low, 1e-4);
-        Assert.AreEqual(1, high, 1e-12);
+        ConfidenceInterval all = Analysis.Wilson(10, 10);
+        Assert.AreEqual(0.7225, all.Low, 1e-4);
+        Assert.AreEqual(1, all.High, 1e-12);
     }
 
     [TestMethod]
     public void MeanSe_IsTheStandardErrorOfTheMean()
     {
-        (double mean, double standardError) = Analysis.MeanAndStandardError(new[] { 1.0, 2, 3, 4 });
-        Assert.AreEqual(2.5, mean, 1e-12);
-        Assert.AreEqual(Math.Sqrt(5.0 / 3 / 4), standardError, 1e-12);
-        Assert.AreEqual((7.0, 0.0), Analysis.MeanAndStandardError(new[] { 7.0 }));
+        MeanWithStandardError four = Analysis.MeanAndStandardError(new[] { 1.0, 2, 3, 4 });
+        Assert.AreEqual(2.5, four.Mean, 1e-12);
+        Assert.AreEqual(Math.Sqrt(5.0 / 3 / 4), four.StandardError, 1e-12);
+        MeanWithStandardError one = Analysis.MeanAndStandardError(new[] { 7.0 });
+        Assert.AreEqual(7.0, one.Mean);
+        Assert.AreEqual(0.0, one.StandardError);
     }
 
     [TestMethod]
@@ -137,11 +139,11 @@ public class AnalysisTests
     {
         Dictionary<string, string> labels = Analysis.PlayerLabels(new[]
         {
-            ("k1", "MctsAgent", "{\"ExplorationConstant\":0.3,\"IterationBudget\":1000}", true),
-            ("k2", "MctsAgent", "{\"ExplorationConstant\":1.2,\"IterationBudget\":1000}", true),
-            ("k3", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.75}", false),
-            ("k4", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.75}", true),
-            ("k5", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.25}", true),
+            new PlayerGroup("k1", "MctsAgent", "{\"ExplorationConstant\":0.3,\"IterationBudget\":1000}", true),
+            new PlayerGroup("k2", "MctsAgent", "{\"ExplorationConstant\":1.2,\"IterationBudget\":1000}", true),
+            new PlayerGroup("k3", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.75}", false),
+            new PlayerGroup("k4", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.75}", true),
+            new PlayerGroup("k5", "HeuristicAgent", "{\"CoinValueInVictoryPoints\":0.25}", true),
         });
 
         Assert.AreEqual("MctsAgent ExplorationConstant=0.3", labels["k1"]);
