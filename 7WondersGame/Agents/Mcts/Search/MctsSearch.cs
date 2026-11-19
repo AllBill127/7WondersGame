@@ -6,11 +6,12 @@ using _7WondersGame.Agents.Mcts.Configuration;
 using _7WondersGame.Agents.Mcts.Configuration.Enums;
 using _7WondersGame.Agents.Mcts.Tree;
 using _7WondersGame.Agents.RandomChoice;
-using _7WondersGame.Cli.Results;
 using _7WondersGame.Engine.Cards.Entities;
+using _7WondersGame.Engine.Games.Dtos;
 using _7WondersGame.Engine.Games.Entities;
 using _7WondersGame.Engine.Games.Enums;
 using _7WondersGame.Engine.Games.Knowledge;
+using _7WondersGame.Engine.Games.Services;
 using _7WondersGame.Engine.Moves.Dtos;
 using _7WondersGame.Engine.Moves.Enums;
 using _7WondersGame.Engine.Players.Entities;
@@ -900,7 +901,7 @@ internal sealed class MctsSearch
             GuildCopying.CopyBestNeighbourGuild(player);
             Scoring.CalculateScore(player);
         }
-        List<PlayerStanding> standings = GameResult.Rank(players);
+        List<PlayerStanding> standings = Standings.Rank(players);
 
         double[] reward = new double[_playerCount];
         for (int seat = 0; seat < _playerCount; seat++)

@@ -1,4 +1,4 @@
-﻿namespace _7WondersGame.Cli.Results;
+﻿namespace _7WondersGame.Engine.Games.Dtos;
 
 /// <summary>
 /// One player's final standing.

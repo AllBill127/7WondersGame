@@ -1,14 +1,15 @@
-﻿using _7WondersGame.Cli.Results;
+﻿using _7WondersGame.Engine.Games.Dtos;
+using _7WondersGame.Engine.Games.Services;
 
-namespace _7WondersGameTests.Cli.Results;
+namespace _7WondersGameTests.Engine.Games;
 
 /// <summary>Ranking the players at the end of a game: victory points, then coins, shared wins.</summary>
 [TestClass]
-public class GameResultTests
+public class StandingsTests
 {
     private static List<PlayerStanding> Rank(params FinalScore[] players)
     {
-        return GameResult.Rank(players.ToList());
+        return Standings.Rank(players.ToList());
     }
 
     [TestMethod]
