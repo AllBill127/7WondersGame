@@ -27,9 +27,9 @@ public enum Ability
     /// <summary>Babylon B stage 2: also plays the 7th card of each era.</summary>
     PlaySeventhCard = 1 << 6,
     /// <summary>
-    /// Olympia A stage 2: one card per era for free (the use is <see cref="PlayerState.OlympiaFreeBuildAvailable"/>).
+    /// Olympia A stage 2: one card per era for free (the use is <see cref="PlayerState.FreeBuildAvailable"/>).
     /// </summary>
-    OlympiaFreeBuildEachEra = 1 << 7,
+    FreeBuildEachEra = 1 << 7,
     /// <summary>Olympia B stage 3: copies a neighbour's guild at the end of the game.</summary>
     CopyGuild = 1 << 8,
 }

@@ -127,7 +127,7 @@ internal sealed class HeuristicWeights
     /// era's last choice, when the charge would be lost.
     /// </summary>
     [Setting]
-    public double KeepOlympiaFreeBuildValue { get; set; } = 1.5;
+    public double KeepFreeBuildValue { get; set; } = 1.5;
 
     /// <summary>
     /// Per victory point the card would give the player who gets this hand next: taking it away from them is worth

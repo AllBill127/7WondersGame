@@ -111,7 +111,7 @@ public class HeuristicAgentTests
         string hand = string.Join(",", player.Hand.Select(card => card.Id));
         string builtCards = string.Join(",", player.BuiltCards.Select(card => card.Id));
         return $"{player.Seat}: {resources} {player.Wonder.BuiltStageCount} {player.Abilities} " +
-               $"{player.OlympiaFreeBuildAvailable} {player.HalikarnassosDiscardBuildPending} " +
+               $"{player.FreeBuildAvailable} {player.DiscardPileBuildPending} " +
                $"{player.VictoryTokens}/{player.DefeatTokens} " +
                $"[{hand}] [{builtCards}]";
     }
@@ -204,14 +204,14 @@ public class HeuristicAgentTests
 
         Move move = ChooseEra1(Plain(), player, CardId.Altar, CardId.Baths);
 
-        Assert.AreEqual(new Move(MoveAction.BuildWithOlympiaFreeBuild, CardOf(CardId.Baths)), move);
+        Assert.AreEqual(new Move(MoveAction.BuildWithFreeBuild, CardOf(CardId.Baths)), move);
     }
 
     private static PlayerState OlympiaWithFreeCard()
     {
         PlayerState player = Table(WonderId.OlympiaA, WonderId.RhodosA, WonderId.EphesosA)[0];
         player.Wonder.BuiltStageCount = 2;
-        player.OlympiaFreeBuildAvailable = true;
+        player.FreeBuildAvailable = true;
         return player;
     }
 

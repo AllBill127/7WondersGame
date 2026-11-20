@@ -33,7 +33,7 @@ public class ChooseMoveTests
 
         // set wonder stage and effect
         players[1].Wonder.BuiltStageCount = 2;
-        players[1].OlympiaFreeBuildAvailable = true;
+        players[1].FreeBuildAvailable = true;
 
         // set played cards for situation
         players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Forum]);
@@ -52,7 +52,7 @@ public class ChooseMoveTests
     }
 
     [TestMethod]
-    public void ChooseMove_WhenOlympiaA2_NoResourceToBuildCard_ChoosesOlympiaFreeBuild()
+    public void ChooseMove_WhenOlympiaA2_NoResourceToBuildCard_ChoosesFreeBuild()
     {
         // Arrange
         Game testGame = new(seed: 0);
@@ -67,7 +67,7 @@ public class ChooseMoveTests
 
         // set wonder stage and effect
         players[1].Wonder.BuiltStageCount = 2;
-        players[1].OlympiaFreeBuildAvailable = true;
+        players[1].FreeBuildAvailable = true;
 
         // set played cards for situation
         players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Forum]);
@@ -76,7 +76,7 @@ public class ChooseMoveTests
         players[1].Hand.Add(CardsDataset.GameCards[CardId.Palace]);
 
         // Expected values
-        MoveAction expectedAction = MoveAction.BuildWithOlympiaFreeBuild;
+        MoveAction expectedAction = MoveAction.BuildWithFreeBuild;
 
         // Test
         Move move = new HeuristicAgent().Choose(new GameView(testGame, 1));

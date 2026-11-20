@@ -127,8 +127,8 @@ public class WonderDataTests
         int shieldsBefore = player.Resources[Resource.Shields];
         int scienceBefore = Scoring.CalculateScientificScore(player);
         Ability abilitiesBefore = player.Wonder.Abilities;
-        player.OlympiaFreeBuildAvailable = false;
-        player.HalikarnassosDiscardBuildPending = false;
+        player.FreeBuildAvailable = false;
+        player.DiscardPileBuildPending = false;
 
         Assert.IsTrue(player.Wonder.AddStage(player), "build stage");
         Assert.AreEqual(stage, player.Wonder.BuiltStageCount, "stage number");
@@ -180,7 +180,7 @@ public class WonderDataTests
     /// <summary>The stage gave exactly the <paramref name="effect"/> named in the row, and nothing else.</summary>
     private static void CheckEffect(PlayerState player, string effect, Ability gained, int scienceBefore)
     {
-        bool freeBuild = player.OlympiaFreeBuildAvailable && gained.HasFlag(Ability.OlympiaFreeBuildEachEra);
+        bool freeBuild = player.FreeBuildAvailable && gained.HasFlag(Ability.FreeBuildEachEra);
         int expectedScienceGain = 0;
         if (effect == "ScienceWildcard")
         {
@@ -189,7 +189,7 @@ public class WonderDataTests
 
         Assert.AreEqual(effect == "PlaySeventhCard", gained.HasFlag(Ability.PlaySeventhCard), "play seventh card");
         Assert.AreEqual(effect == "FreeBuildOncePerAge", freeBuild, "free build once per age");
-        Assert.AreEqual(effect == "BuildFromDiscard", player.HalikarnassosDiscardBuildPending, "build from discard");
+        Assert.AreEqual(effect == "BuildFromDiscard", player.DiscardPileBuildPending, "build from discard");
         Assert.AreEqual(effect == "RawTradingDiscount", gained.HasFlag(Ability.RawMaterialsCheapFromBothNeighbours),
                         "raw trading discount");
         Assert.AreEqual(effect == "RawWildcard", gained.HasFlag(Ability.AnyRawMaterialEachTurn), "raw wildcard");

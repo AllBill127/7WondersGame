@@ -27,7 +27,7 @@ internal static class MovePlanning
         {
             case MoveAction.Build:
                 return PlanBuild(player, action, card, source, free: false);
-            case MoveAction.BuildWithOlympiaFreeBuild:
+            case MoveAction.BuildWithFreeBuild:
                 return PlanFreeOnceBuild(player, card, source);
             case MoveAction.BuildWonderStage:
                 return PlanWonderStage(player, card, source);
@@ -40,11 +40,11 @@ internal static class MovePlanning
 
     /// <summary>
     /// Step 1 for Halikarnassos: a free build from the discard pile while
-    /// <see cref="PlayerState.HalikarnassosDiscardBuildPending"/> is on.
+    /// <see cref="PlayerState.DiscardPileBuildPending"/> is on.
     /// </summary>
     public static PlannedMove? PlanDiscardPileBuild(PlayerState player, Card card, List<Card> discardPile)
     {
-        if (!player.HalikarnassosDiscardBuildPending)
+        if (!player.DiscardPileBuildPending)
         {
             return null;
         }
@@ -86,11 +86,11 @@ internal static class MovePlanning
     /// <summary>Olympia A stage 2: one free card per era, while the era's charge is unused.</summary>
     private static PlannedMove? PlanFreeOnceBuild(PlayerState player, Card card, List<Card> source)
     {
-        if (!PlayerAbilities.Has(player, Ability.OlympiaFreeBuildEachEra) || !player.OlympiaFreeBuildAvailable)
+        if (!PlayerAbilities.Has(player, Ability.FreeBuildEachEra) || !player.FreeBuildAvailable)
         {
             return null;
         }
-        return PlanBuild(player, MoveAction.BuildWithOlympiaFreeBuild, card, source, free: true);
+        return PlanBuild(player, MoveAction.BuildWithFreeBuild, card, source, free: true);
     }
 
     /// <summary>The next wonder stage, built with a card from <paramref name="source"/>.</summary>

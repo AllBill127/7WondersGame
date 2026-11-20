@@ -36,7 +36,7 @@ internal class RandomAgent : IAgent
         {
             card = ChooseCard(view, view.BuildableCards);
         }
-        else if (action == MoveAction.BuildWithOlympiaFreeBuild)
+        else if (action == MoveAction.BuildWithFreeBuild)
         {
             List<Card> free = BuildRules.BuildableCards(player, player.Hand, everyCardFree: true);
             if (free.Count > 0)
@@ -67,14 +67,14 @@ internal class RandomAgent : IAgent
         return new Move(action, card);
     }
 
-    /// <summary>Build, BuildWithOlympiaFreeBuild (only while Olympia A's free card is unused), BuildWonderStage or
+    /// <summary>Build, BuildWithFreeBuild (only while Olympia A's free card is unused), BuildWonderStage or
     /// Discard.</summary>
     private static MoveAction ChooseAction(GameView view)
     {
         List<MoveAction> options = new()
         {
             MoveAction.Build,
-            MoveAction.BuildWithOlympiaFreeBuild,
+            MoveAction.BuildWithFreeBuild,
             MoveAction.BuildWonderStage,
             MoveAction.Discard,
         };
@@ -86,9 +86,9 @@ internal class RandomAgent : IAgent
         {
             options.Remove(MoveAction.BuildWonderStage);
         }
-        if (!view.DecidingPlayer.OlympiaFreeBuildAvailable)
+        if (!view.DecidingPlayer.FreeBuildAvailable)
         {
-            options.Remove(MoveAction.BuildWithOlympiaFreeBuild);
+            options.Remove(MoveAction.BuildWithFreeBuild);
         }
         int optionIndex = view.Random.Next(options.Count);
         return options[optionIndex];

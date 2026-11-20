@@ -66,7 +66,7 @@ internal static class WonderBoards
             Stage(Cost(Clay, 4), new Points(7))),
         Board(WonderId.OlympiaA, "Olympia A", Wood,
             Stage(Cost(Wood, 2), new Points(3)),
-            Stage(Cost(Stone, 2), new OlympiaFreeBuildEachEra()),
+            Stage(Cost(Stone, 2), new FreeBuildEachEra()),
             Stage(Cost(Ore, 2), new Points(7))),
         Board(WonderId.RhodosA, "Rhodos A", Ore,
             Stage(Cost(Wood, 2), new Points(3)),

@@ -227,7 +227,7 @@ public class TurnStateMachineTests
 
         game.Submit(1, new Move(MoveAction.Skip, null));
 
-        Assert.IsFalse(game.Players[1].HalikarnassosDiscardBuildPending);
+        Assert.IsFalse(game.Players[1].DiscardPileBuildPending);
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
         Assert.AreEqual(1, game.Turn);
     }
@@ -244,7 +244,7 @@ public class TurnStateMachineTests
 
         game.Submit(1, Build(CardId.Palace));
 
-        Assert.IsFalse(game.Players[1].HalikarnassosDiscardBuildPending);
+        Assert.IsFalse(game.Players[1].DiscardPileBuildPending);
         CollectionAssert.Contains(game.Players[1].BuiltCards, C(CardId.Palace));
         CollectionAssert.DoesNotContain(game.DiscardPile, C(CardId.Palace));
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);

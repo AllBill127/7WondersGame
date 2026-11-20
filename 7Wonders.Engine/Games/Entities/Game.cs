@@ -516,7 +516,7 @@ public class Game
             {
                 EventListener.EventRaised(new DiscardPileBuildSkipped(player.Seat));
             }
-            player.HalikarnassosDiscardBuildPending = false;
+            player.DiscardPileBuildPending = false;
         }
 
         _waiting[player.Seat] = false;
@@ -585,7 +585,7 @@ public class Game
         {
             _waiting[player.Seat] = MustDecideIn(phase, player);
             // Halikarnassos looks through the discard pile to choose
-            if (phase == Phase.DiscardPileBuild && player.HalikarnassosDiscardBuildPending)
+            if (phase == Phase.DiscardPileBuild && player.DiscardPileBuildPending)
             {
                 if (_knowledge != null)
                 {
@@ -606,7 +606,7 @@ public class Game
             case Phase.SeventhCard:
                 return PlayerAbilities.Has(player, Ability.PlaySeventhCard) && player.Hand.Count > 0;
             case Phase.DiscardPileBuild:
-                return player.HalikarnassosDiscardBuildPending;
+                return player.DiscardPileBuildPending;
             default:
                 return false;
         }
@@ -683,7 +683,7 @@ public class Game
         foreach (PlayerState player in Players)
         {
             // Olympia A stage 2: one free card per era
-            player.OlympiaFreeBuildAvailable = PlayerAbilities.Has(player, Ability.OlympiaFreeBuildEachEra);
+            player.FreeBuildAvailable = PlayerAbilities.Has(player, Ability.FreeBuildEachEra);
             Battles.FightEraBattles(player, Era);
         }
         if (EventListener != null)
@@ -898,15 +898,15 @@ public class Game
 
     private void RaiseEraStarted(IGameEventListener listener)
     {
-        List<int> olympiaFreeBuildSeats = new();
+        List<int> freeBuildSeats = new();
         foreach (PlayerState player in Players)
         {
-            if (player.OlympiaFreeBuildAvailable)
+            if (player.FreeBuildAvailable)
             {
-                olympiaFreeBuildSeats.Add(player.Seat);
+                freeBuildSeats.Add(player.Seat);
             }
         }
-        listener.EventRaised(new EraStarted(Era, olympiaFreeBuildSeats));
+        listener.EventRaised(new EraStarted(Era, freeBuildSeats));
     }
 
     private void RaiseEraEnded(IGameEventListener listener)
@@ -1003,7 +1003,7 @@ public class Game
             {
                 AddBuilds(moves, player);
                 AddWonderStages(moves, player, pruned);
-                AddOlympiaFreeBuilds(moves, player);
+                AddFreeBuilds(moves, player);
                 AddDiscards(moves, player, pruned);
             }
         }
@@ -1052,15 +1052,15 @@ public class Game
     }
 
     /// <summary>Olympia A: any hand card the city doesn't have, for free, once per era.</summary>
-    private void AddOlympiaFreeBuilds(List<Move> moves, PlayerState player)
+    private void AddFreeBuilds(List<Move> moves, PlayerState player)
     {
-        if (Phase != Phase.ChooseMoves || !player.OlympiaFreeBuildAvailable)
+        if (Phase != Phase.ChooseMoves || !player.FreeBuildAvailable)
         {
             return;
         }
         foreach (Card card in BuildRules.BuildableCards(player, player.Hand, everyCardFree: true))
         {
-            AddIfNew(moves, new Move(MoveAction.BuildWithOlympiaFreeBuild, card));
+            AddIfNew(moves, new Move(MoveAction.BuildWithFreeBuild, card));
         }
     }
 

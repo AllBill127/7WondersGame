@@ -28,7 +28,7 @@ public static class MoveResolution
         // The card is in the city before its effect applies, so the Lighthouse counts itself.
         // Sources: https://rules.dized.com/7-wonders/rule/question/19075b63-591e-4e99-8dfc-5fa34b726973,
         //          https://rules.dized.com/7-wonders/rule/symbols/third-age-cards
-        if (move.Action is MoveAction.Build or MoveAction.BuildWithOlympiaFreeBuild)
+        if (move.Action is MoveAction.Build or MoveAction.BuildWithFreeBuild)
         {
             player.BuiltCards.Add(move.Card);
         }
@@ -46,7 +46,7 @@ public static class MoveResolution
         switch (move.Action)
         {
             case MoveAction.Build:
-            case MoveAction.BuildWithOlympiaFreeBuild:
+            case MoveAction.BuildWithFreeBuild:
                 CardEffects.ApplyCardEffect(player, move.Card);
                 UseUpFreeBuildCharges(player, move);
                 break;
@@ -65,13 +65,13 @@ public static class MoveResolution
     /// </summary>
     private static void UseUpFreeBuildCharges(PlayerState player, PlannedMove move)
     {
-        if (move.Action == MoveAction.BuildWithOlympiaFreeBuild)
+        if (move.Action == MoveAction.BuildWithFreeBuild)
         {
-            player.OlympiaFreeBuildAvailable = false;
+            player.FreeBuildAvailable = false;
         }
         if (move.FromDiscardPile)
         {
-            player.HalikarnassosDiscardBuildPending = false;
+            player.DiscardPileBuildPending = false;
         }
     }
 }

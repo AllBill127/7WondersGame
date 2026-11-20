@@ -201,7 +201,7 @@ internal sealed class MatchTraceWriter : IMatchListener
     private void WriteEraStarted(EraStarted eraStarted)
     {
         _log.Debug("=== Era {Era} ===", eraStarted.Era);
-        foreach (int seat in eraStarted.OlympiaFreeBuildSeats)
+        foreach (int seat in eraStarted.FreeBuildSeats)
         {
             _log.Debug("Seat {Seat} may build one card for free this era", seat);
         }
@@ -268,7 +268,7 @@ internal sealed class MatchTraceWriter : IMatchListener
         string name = moveResolved.Card.Name;
         switch (moveResolved.Action)
         {
-            case MoveAction.BuildWithOlympiaFreeBuild:
+            case MoveAction.BuildWithFreeBuild:
                 return $"builds {name} with the era's free build";
             case MoveAction.BuildWonderStage:
                 return $"builds wonder stage {moveResolved.BuiltStageCount} using {name}";

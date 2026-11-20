@@ -39,7 +39,7 @@ public class AgentSettingsTests
             "BonusPerUsefulResourceChoice", "CheapRawMaterialTradePenalty", "CivilianCardBonusEra1",
             "CoinValueInVictoryPoints", "DiscardPenalty", "EarlyScienceCardBonus",
             "FewOwnManufacturedGoodsCardsThreshold", "FewOwnRawMaterialCardsThreshold", "FirstScienceCardBonusEra1",
-            "FirstScienceCardBonusEra2", "KeepOlympiaFreeBuildValue", "MissingWonderResourceBonusEra1",
+            "FirstScienceCardBonusEra2", "KeepFreeBuildValue", "MissingWonderResourceBonusEra1",
             "MissingWonderResourceBonusEra2", "NeighbourRawMaterialCardsForCheapTrade", "NextPlayerDenialWeight",
             "NoManufacturedGoodsNearbyBonusEra2", "PoorCoinThreshold", "PoorPlayerCoinGainBonus",
             "TradingDiscountBonus", "TradingDiscountBonusPerNeighbourCard", "WonderStageBonus",

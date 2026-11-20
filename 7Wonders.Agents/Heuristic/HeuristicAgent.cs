@@ -72,9 +72,9 @@ internal sealed class HeuristicAgent : IAgent
 
         BestMove best = new();
         ConsiderBuilds(ref best, player, values, denied);
-        if (phase == Phase.ChooseMoves && player.OlympiaFreeBuildAvailable)
+        if (phase == Phase.ChooseMoves && player.FreeBuildAvailable)
         {
-            ConsiderOlympiaFreeBuilds(ref best, player, values, denied);
+            ConsiderFreeBuilds(ref best, player, values, denied);
         }
 
         int giveUp = CardToGiveUp(hand, values, denied);
@@ -128,19 +128,19 @@ internal sealed class HeuristicAgent : IAgent
     }
 
     /// <summary>Olympia A's free card on each hand card not built yet: its worth minus keeping the charge.</summary>
-    private void ConsiderOlympiaFreeBuilds(
+    private void ConsiderFreeBuilds(
         ref BestMove best,
         PlayerState player,
         HeuristicValues values,
         Span<double> denied)
     {
         List<Card> hand = player.Hand;
-        double keep = KeepOlympiaFreeBuildValue(hand);
+        double keep = KeepFreeBuildValue(hand);
         foreach (Card card in BuildRules.BuildableCards(player, hand, everyCardFree: true))
         {
             int handIndex = hand.IndexOf(card);
             double value = values.Gain(card) - keep + denied[handIndex];
-            best.Consider(MoveAction.BuildWithOlympiaFreeBuild, card, value);
+            best.Consider(MoveAction.BuildWithFreeBuild, card, value);
         }
     }
 
@@ -148,13 +148,13 @@ internal sealed class HeuristicAgent : IAgent
     /// What keeping Olympia A's charge is worth: the charge is lost at the era end, so on the era's last choice
     /// (2 cards left) it is worth nothing.
     /// </summary>
-    private double KeepOlympiaFreeBuildValue(List<Card> hand)
+    private double KeepFreeBuildValue(List<Card> hand)
     {
         if (hand.Count <= 2)
         {
             return 0;
         }
-        return Weights.KeepOlympiaFreeBuildValue;
+        return Weights.KeepFreeBuildValue;
     }
 
     /// <summary>

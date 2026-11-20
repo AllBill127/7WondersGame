@@ -69,12 +69,12 @@ public sealed class PlayerState
 
     // One-use effects (see docs/08-special-effects.md)
     /// <summary>Olympia A stage 2: this era's free card is still unused. Re-armed at the start of each era.</summary>
-    public bool OlympiaFreeBuildAvailable { get; set; }
+    public bool FreeBuildAvailable { get; set; }
 
     /// <summary>
     /// Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.
     /// </summary>
-    public bool HalikarnassosDiscardBuildPending { get; set; }
+    public bool DiscardPileBuildPending { get; set; }
 
     /// <summary>Production, science symbols, coins and shields.</summary>
     public ResourceCounts Resources { get; set; } = new() { [Resource.Coins] = 3 };
@@ -168,8 +168,8 @@ public sealed class PlayerState
         DefeatTokens = source.DefeatTokens;
         VictoryPoints = source.VictoryPoints;
         Abilities = source.Abilities;
-        OlympiaFreeBuildAvailable = source.OlympiaFreeBuildAvailable;
-        HalikarnassosDiscardBuildPending = source.HalikarnassosDiscardBuildPending;
+        FreeBuildAvailable = source.FreeBuildAvailable;
+        DiscardPileBuildPending = source.DiscardPileBuildPending;
         Resources.CopyFrom(source.Resources);
         EastNeighbour = source.EastNeighbour;
         WestNeighbour = source.WestNeighbour;

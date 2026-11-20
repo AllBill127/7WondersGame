@@ -834,7 +834,7 @@ internal sealed class MctsSearch
 
         List<Card> buildable = BuildRules.BuildableCards(player, hand);
         List<Card>? free = null;
-        if (searchGame.Phase == Phase.ChooseMoves && player.OlympiaFreeBuildAvailable)
+        if (searchGame.Phase == Phase.ChooseMoves && player.FreeBuildAvailable)
         {
             free = BuildRules.BuildableCards(player, hand, everyCardFree: true);
         }
@@ -845,7 +845,7 @@ internal sealed class MctsSearch
         }
         if (free != null && free.Count > 0)
         {
-            options.Add(MoveAction.BuildWithOlympiaFreeBuild);
+            options.Add(MoveAction.BuildWithFreeBuild);
         }
         if (BuildRules.CanBuildWonderStage(player))
         {
@@ -881,10 +881,10 @@ internal sealed class MctsSearch
         {
             case MoveAction.Build:
                 return buildable;
-            case MoveAction.BuildWithOlympiaFreeBuild:
+            case MoveAction.BuildWithFreeBuild:
                 if (free == null)
                 {
-                    throw new InvalidOperationException("Olympia's free build was chosen without its free cards.");
+                    throw new InvalidOperationException("The era.s free build was chosen without its free cards.");
                 }
                 return free;
             default:

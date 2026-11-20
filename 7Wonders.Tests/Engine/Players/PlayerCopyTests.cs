@@ -49,7 +49,7 @@ public class PlayerCopyTests
         string resources = string.Join(",", player.Resources.Select(resource => $"{resource.Key}={resource.Value}"));
         return $"{player.Seat} {player.Wonder.Id} {player.Wonder.BuiltStageCount} | {handCards} | {playedCards} | " +
                $"{player.VictoryTokens} {player.DefeatTokens} {player.VictoryPoints} " +
-               $"{player.Abilities} {player.OlympiaFreeBuildAvailable} {player.HalikarnassosDiscardBuildPending} | " +
+               $"{player.Abilities} {player.FreeBuildAvailable} {player.DiscardPileBuildPending} | " +
                $"{resources} | {player.WestNeighbour.Seat} {player.EastNeighbour.Seat}";
     }
 
@@ -67,9 +67,9 @@ public class PlayerCopyTests
             "<Abilities>k__BackingField",
             "<BuiltCards>k__BackingField",
             "<DefeatTokens>k__BackingField",
-            "<HalikarnassosDiscardBuildPending>k__BackingField",
+            "<DiscardPileBuildPending>k__BackingField",
+            "<FreeBuildAvailable>k__BackingField",
             "<Hand>k__BackingField",
-            "<OlympiaFreeBuildAvailable>k__BackingField",
             "<Resources>k__BackingField",
             "<Seat>k__BackingField",
             "<VictoryPoints>k__BackingField",
@@ -103,8 +103,8 @@ public class PlayerCopyTests
             scratch.DefeatTokens += 1;
             scratch.VictoryPoints = 99;
             scratch.Abilities |= Ability.ManufacturedGoodsCheapFromBothNeighbours;
-            scratch.OlympiaFreeBuildAvailable = !scratch.OlympiaFreeBuildAvailable;
-            scratch.HalikarnassosDiscardBuildPending = !scratch.HalikarnassosDiscardBuildPending;
+            scratch.FreeBuildAvailable = !scratch.FreeBuildAvailable;
+            scratch.DiscardPileBuildPending = !scratch.DiscardPileBuildPending;
             scratch.WestNeighbour = scratch;
 
             scratch.CopyFrom(player);

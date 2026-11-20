@@ -85,7 +85,7 @@ internal sealed class KnowledgeTracker
         switch (move.Action)
         {
             case MoveAction.Build:
-            case MoveAction.BuildWithOlympiaFreeBuild:
+            case MoveAction.BuildWithFreeBuild:
                 // everyone sees the card built
                 for (int observerSeat = 0; observerSeat < _playerCount; observerSeat++)
                 {

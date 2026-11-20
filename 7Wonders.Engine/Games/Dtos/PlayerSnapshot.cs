@@ -5,7 +5,9 @@ using _7Wonders.Engine.Rules.Services;
 
 namespace _7Wonders.Engine.Games.Dtos;
 
-/// <summary>What a move's event compares before and after it: a player's coins, wonder stage and effect flags.</summary>
+/// <summary>
+/// What a move's event compares before and after it: a player's coins, wonder stage and effect flags.
+/// </summary>
 internal sealed class PlayerSnapshot
 {
     /// <summary>A snapshot with these values.</summary>
@@ -36,13 +38,13 @@ internal sealed class PlayerSnapshot
                 flags.Add(ability.ToString());
             }
         }
-        if (player.HalikarnassosDiscardBuildPending)
+        if (player.DiscardPileBuildPending)
         {
-            flags.Add(nameof(player.HalikarnassosDiscardBuildPending));
+            flags.Add(nameof(player.DiscardPileBuildPending));
         }
-        if (player.OlympiaFreeBuildAvailable)
+        if (player.FreeBuildAvailable)
         {
-            flags.Add(nameof(player.OlympiaFreeBuildAvailable));
+            flags.Add(nameof(player.FreeBuildAvailable));
         }
         return new PlayerSnapshot(player.Resources[Resource.Coins], player.Wonder.BuiltStageCount, flags);
     }
