@@ -30,7 +30,7 @@ internal sealed class CoinsPerCard : IEffect
     public Who Who { get; }
 
     /// <inheritdoc/>
-    public void OnBuild(PlayerState owner)
+    public void OnBuild(PlayerState owner, IEffectSource source)
     {
         owner.Resources[Resource.Coins] += Coins * Cities.CountCards(owner, Who, Type);
     }

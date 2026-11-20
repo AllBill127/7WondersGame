@@ -12,7 +12,7 @@ namespace _7Wonders.Engine.Effects.Effects;
 internal sealed class FreeBuildEachEra : IEffect
 {
     /// <inheritdoc/>
-    public void OnBuild(PlayerState owner)
+    public void OnBuild(PlayerState owner, IEffectSource source)
     {
         owner.Abilities |= Ability.FreeBuildEachEra;
         owner.FreeBuildAvailable = true;

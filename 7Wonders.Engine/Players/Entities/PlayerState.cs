@@ -1,6 +1,7 @@
 ﻿using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Enums;
 using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Games.Entities;
 using _7Wonders.Engine.Rules.Services;
 using _7Wonders.Engine.Wonders.Entities;
@@ -72,9 +73,19 @@ public sealed class PlayerState
     public bool FreeBuildAvailable { get; set; }
 
     /// <summary>
-    /// Halikarnassos: a free build from the discard pile at the end of this turn, from the stage just built.
+    /// The card or stage just built whose effect gives a free build from the discard pile at the end of this turn
+    /// (Halikarnassos); null if there is none.
     /// </summary>
-    public bool DiscardPileBuildPending { get; set; }
+    public IEffectSource? DiscardPileBuildSource { get; set; }
+
+    /// <summary>Whether a free build from the discard pile is due at the end of this turn.</summary>
+    public bool DiscardPileBuildPending
+    {
+        get
+        {
+            return DiscardPileBuildSource != null;
+        }
+    }
 
     /// <summary>Production, science symbols, coins and shields.</summary>
     public ResourceCounts Resources { get; set; } = new() { [Resource.Coins] = 3 };
@@ -169,7 +180,7 @@ public sealed class PlayerState
         VictoryPoints = source.VictoryPoints;
         Abilities = source.Abilities;
         FreeBuildAvailable = source.FreeBuildAvailable;
-        DiscardPileBuildPending = source.DiscardPileBuildPending;
+        DiscardPileBuildSource = source.DiscardPileBuildSource;
         Resources.CopyFrom(source.Resources);
         EastNeighbour = source.EastNeighbour;
         WestNeighbour = source.WestNeighbour;

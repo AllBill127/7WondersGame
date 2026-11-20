@@ -7,8 +7,8 @@ namespace _7Wonders.Engine.Effects.Effects;
 internal sealed class BuildFromDiscardPile : IEffect
 {
     /// <inheritdoc/>
-    public void OnBuild(PlayerState owner)
+    public void OnBuild(PlayerState owner, IEffectSource source)
     {
-        owner.DiscardPileBuildPending = true;
+        owner.DiscardPileBuildSource = source;
     }
 }

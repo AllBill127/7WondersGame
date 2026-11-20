@@ -7,15 +7,17 @@
 public sealed class EraStarted : GameEvent
 {
     /// <summary>The event with these values.</summary>
-    public EraStarted(int era, IReadOnlyList<int> freeBuildSeats)
+    public EraStarted(int era, IReadOnlyList<SeatEffectSources> freeBuilds)
     {
         Era = era;
-        FreeBuildSeats = freeBuildSeats;
+        FreeBuilds = freeBuilds;
     }
 
     /// <summary>The era, 1 to 3.</summary>
     public int Era { get; }
 
-    /// <summary>The seats that may build one card for free this era (Olympia A).</summary>
-    public IReadOnlyList<int> FreeBuildSeats { get; }
+    /// <summary>
+    /// The seats that may build one card for free this era (Olympia A), with the cards and stages that let them.
+    /// </summary>
+    public IReadOnlyList<SeatEffectSources> FreeBuilds { get; }
 }

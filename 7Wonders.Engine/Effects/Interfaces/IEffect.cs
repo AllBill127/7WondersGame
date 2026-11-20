@@ -10,8 +10,11 @@ namespace _7Wonders.Engine.Effects.Interfaces;
 /// </summary>
 public interface IEffect
 {
-    /// <summary>Changes the owner's city when the card or stage is built. Does nothing unless overridden.</summary>
-    void OnBuild(PlayerState owner)
+    /// <summary>
+    /// Changes the owner's city when <paramref name="source"/>, the card or stage, is built. Does nothing unless
+    /// overridden.
+    /// </summary>
+    void OnBuild(PlayerState owner, IEffectSource source)
     {
     }
 

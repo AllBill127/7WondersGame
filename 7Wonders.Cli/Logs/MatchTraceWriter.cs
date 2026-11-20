@@ -2,6 +2,7 @@
 using _7Wonders.Agents.Matches.Records;
 using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Services;
+using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Games.Enums;
 using _7Wonders.Engine.Games.Events;
 using _7Wonders.Engine.Moves.Enums;
@@ -99,14 +100,20 @@ internal sealed class MatchTraceWriter : IMatchListener
             source = "discard pile";
             cards = shown.DiscardPile;
         }
-        _log.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; {Source}: {Cards}",
+        string givenBy = "";
+        if (shown.ExtraMoveSources.Count > 0)
+        {
+            givenBy = "; " + GivenBy(shown.ExtraMoveSources);
+        }
+        _log.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; {Source}: {Cards}{GivenBy}",
             shown.Seat,
             shown.Coins,
             shown.Shields,
             shown.Wonder,
             shown.BuiltStageCount,
             source,
-            CardNames.Join(cards));
+            CardNames.Join(cards),
+            givenBy);
         _log.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
             shown.Seat,
             CardNames.Join(shown.BuildableCards),
@@ -188,9 +195,10 @@ internal sealed class MatchTraceWriter : IMatchListener
         }
         else if (gameEvent is GuildCopied guildCopied)
         {
-            _log.Debug("Seat {Seat} copies {Guild} from a neighbour",
+            _log.Debug("Seat {Seat} copies {Guild} from a neighbour ({GivenBy})",
                 guildCopied.Seat,
-                guildCopied.Guild.Name);
+                guildCopied.Guild.Name,
+                GivenBy(guildCopied.Sources));
         }
         else if (gameEvent is GameEnded)
         {
@@ -201,9 +209,11 @@ internal sealed class MatchTraceWriter : IMatchListener
     private void WriteEraStarted(EraStarted eraStarted)
     {
         _log.Debug("=== Era {Era} ===", eraStarted.Era);
-        foreach (int seat in eraStarted.FreeBuildSeats)
+        foreach (SeatEffectSources freeBuild in eraStarted.FreeBuilds)
         {
-            _log.Debug("Seat {Seat} may build one card for free this era", seat);
+            _log.Debug("Seat {Seat} may build one card for free this era ({GivenBy})",
+                freeBuild.Seat,
+                GivenBy(freeBuild.Sources));
         }
     }
 
@@ -269,7 +279,7 @@ internal sealed class MatchTraceWriter : IMatchListener
         switch (moveResolved.Action)
         {
             case MoveAction.BuildWithFreeBuild:
-                return $"builds {name} with the era's free build";
+                return $"builds {name} with the era's free build ({GivenBy(moveResolved.EffectSources)})";
             case MoveAction.BuildWonderStage:
                 return $"builds wonder stage {moveResolved.BuiltStageCount} using {name}";
             case MoveAction.Discard:
@@ -306,5 +316,16 @@ internal sealed class MatchTraceWriter : IMatchListener
             return "-1";
         }
         return "draw";
+    }
+
+    /// <summary>Where an effect comes from: "given by OlympiaA stage 2", or a card's name.</summary>
+    private static string GivenBy(IReadOnlyList<IEffectSource> sources)
+    {
+        List<string> names = new(sources.Count);
+        foreach (IEffectSource source in sources)
+        {
+            names.Add(source.Name);
+        }
+        return "given by " + string.Join(", ", names);
     }
 }

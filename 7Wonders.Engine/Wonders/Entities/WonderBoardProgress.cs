@@ -157,7 +157,7 @@ public sealed class WonderBoardProgress
         BuiltStageCount++;
         foreach (IEffect effect in builtStage.Effects)
         {
-            effect.OnBuild(player);
+            effect.OnBuild(player, builtStage);
         }
         return true;
     }

@@ -67,7 +67,7 @@ public class PlayerCopyTests
             "<Abilities>k__BackingField",
             "<BuiltCards>k__BackingField",
             "<DefeatTokens>k__BackingField",
-            "<DiscardPileBuildPending>k__BackingField",
+            "<DiscardPileBuildSource>k__BackingField",
             "<FreeBuildAvailable>k__BackingField",
             "<Hand>k__BackingField",
             "<Resources>k__BackingField",
@@ -104,13 +104,21 @@ public class PlayerCopyTests
             scratch.VictoryPoints = 99;
             scratch.Abilities |= Ability.ManufacturedGoodsCheapFromBothNeighbours;
             scratch.FreeBuildAvailable = !scratch.FreeBuildAvailable;
-            scratch.DiscardPileBuildPending = !scratch.DiscardPileBuildPending;
+            if (scratch.DiscardPileBuildSource == null)
+            {
+                scratch.DiscardPileBuildSource = scratch.BuiltCards[0];
+            }
+            else
+            {
+                scratch.DiscardPileBuildSource = null;
+            }
             scratch.WestNeighbour = scratch;
 
             scratch.CopyFrom(player);
 
             Assert.AreEqual(before, Describe(scratch), $"seat {player.Seat}");
             Assert.AreEqual(before, Describe(player), "the source doesn't change");
+            Assert.AreSame(player.DiscardPileBuildSource, scratch.DiscardPileBuildSource);
             Assert.AreNotSame(player.Hand, scratch.Hand);
             Assert.AreNotSame(player.BuiltCards, scratch.BuiltCards);
             Assert.AreNotSame(player.Resources, scratch.Resources);

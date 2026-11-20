@@ -10,7 +10,7 @@ namespace _7Wonders.Engine.Cards.Entities;
 /// One card of the game: what it costs, what it chains from and what it does. Card objects come from
 /// <see cref="CardsDataset"/> and are shared by every game, so they never change.
 /// </summary>
-public sealed class Card : IEquatable<Card>
+public sealed class Card : IEquatable<Card>, IEffectSource
 {
     /// <summary>Which card this is; the two copies of a name in different eras have different ids.</summary>
     public CardId Id { get; }

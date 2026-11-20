@@ -1,4 +1,5 @@
 ﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Moves.Enums;
 
 namespace _7Wonders.Engine.Games.Events;
@@ -19,7 +20,8 @@ public sealed class MoveResolved : GameEvent
                         int paidToEast,
                         int paidToBank,
                         IReadOnlyList<string> gained,
-                        IReadOnlyList<string> usedUp)
+                        IReadOnlyList<string> usedUp,
+                        IReadOnlyList<IEffectSource> effectSources)
     {
         Seat = seat;
         Action = action;
@@ -34,6 +36,7 @@ public sealed class MoveResolved : GameEvent
         PaidToBank = paidToBank;
         Gained = gained;
         UsedUp = usedUp;
+        EffectSources = effectSources;
     }
 
     /// <summary>The seat.</summary>
@@ -74,4 +77,10 @@ public sealed class MoveResolved : GameEvent
 
     /// <summary>The one-use charges (and abilities) the move used up, by name.</summary>
     public IReadOnlyList<string> UsedUp { get; }
+
+    /// <summary>
+    /// The cards and wonder stages whose effect the move used: those giving the free build each era for
+    /// <see cref="MoveAction.BuildWithFreeBuild"/>; empty for any other move.
+    /// </summary>
+    public IReadOnlyList<IEffectSource> EffectSources { get; }
 }

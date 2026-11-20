@@ -71,7 +71,7 @@ public static class MoveResolution
         }
         if (move.FromDiscardPile)
         {
-            player.DiscardPileBuildPending = false;
+            player.DiscardPileBuildSource = null;
         }
     }
 }

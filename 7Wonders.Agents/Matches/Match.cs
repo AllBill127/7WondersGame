@@ -4,6 +4,8 @@ using _7Wonders.Agents.Common.Settings;
 using _7Wonders.Agents.Matches.Records;
 using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Games.Entities;
 using _7Wonders.Engine.Games.Enums;
 using _7Wonders.Engine.Games.Events;
@@ -201,9 +203,15 @@ public class Match : IGameEventListener
             PlayerState player = Game.Players[view.Seat];
             // the discard pile only matters to a build from it
             IReadOnlyList<Card> discardPile = Array.Empty<Card>();
-            if (Game.Phase == Phase.DiscardPileBuild)
+            IReadOnlyList<IEffectSource> extraMoveSources = Array.Empty<IEffectSource>();
+            if (Game.Phase == Phase.SeventhCard)
+            {
+                extraMoveSources = EffectSources.Granting(player, Ability.PlaySeventhCard);
+            }
+            else if (Game.Phase == Phase.DiscardPileBuild && player.DiscardPileBuildSource != null)
             {
                 discardPile = new List<Card>(Game.DiscardPile);
+                extraMoveSources = new List<IEffectSource> { player.DiscardPileBuildSource };
             }
             // what the agent was shown: worked out for its view, so recording it changes nothing
             Add(new SeatShown(Game.Phase,
@@ -215,7 +223,8 @@ public class Match : IGameEventListener
                 new List<Card>(player.Hand),
                 discardPile,
                 view.BuildableCards,
-                view.CanBuildWonder));
+                view.CanBuildWonder,
+                extraMoveSources));
         }
     }
 

@@ -17,7 +17,7 @@ internal sealed class CoinsPerWonderStage : IEffect
     public int Coins { get; }
 
     /// <inheritdoc/>
-    public void OnBuild(PlayerState owner)
+    public void OnBuild(PlayerState owner, IEffectSource source)
     {
         owner.Resources[Resource.Coins] += Coins * owner.Wonder.BuiltStageCount;
     }

@@ -14,7 +14,7 @@ public static class CardEffects
     {
         for (int effectIndex = 0; effectIndex < card.Effects.Count; effectIndex++)
         {
-            card.Effects[effectIndex].OnBuild(player);
+            card.Effects[effectIndex].OnBuild(player, card);
         }
     }
 }

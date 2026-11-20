@@ -1,4 +1,5 @@
 ﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Games.Enums;
 using _7Wonders.Engine.Wonders.Enums;
 
@@ -19,7 +20,8 @@ public sealed class SeatShown : MatchEntry
                      IReadOnlyList<Card> hand,
                      IReadOnlyList<Card> discardPile,
                      IReadOnlyList<Card> buildableCards,
-                     bool canBuildWonder)
+                     bool canBuildWonder,
+                     IReadOnlyList<IEffectSource> extraMoveSources)
     {
         Phase = phase;
         Seat = seat;
@@ -31,6 +33,7 @@ public sealed class SeatShown : MatchEntry
         DiscardPile = discardPile;
         BuildableCards = buildableCards;
         CanBuildWonder = canBuildWonder;
+        ExtraMoveSources = extraMoveSources;
     }
 
     /// <summary>
@@ -65,4 +68,7 @@ public sealed class SeatShown : MatchEntry
 
     /// <summary>Whether the seat could build its next wonder stage.</summary>
     public bool CanBuildWonder { get; }
+
+    /// <summary>For an extra move, the built cards and wonder stages whose effect gives it; empty for a turn.</summary>
+    public IReadOnlyList<IEffectSource> ExtraMoveSources { get; }
 }

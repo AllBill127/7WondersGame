@@ -53,6 +53,8 @@ internal sealed class WonderBoard
         {
             int builtStages = stageIndex + 1;
             WonderStage stage = stages[stageIndex];
+            stage.Wonder = id;
+            stage.Number = builtStages;
             AbilitiesAfter[builtStages] = AbilitiesAfter[stageIndex] | AbilitiesGrantedBy(stage);
             ScienceWildcardsAfter[builtStages] = ScienceWildcardsAfter[stageIndex] + ScienceWildcardsIn(stage);
         }

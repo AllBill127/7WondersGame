@@ -2,6 +2,7 @@
 using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Enums;
 using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Games.Dtos;
 using _7Wonders.Engine.Games.Enums;
 using _7Wonders.Engine.Games.Events;
@@ -516,7 +517,7 @@ public class Game
             {
                 EventListener.EventRaised(new DiscardPileBuildSkipped(player.Seat));
             }
-            player.DiscardPileBuildPending = false;
+            player.DiscardPileBuildSource = null;
         }
 
         _waiting[player.Seat] = false;
@@ -774,7 +775,8 @@ public class Game
             bool copied = GuildCopying.CopyBestNeighbourGuild(player);
             if (copied && EventListener != null)
             {
-                EventListener.EventRaised(new GuildCopied(player.Seat, LastBuiltCard(player)));
+                List<IEffectSource> sources = EffectSources.Granting(player, Ability.CopyGuild);
+                EventListener.EventRaised(new GuildCopied(player.Seat, LastBuiltCard(player), sources));
             }
             Scoring.CalculateScore(player);
         }
@@ -898,15 +900,16 @@ public class Game
 
     private void RaiseEraStarted(IGameEventListener listener)
     {
-        List<int> freeBuildSeats = new();
+        List<SeatEffectSources> freeBuilds = new();
         foreach (PlayerState player in Players)
         {
             if (player.FreeBuildAvailable)
             {
-                freeBuildSeats.Add(player.Seat);
+                List<IEffectSource> sources = EffectSources.Granting(player, Ability.FreeBuildEachEra);
+                freeBuilds.Add(new SeatEffectSources(player.Seat, sources));
             }
         }
-        listener.EventRaised(new EraStarted(Era, freeBuildSeats));
+        listener.EventRaised(new EraStarted(Era, freeBuilds));
     }
 
     private void RaiseEraEnded(IGameEventListener listener)
@@ -943,6 +946,11 @@ public class Game
             paidToEast = plannedMove.Payment.ToEast;
             paidToBank = plannedMove.CoinCost;
         }
+        List<IEffectSource> effectSources = new();
+        if (action == MoveAction.BuildWithFreeBuild)
+        {
+            effectSources = EffectSources.Granting(player, Ability.FreeBuildEachEra);
+        }
 
         listener.EventRaised(new MoveResolved(player.Seat,
             action,
@@ -956,7 +964,8 @@ public class Game
             paidToEast,
             paidToBank,
             gained,
-            usedUp));
+            usedUp,
+            effectSources));
     }
 
     /// <summary>

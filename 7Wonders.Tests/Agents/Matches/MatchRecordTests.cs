@@ -73,6 +73,11 @@ public class MatchRecordTests
                 .OfType<SeatShown>()
                 .Count(shown => shown.Phase != Phase.DiscardPileBuild && shown.DiscardPile.Count > 0);
             Assert.AreEqual(0, pilesShownOutsideABuildFromIt, "the discard pile is kept only for a build from it");
+            foreach (SeatShown shown in record.Entries.OfType<SeatShown>())
+            {
+                bool isExtraMove = shown.Phase != Phase.ChooseMoves;
+                Assert.AreEqual(isExtraMove, shown.ExtraMoveSources.Count > 0, "an extra move names what gives it");
+            }
         }
 
         Assert.IsTrue(phasesSeen.Contains(Phase.SeventhCard), "Babylon B played a last card");

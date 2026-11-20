@@ -128,7 +128,7 @@ public class WonderDataTests
         int scienceBefore = Scoring.CalculateScientificScore(player);
         Ability abilitiesBefore = player.Wonder.Abilities;
         player.FreeBuildAvailable = false;
-        player.DiscardPileBuildPending = false;
+        player.DiscardPileBuildSource = null;
 
         Assert.IsTrue(player.Wonder.AddStage(player), "build stage");
         Assert.AreEqual(stage, player.Wonder.BuiltStageCount, "stage number");
@@ -138,6 +138,10 @@ public class WonderDataTests
 
         Ability gained = player.Wonder.Abilities & ~abilitiesBefore;
         CheckEffect(player, effect, gained, scienceBefore);
+        if (player.DiscardPileBuildSource != null)
+        {
+            Assert.AreEqual($"{wonder} stage {stage}", player.DiscardPileBuildSource.Name, "the stage just built");
+        }
     }
 
     // ===== helpers =====
