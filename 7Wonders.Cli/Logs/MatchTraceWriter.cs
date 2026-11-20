@@ -100,20 +100,21 @@ internal sealed class MatchTraceWriter : IMatchListener
             source = "discard pile";
             cards = shown.DiscardPile;
         }
-        string givenBy = "";
+        // an extra move says first what gives it, so it isn't read as part of the cards
+        string extraMove = "";
         if (shown.ExtraMoveSources.Count > 0)
         {
-            givenBy = "; " + GivenBy(shown.ExtraMoveSources);
+            extraMove = " (extra move " + GivenBy(shown.ExtraMoveSources) + ")";
         }
-        _log.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; {Source}: {Cards}{GivenBy}",
+        _log.Debug("Seat {Seat}{ExtraMove}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; {Source}: {Cards}",
             shown.Seat,
+            extraMove,
             shown.Coins,
             shown.Shields,
             shown.Wonder,
             shown.BuiltStageCount,
             source,
-            CardNames.Join(cards),
-            givenBy);
+            CardNames.Join(cards));
         _log.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
             shown.Seat,
             CardNames.Join(shown.BuildableCards),
