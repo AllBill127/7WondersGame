@@ -35,9 +35,9 @@ public sealed class Move : IEquatable<Move>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return Equals(obj as Move);
+        return Equals(otherObject as Move);
     }
 
     /// <inheritdoc/>

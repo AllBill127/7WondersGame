@@ -13,12 +13,12 @@ internal sealed class PointsPerWonderStage : IEffect
     /// </summary>
     public PointsPerWonderStage(int victoryPoints, Who who)
     {
-        Vp = victoryPoints;
+        VictoryPoints = victoryPoints;
         Who = who;
     }
 
     /// <summary>The victory points per wonder stage.</summary>
-    public int Vp { get; }
+    public int VictoryPoints { get; }
 
     /// <summary>Whose cities are counted.</summary>
     public Who Who { get; }
@@ -26,6 +26,6 @@ internal sealed class PointsPerWonderStage : IEffect
     /// <inheritdoc/>
     public int EndGameVictoryPoints(PlayerState owner)
     {
-        return Vp * Cities.CountWonderStages(owner, Who);
+        return VictoryPoints * Cities.CountWonderStages(owner, Who);
     }
 }

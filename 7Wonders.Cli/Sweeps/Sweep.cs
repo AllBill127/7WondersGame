@@ -50,9 +50,9 @@ internal sealed class Sweep : IEquatable<Sweep>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return Equals(obj as Sweep);
+        return Equals(otherObject as Sweep);
     }
 
     /// <inheritdoc/>

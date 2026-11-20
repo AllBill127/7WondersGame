@@ -76,9 +76,9 @@ public sealed class SeatResult : IEquatable<SeatResult>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return Equals(obj as SeatResult);
+        return Equals(otherObject as SeatResult);
     }
 
     /// <inheritdoc/>

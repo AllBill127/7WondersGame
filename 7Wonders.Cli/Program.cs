@@ -12,13 +12,13 @@ internal static class Program
     /// Entry point: <c>7Wonders &lt;command&gt; [options]</c>. Without arguments it prints help and exits;
     /// see <see cref="HelpText"/> for the commands and options.
     /// </summary>
-    static async Task<int> Main(string[] args)
+    static async Task<int> Main(string[] arguments)
     {
         CliArguments? cli = null;
         try
         {
-            cli = CliArguments.Parse(args);
-            if (args.Length == 0)
+            cli = CliArguments.Parse(arguments);
+            if (arguments.Length == 0)
             {
                 Console.WriteLine(HelpText.General);
                 return Commands.BadUsage;
@@ -29,7 +29,7 @@ internal static class Program
                 return Commands.Ok;
             }
 
-            return await RunCommand(cli, args);
+            return await RunCommand(cli, arguments);
         }
         catch (UsageException exception)
         {
@@ -57,12 +57,12 @@ internal static class Program
         return cli.Command;
     }
 
-    private static async Task<int> RunCommand(CliArguments cli, string[] args)
+    private static async Task<int> RunCommand(CliArguments cli, string[] arguments)
     {
         switch (cli.Command)
         {
             case "run":
-                return await Commands.Run(cli, args);
+                return await Commands.Run(cli, arguments);
             case "replay":
                 return await Commands.Replay(cli);
             case "analyze":
@@ -72,7 +72,7 @@ internal static class Program
             case "agents":
                 return Commands.Agents(cli);
             default:
-                throw new UsageException($"Unknown command '{args[0]}'.");
+                throw new UsageException($"Unknown command '{arguments[0]}'.");
         }
     }
 

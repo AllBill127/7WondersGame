@@ -45,9 +45,9 @@ public readonly struct PaymentPlan : IEquatable<PaymentPlan>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        if (obj is PaymentPlan other)
+        if (otherObject is PaymentPlan other)
         {
             return Equals(other);
         }

@@ -122,9 +122,9 @@ public sealed class Card : IEquatable<Card>, IEffectSource
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return Equals(obj as Card);
+        return Equals(otherObject as Card);
     }
 
     /// <inheritdoc/>

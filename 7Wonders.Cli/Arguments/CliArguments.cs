@@ -84,10 +84,10 @@ internal sealed class CliArguments
     /// The option at <paramref name="optionIndex"/> (<c>--name=value</c>, or <c>--name value</c>, which moves
     /// <paramref name="optionIndex"/> on to the value), as its name and value.
     /// </summary>
-    private static KeyValuePair<string, string> ReadOption(IReadOnlyList<string> args, ref int optionIndex,
+    private static KeyValuePair<string, string> ReadOption(IReadOnlyList<string> arguments, ref int optionIndex,
                                                            string command)
     {
-        string argument = args[optionIndex];
+        string argument = arguments[optionIndex];
         int equalsSignIndex = argument.IndexOf('=');
         if (equalsSignIndex > 0)
         {
@@ -100,12 +100,12 @@ internal sealed class CliArguments
 
         string name = argument.Substring(OptionNameStart);
         int valueIndex = optionIndex + 1;
-        if (!HasValueAt(args, valueIndex))
+        if (!HasValueAt(arguments, valueIndex))
         {
             throw new UsageException($"--{name} needs a value.", command);
         }
         optionIndex = valueIndex;
-        return new KeyValuePair<string, string>(name, args[valueIndex]);
+        return new KeyValuePair<string, string>(name, arguments[valueIndex]);
     }
 
     private static bool IsHelpCommand(string command)
@@ -121,9 +121,9 @@ internal sealed class CliArguments
     /// <summary>
     /// Whether there is an argument at <paramref name="index"/> that is a value, not the next option.
     /// </summary>
-    private static bool HasValueAt(IReadOnlyList<string> args, int index)
+    private static bool HasValueAt(IReadOnlyList<string> arguments, int index)
     {
-        return index < args.Count && !args[index].StartsWith("--");
+        return index < arguments.Count && !arguments[index].StartsWith("--");
     }
 
     /// <summary>Throws if an option is not one this command knows.</summary>
@@ -222,8 +222,10 @@ internal sealed class CliArguments
         return value;
     }
 
-    /// <summary>A whole number from <paramref name="min"/> to <paramref name="max"/>, or null if not given.</summary>
-    public int? GetInt(string name, int min, int max = int.MaxValue)
+    /// <summary>
+    /// A whole number from <paramref name="minimum"/> to <paramref name="maximum"/>, or null if not given.
+    /// </summary>
+    public int? GetWholeNumber(string name, int minimum, int maximum = int.MaxValue)
     {
         string? text = Get(name);
         if (text == null)
@@ -232,28 +234,28 @@ internal sealed class CliArguments
         }
 
         bool isWholeNumber = int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value);
-        if (!isWholeNumber || value < min || value > max)
+        if (!isWholeNumber || value < minimum || value > maximum)
         {
-            throw new UsageException(WholeNumberRangeMessage(name, min, max, text), Command);
+            throw new UsageException(WholeNumberRangeMessage(name, minimum, maximum, text), Command);
         }
         return value;
     }
 
-    private static string WholeNumberRangeMessage(string name, int min, int max, string text)
+    private static string WholeNumberRangeMessage(string name, int minimum, int maximum, string text)
     {
-        if (max == int.MaxValue)
+        if (maximum == int.MaxValue)
         {
-            return $"--{name} must be a whole number of at least {min}, not '{text}'.";
+            return $"--{name} must be a whole number of at least {minimum}, not '{text}'.";
         }
-        return $"--{name} must be a whole number from {min} to {max}, not '{text}'.";
+        return $"--{name} must be a whole number from {minimum} to {maximum}, not '{text}'.";
     }
 
     /// <summary>
-    /// A whole number of at least <paramref name="min"/>, or <paramref name="defaultValue"/> if not given.
+    /// A whole number of at least <paramref name="minimum"/>, or <paramref name="defaultValue"/> if not given.
     /// </summary>
-    public int GetIntOrDefault(string name, int min, int defaultValue)
+    public int GetWholeNumberOrDefault(string name, int minimum, int defaultValue)
     {
-        int? value = GetInt(name, min);
+        int? value = GetWholeNumber(name, minimum);
         if (value == null)
         {
             return defaultValue;
@@ -262,11 +264,11 @@ internal sealed class CliArguments
     }
 
     /// <summary>
-    /// A whole number from <paramref name="min"/> to <paramref name="max"/>, or a usage error if not given.
+    /// A whole number from <paramref name="minimum"/> to <paramref name="maximum"/>, or a usage error if not given.
     /// </summary>
-    public int RequireInt(string name, int min, int max = int.MaxValue)
+    public int RequireWholeNumber(string name, int minimum, int maximum = int.MaxValue)
     {
-        int? value = GetInt(name, min, max);
+        int? value = GetWholeNumber(name, minimum, maximum);
         if (value == null)
         {
             throw new UsageException($"--{name} is required.", Command);

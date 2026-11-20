@@ -57,7 +57,7 @@ internal static class Commands
     /// <summary>
     /// 'run': plays the games of the plan and appends their rows to the results CSV, with a manifest next to it.
     /// </summary>
-    public static async Task<int> Run(CliArguments cli, string[] args)
+    public static async Task<int> Run(CliArguments cli, string[] arguments)
     {
         RunPlan plan = RunPlan.FromCli(cli);
         LogLevelChoice logLevel = Logging.Resolve(plan.LogLevel);
@@ -82,7 +82,7 @@ internal static class Commands
         {
             RunId = runId,
             RunSeed = plan.Seed,
-            Arguments = args,
+            Arguments = arguments,
             Settings = ManifestSettings(plan, experimentCopy, $"{level} ({levelSource})"),
             ResultsCsv = csvPath,
             StartedUtc = started,
@@ -302,7 +302,7 @@ internal static class Commands
         Logging.Configure(level);
 
         string? datasetName = cli.Get("dataset");
-        int? deal = cli.GetInt("deal", 0);
+        int? deal = cli.GetWholeNumber("deal", 0);
         ReplaySetup setup;
         if (cli.Has("from"))
         {
@@ -456,7 +456,7 @@ internal static class Commands
 
         GroupBy grouping = ParseGroupBy(cli.GetOrDefault("group-by", "player"));
         List<GroupStatistics> groups = Analysis.Groups(rows, grouping);
-        int? comparedGroup = cli.GetInt("compare-with", 1, groups.Count);
+        int? comparedGroup = cli.GetWholeNumber("compare-with", 1, groups.Count);
         // all pairs of many groups (e.g. 14 wonders: 91 pairs) is a long list where some differ by chance alone
         bool allPairs = comparedGroup != null || groups.Count <= Analysis.MostGroupsForAllPairs;
         List<PairStatistics> pairs = new();
@@ -596,8 +596,8 @@ internal static class Commands
     public static async Task<int> Dataset(CliArguments cli)
     {
         cli.AllowOnly("seats", "games", "seed", "output", "log-level");
-        int seats = cli.RequireInt("seats", 3, 7);
-        int games = cli.RequireInt("games", 1);
+        int seats = cli.RequireWholeNumber("seats", 3, 7);
+        int games = cli.RequireWholeNumber("games", 1);
         ulong seed = ParseRunSeed(cli.Require("seed"));
         Logging.Configure(Logging.Resolve(cli.Get("log-level")).Level);
 

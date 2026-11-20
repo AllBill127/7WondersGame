@@ -30,7 +30,7 @@ public class TurnStateMachineTests
     private const int HeuristicAndRandom = 2;
     private const int HeuristicOnly = 1;
 
-    private static Card C(CardId id)
+    private static Card CardOf(CardId id)
     {
         return CardsDataset.GameCards[id];
     }
@@ -49,7 +49,7 @@ public class TurnStateMachineTests
         game.Players = MockHelper.MockPlayers(wonders);
         for (int seat = 0; seat < hands.Length; seat++)
         {
-            game.Players[seat].Hand.AddRange(hands[seat].Select(C));
+            game.Players[seat].Hand.AddRange(hands[seat].Select(CardOf));
         }
 
         return game;
@@ -57,12 +57,12 @@ public class TurnStateMachineTests
 
     private static Move Discard(CardId id)
     {
-        return new Move(MoveAction.Discard, C(id));
+        return new Move(MoveAction.Discard, CardOf(id));
     }
 
     private static Move Build(CardId id)
     {
-        return new Move(MoveAction.Build, C(id));
+        return new Move(MoveAction.Build, CardOf(id));
     }
 
     [TestMethod]
@@ -82,7 +82,7 @@ public class TurnStateMachineTests
         Assert.IsTrue(game.SomeMovesSubmitted);
         Assert.AreEqual(0, game.Turn);
         Assert.AreEqual(coins, game.Players[0].Resources[Resource.Coins]);
-        CollectionAssert.Contains(game.Players[0].Hand, C(CardId.Baths));
+        CollectionAssert.Contains(game.Players[0].Hand, CardOf(CardId.Baths));
     }
 
     [TestMethod]
@@ -187,7 +187,7 @@ public class TurnStateMachineTests
 
         game.Submit(0, Build(CardId.LumberYard));
 
-        CollectionAssert.Contains(game.Players[0].BuiltCards, C(CardId.LumberYard));
+        CollectionAssert.Contains(game.Players[0].BuiltCards, CardOf(CardId.LumberYard));
         Assert.AreEqual(7, game.Turn);
         Assert.AreEqual(2, game.Era);
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
@@ -211,7 +211,7 @@ public class TurnStateMachineTests
     private static void PlayTurn0(Game game)
     {
         game.Submit(0, Build(CardId.LumberYard));
-        game.Submit(1, new Move(MoveAction.BuildWonderStage, C(CardId.Baths)));
+        game.Submit(1, new Move(MoveAction.BuildWonderStage, CardOf(CardId.Baths)));
         game.Submit(2, Build(CardId.StonePit));
     }
 
@@ -236,7 +236,7 @@ public class TurnStateMachineTests
     public void Halikarnassos_BuildsACardItCantAfford_FromThePile()
     {
         Game game = HalikarnassosBuildsStage2();
-        game.DiscardPile.Add(C(CardId.Palace));
+        game.DiscardPile.Add(CardOf(CardId.Palace));
         PlayTurn0(game);
 
         Assert.AreEqual(Phase.DiscardPileBuild, game.Phase);
@@ -245,8 +245,8 @@ public class TurnStateMachineTests
         game.Submit(1, Build(CardId.Palace));
 
         Assert.IsFalse(game.Players[1].DiscardPileBuildPending);
-        CollectionAssert.Contains(game.Players[1].BuiltCards, C(CardId.Palace));
-        CollectionAssert.DoesNotContain(game.DiscardPile, C(CardId.Palace));
+        CollectionAssert.Contains(game.Players[1].BuiltCards, CardOf(CardId.Palace));
+        CollectionAssert.DoesNotContain(game.DiscardPile, CardOf(CardId.Palace));
         Assert.AreEqual(Phase.ChooseMoves, game.Phase);
     }
 

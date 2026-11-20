@@ -17,7 +17,7 @@ public static class AgentCatalog
         new AgentCatalogEntry(
             "MctsAgent",
             typeof(MctsAgent),
-            "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAgent rollouts); 3-4 players"),
+            "configurable MCTS (by default SO-ISMCTS, max^n, win reward, HeuristicAgent rollouts)"),
         new AgentCatalogEntry(
             "HeuristicAgent",
             typeof(HeuristicAgent),

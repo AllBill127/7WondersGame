@@ -27,9 +27,9 @@ internal sealed class RecordedGameKey : IEquatable<RecordedGameKey>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return Equals(obj as RecordedGameKey);
+        return Equals(otherObject as RecordedGameKey);
     }
 
     /// <inheritdoc/>

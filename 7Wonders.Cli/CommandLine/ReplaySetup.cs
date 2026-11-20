@@ -68,7 +68,7 @@ internal sealed class ReplaySetup
             throw new UsageException($"Results file not found: {csv}", "replay");
         }
         string runId = cli.Require("run");
-        int gameIndex = cli.RequireInt("game", 0);
+        int gameIndex = cli.RequireWholeNumber("game", 0);
 
         List<Dictionary<string, string>> recorded = RecordedRows(csv, runId, gameIndex);
         List<AgentSpecification> specifications = recorded.Select(RecordedSpecification).ToList();

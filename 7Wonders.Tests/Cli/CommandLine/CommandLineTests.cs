@@ -38,7 +38,7 @@ public class CommandLineTests
         CliArguments cli = CliArguments.Parse(new[] { "RUN", "--games", "5", "--Seed=0x10" });
 
         Assert.AreEqual("run", cli.Command);
-        Assert.AreEqual(5, cli.RequireInt("games", 1));
+        Assert.AreEqual(5, cli.RequireWholeNumber("games", 1));
         Assert.AreEqual(16UL, cli.GetSeed("seed"));
     }
 
@@ -56,7 +56,7 @@ public class CommandLineTests
         Assert.ThrowsException<UsageException>(() => CliArguments.Parse(twice));
         Assert.ThrowsException<UsageException>(() => CliArguments.Parse(noDashes));
         Assert.ThrowsException<UsageException>(() => unknownOption.AllowOnly("games"));
-        Assert.ThrowsException<UsageException>(() => noGames.RequireInt("games", 1));
+        Assert.ThrowsException<UsageException>(() => noGames.RequireWholeNumber("games", 1));
         Assert.ThrowsException<UsageException>(() => noPlayers.Require("players"));
     }
 

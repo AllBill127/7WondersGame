@@ -31,9 +31,9 @@ internal readonly struct MoveKey : IEquatable<MoveKey>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return obj is MoveKey otherKey && Equals(otherKey);
+        return otherObject is MoveKey otherKey && Equals(otherKey);
     }
 
     /// <inheritdoc/>

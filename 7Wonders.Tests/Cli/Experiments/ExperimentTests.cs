@@ -144,8 +144,8 @@ public class ExperimentTests
     [TestMethod]
     public void ExperimentFile_Mistakes_AreUsageErrors()
     {
-        string ok = Write("ok.json", "{ " + ThreeRandom + " }");
-        Assert.AreEqual(3, Plan("--experiment", ok).Players.Count);
+        string validFile = Write("ok.json", "{ " + ThreeRandom + " }");
+        Assert.AreEqual(3, Plan("--experiment", validFile).Players.Count);
 
         string missing = Path.Combine(_directory, "missing.json");
         string notJson = Write("a.json", "{ \"players\": ");
@@ -158,7 +158,7 @@ public class ExperimentTests
             "{ \"players\": [\"RandomAgent\", 2, \"RandomAgent\"], \"games\": 1, \"seed\": 1 }");
 
         Assert.ThrowsException<UsageException>(
-            () => Plan("--experiment", ok, "--games", "5"),
+            () => Plan("--experiment", validFile, "--games", "5"),
             "the file sets the games");
         Assert.ThrowsException<UsageException>(() => Plan("--experiment", missing), "missing");
         Assert.ThrowsException<UsageException>(() => Plan("--experiment", notJson), "not JSON");

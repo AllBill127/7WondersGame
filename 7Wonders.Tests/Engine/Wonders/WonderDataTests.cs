@@ -270,9 +270,9 @@ public class WonderDataTests
     private static void SetResources(PlayerState player, Dictionary<Resource, int> amounts)
     {
         GiveResources(player, 0);
-        foreach (KeyValuePair<Resource, int> kvp in amounts)
+        foreach (KeyValuePair<Resource, int> resourceAmount in amounts)
         {
-            player.Resources[kvp.Key] = kvp.Value;
+            player.Resources[resourceAmount.Key] = resourceAmount.Value;
         }
 
         player.Resources[Resource.Coins] = 0;

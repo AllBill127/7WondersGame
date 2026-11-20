@@ -160,16 +160,16 @@ internal sealed class RunPlan
         }
 
         List<AgentSpecification> players = ParsePlayers(cli.Require("players"), "run");
-        int? steps = cli.GetInt("steps", 2);
+        int? steps = cli.GetWholeNumber("steps", 2);
         return new RunPlan
         {
             Players = players,
-            Games = cli.RequireInt("games", 1),
+            Games = cli.RequireWholeNumber("games", 1),
             Seed = Commands.ParseRunSeed(cli.Require("seed")),
             Sweep = LineUp.Validate(players, steps),
             Rotate = cli.GetYesNoOrDefault("rotate", false),
             Dataset = cli.Get("dataset"),
-            Parallel = cli.GetIntOrDefault("parallel", 1, 1),
+            Parallel = cli.GetWholeNumberOrDefault("parallel", 1, 1),
             Output = cli.GetOrDefault("output", DefaultOutput),
             LogLevel = cli.Get("log-level"),
             Experiment = experiment,

@@ -28,9 +28,9 @@ internal readonly struct SeatMove : IEquatable<SeatMove>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
+    public override bool Equals(object? otherObject)
     {
-        return obj is SeatMove otherSeatMove && Equals(otherSeatMove);
+        return otherObject is SeatMove otherSeatMove && Equals(otherSeatMove);
     }
 
     /// <inheritdoc/>
