@@ -502,7 +502,7 @@ public class Game
         }
     }
 
-    /// <summary>Halikarnassos: a free build from the discard pile, or Skip to build nothing.</summary>
+    /// <summary>A free build from the discard pile (Halikarnassos), or Skip to build nothing.</summary>
     private void SubmitDiscardPileBuild(PlayerState player, Move move)
     {
         Card? card = move.Card;
@@ -533,6 +533,7 @@ public class Game
         {
             throw MoveFailed(player, "build from the discard pile", card);
         }
+        int coinsBefore = player.Resources[Resource.Coins];
         MoveResolution.Place(planned);
         MoveResolution.Settle(planned);
         if (_knowledge != null)
@@ -542,7 +543,8 @@ public class Game
 
         if (EventListener != null)
         {
-            EventListener.EventRaised(new DiscardPileBuilt(player.Seat, card));
+            EventListener.EventRaised(
+                new DiscardPileBuilt(player.Seat, card, coinsBefore, player.Resources[Resource.Coins]));
         }
     }
 
@@ -561,6 +563,11 @@ public class Game
         }
         else
         {
+            // the first era's hands are dealt with the setup; it starts when the game is first played
+            if (EventListener != null)
+            {
+                RaiseEraStarted(EventListener);
+            }
             StartPhase(Phase);
         }
     }

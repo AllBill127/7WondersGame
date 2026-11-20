@@ -69,6 +69,10 @@ public class MatchRecordTests
                 choices.Count,
                 "every seat shown a decision chose a move");
             phasesSeen.UnionWith(choices.Select(choice => choice.Phase));
+            int pilesShownOutsideABuildFromIt = record.Entries
+                .OfType<SeatShown>()
+                .Count(shown => shown.Phase != Phase.DiscardPileBuild && shown.DiscardPile.Count > 0);
+            Assert.AreEqual(0, pilesShownOutsideABuildFromIt, "the discard pile is kept only for a build from it");
         }
 
         Assert.IsTrue(phasesSeen.Contains(Phase.SeventhCard), "Babylon B played a last card");
@@ -87,6 +91,9 @@ public class MatchRecordTests
         MatchRecord record = new Match(game, agents, MatchDetail.Full).Play();
 
         Assert.IsInstanceOfType(record.Entries[0], typeof(MatchSetUp));
+        GameEventEntry? second = record.Entries[1] as GameEventEntry;
+        Assert.IsNotNull(second);
+        Assert.IsInstanceOfType(second.Event, typeof(EraStarted), "the first era starts right after the setup");
         int lastIndex = record.Entries.Count - 1;
         FinalScores? scores = record.Entries[lastIndex] as FinalScores;
         Assert.IsNotNull(scores, "the scores come last");
@@ -98,6 +105,8 @@ public class MatchRecordTests
         Assert.AreEqual(1, gameOverCount);
         int battleCount = gameEvents.Count(gameEvent => gameEvent is BattleFought);
         Assert.AreEqual(3 * 4, battleCount, "each seat's battles, each era");
+        List<int> erasStarted = gameEvents.OfType<EraStarted>().Select(eraStarted => eraStarted.Era).ToList();
+        CollectionAssert.AreEqual(new List<int> { 1, 2, 3 }, erasStarted);
     }
 
     [TestMethod]

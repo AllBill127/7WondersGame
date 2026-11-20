@@ -34,8 +34,8 @@ public sealed class SeatShown : MatchEntry
     }
 
     /// <summary>
-    /// The decision asked for: a move from the hand, Babylon B's last card, or Halikarnassos' free build from the
-    /// discard pile.
+    /// The decision asked for: a move from the hand, or an extra move an effect gives (the last card of the hand, a
+    /// free build from the discard pile).
     /// </summary>
     public Phase Phase { get; }
 
@@ -57,7 +57,7 @@ public sealed class SeatShown : MatchEntry
     /// <summary>The seat's hand.</summary>
     public IReadOnlyList<Card> Hand { get; }
 
-    /// <summary>The discard pile, which Halikarnassos builds from.</summary>
+    /// <summary>The discard pile for a build from it; empty for any other decision.</summary>
     public IReadOnlyList<Card> DiscardPile { get; }
 
     /// <summary>The cards the seat could build, as its agent's view gave them.</summary>

@@ -2,14 +2,16 @@
 
 namespace _7Wonders.Engine.Games.Events;
 
-/// <summary>Halikarnassos builds a card from the discard pile for free.</summary>
+/// <summary>A seat builds a card from the discard pile for free (Halikarnassos).</summary>
 public sealed class DiscardPileBuilt : GameEvent
 {
     /// <summary>The event with these values.</summary>
-    public DiscardPileBuilt(int seat, Card card)
+    public DiscardPileBuilt(int seat, Card card, int coinsBefore, int coinsAfter)
     {
         Seat = seat;
         Card = card;
+        CoinsBefore = coinsBefore;
+        CoinsAfter = coinsAfter;
     }
 
     /// <summary>The seat.</summary>
@@ -17,4 +19,10 @@ public sealed class DiscardPileBuilt : GameEvent
 
     /// <summary>The card built.</summary>
     public Card Card { get; }
+
+    /// <summary>The seat's coins before the build.</summary>
+    public int CoinsBefore { get; }
+
+    /// <summary>The seat's coins after the build: more if the card gives coins.</summary>
+    public int CoinsAfter { get; }
 }

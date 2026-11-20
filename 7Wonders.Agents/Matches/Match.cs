@@ -195,13 +195,16 @@ public class Match : IGameEventListener
 
     private void AddShown(IReadOnlyList<GameView> views)
     {
-        if (Game.Phase == Phase.ChooseMoves)
-        {
-            Add(new TurnStarted(Game.Era, Game.Turn));
-        }
+        Add(new PhaseStarted(Game.Phase, Game.Era, Game.Turn));
         foreach (GameView view in views)
         {
             PlayerState player = Game.Players[view.Seat];
+            // the discard pile only matters to a build from it
+            IReadOnlyList<Card> discardPile = Array.Empty<Card>();
+            if (Game.Phase == Phase.DiscardPileBuild)
+            {
+                discardPile = new List<Card>(Game.DiscardPile);
+            }
             // what the agent was shown: worked out for its view, so recording it changes nothing
             Add(new SeatShown(Game.Phase,
                 player.Seat,
@@ -210,7 +213,7 @@ public class Match : IGameEventListener
                 player.Wonder.Id,
                 player.Wonder.BuiltStageCount,
                 new List<Card>(player.Hand),
-                new List<Card>(Game.DiscardPile),
+                discardPile,
                 view.BuildableCards,
                 view.CanBuildWonder));
         }

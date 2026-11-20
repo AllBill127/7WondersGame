@@ -1,5 +1,6 @@
 ﻿using _7Wonders.Agents.Matches;
 using _7Wonders.Agents.Matches.Records;
+using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Cards.Services;
 using _7Wonders.Engine.Games.Enums;
 using _7Wonders.Engine.Games.Events;
@@ -29,9 +30,9 @@ internal sealed class MatchTraceWriter : IMatchListener
         {
             WriteSetUp(setUp);
         }
-        else if (entry is TurnStarted turnStarted)
+        else if (entry is PhaseStarted phaseStarted)
         {
-            _log.Debug("--- Era {Era}, turn {Turn} ---", turnStarted.Era, turnStarted.Turn);
+            WritePhaseStarted(phaseStarted);
         }
         else if (entry is SeatShown shown)
         {
@@ -69,32 +70,43 @@ internal sealed class MatchTraceWriter : IMatchListener
         {
             _log.Verbose("Era {Era} deck: {Cards}", era + 1, CardNames.Join(setUp.Decks[era]));
         }
-        _log.Debug("=== Era 1 ===");
     }
 
-    private void WriteShown(SeatShown shown)
+    /// <summary>A turn's header, or an extra move's, named by the effect that gives it.</summary>
+    private void WritePhaseStarted(PhaseStarted phaseStarted)
     {
-        if (shown.Phase == Phase.ChooseMoves)
+        if (phaseStarted.Phase == Phase.SeventhCard)
         {
-            _log.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; hand: {Hand}",
-                shown.Seat,
-                shown.Coins,
-                shown.Shields,
-                shown.Wonder,
-                shown.BuiltStageCount,
-                CardNames.Join(shown.Hand));
+            _log.Debug("--- Era {Era}, extra move: play the last card of the hand ---", phaseStarted.Era);
         }
-        else if (shown.Phase == Phase.SeventhCard)
+        else if (phaseStarted.Phase == Phase.DiscardPileBuild)
         {
-            _log.Debug("Seat {Seat} plays the last card of the hand (Babylon B): {Hand}",
-                shown.Seat,
-                CardNames.Join(shown.Hand));
+            _log.Debug("--- Era {Era}, extra move: free build from the discard pile ---", phaseStarted.Era);
         }
         else
         {
-            _log.Debug("Seat {Seat} may build from the discard pile for free (Halikarnassos)", shown.Seat);
-            _log.Verbose("Discard pile: {Cards}", CardNames.Join(shown.DiscardPile));
+            _log.Debug("--- Era {Era}, turn {Turn} ---", phaseStarted.Era, phaseStarted.Turn);
         }
+    }
+
+    /// <summary>The seat's city and the cards it chooses from: its hand, or the discard pile to build from.</summary>
+    private void WriteShown(SeatShown shown)
+    {
+        string source = "hand";
+        IReadOnlyList<Card> cards = shown.Hand;
+        if (shown.Phase == Phase.DiscardPileBuild)
+        {
+            source = "discard pile";
+            cards = shown.DiscardPile;
+        }
+        _log.Debug("Seat {Seat}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; {Source}: {Cards}",
+            shown.Seat,
+            shown.Coins,
+            shown.Shields,
+            shown.Wonder,
+            shown.BuiltStageCount,
+            source,
+            CardNames.Join(cards));
         _log.Verbose("Seat {Seat} can build: {Playable}; can build a wonder stage: {CanBuildWonder}",
             shown.Seat,
             CardNames.Join(shown.BuildableCards),
@@ -103,12 +115,6 @@ internal sealed class MatchTraceWriter : IMatchListener
 
     private void WriteChoice(SeatChose chose)
     {
-        // the free build from the discard pile is written by the game's own entry for it
-        if (chose.Phase == Phase.DiscardPileBuild)
-        {
-            return;
-        }
-
         string cardName = "-";
         if (chose.Move.Card != null)
         {
@@ -166,9 +172,11 @@ internal sealed class MatchTraceWriter : IMatchListener
         }
         else if (gameEvent is DiscardPileBuilt discardPileBuilt)
         {
-            _log.Debug("Seat {Seat} builds {Card} from the discard pile",
+            _log.Debug("Seat {Seat} builds {Card} from the discard pile: coins {Before} -> {After}",
                 discardPileBuilt.Seat,
-                discardPileBuilt.Card.Name);
+                discardPileBuilt.Card.Name,
+                discardPileBuilt.CoinsBefore,
+                discardPileBuilt.CoinsAfter);
         }
         else if (gameEvent is DiscardPileBuildSkipped discardPileBuildSkipped)
         {
@@ -180,7 +188,7 @@ internal sealed class MatchTraceWriter : IMatchListener
         }
         else if (gameEvent is GuildCopied guildCopied)
         {
-            _log.Debug("Seat {Seat} copies {Guild} from a neighbour (Olympia B)",
+            _log.Debug("Seat {Seat} copies {Guild} from a neighbour",
                 guildCopied.Seat,
                 guildCopied.Guild.Name);
         }
@@ -195,7 +203,7 @@ internal sealed class MatchTraceWriter : IMatchListener
         _log.Debug("=== Era {Era} ===", eraStarted.Era);
         foreach (int seat in eraStarted.OlympiaFreeBuildSeats)
         {
-            _log.Debug("Seat {Seat} may build one card for free this era (Olympia A)", seat);
+            _log.Debug("Seat {Seat} may build one card for free this era", seat);
         }
     }
 
@@ -261,7 +269,7 @@ internal sealed class MatchTraceWriter : IMatchListener
         switch (moveResolved.Action)
         {
             case MoveAction.BuildWithOlympiaFreeBuild:
-                return $"builds {name} for free (Olympia A)";
+                return $"builds {name} with the era's free build";
             case MoveAction.BuildWonderStage:
                 return $"builds wonder stage {moveResolved.BuiltStageCount} using {name}";
             case MoveAction.Discard:
