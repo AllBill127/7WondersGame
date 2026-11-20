@@ -7,7 +7,7 @@ namespace _7Wonders.Cli.Logs;
 /// <summary>
 /// Log level and console logger setup.
 /// Information: run progress and one line per game. Debug: the step-by-step trace of real games.
-/// Verbose: more detail (playable cards, every attempted purchase, deck order).
+/// Verbose: more detail (each seat's buildable cards, deck order).
 /// </summary>
 internal static class Logging
 {

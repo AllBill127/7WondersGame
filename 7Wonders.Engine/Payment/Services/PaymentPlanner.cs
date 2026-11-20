@@ -39,13 +39,13 @@ public static class PaymentPlanner
         // What the fixed production doesn't cover. Usually nothing, and then no search is needed.
         _search ??= new PaymentSearch();
         PaymentSearch search = _search;
-        bool missing = FillMissing(buyer, cost, search.Need);
+        bool missing = FillMissing(buyer, cost, search.NeededGoodCounts);
         if (!missing)
         {
             return PaymentPlan.Free;
         }
 
-        PaymentPlan? best = search.Run(buyer);
+        PaymentPlan? best = search.FindCheapestPlan(buyer);
         if (best == null)
         {
             return null;

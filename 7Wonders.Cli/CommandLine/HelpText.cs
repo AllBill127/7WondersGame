@@ -57,7 +57,7 @@ needs must be given: nothing runs on hidden defaults.
 Logging (all commands): --log-level <level>, or the {Logging.EnvironmentVariable} environment variable.
   Levels: {Logging.Levels}.
   info shows the run and one line per game; debug adds the step-by-step trace of
-  each game; verbose adds playable cards, every purchase tried and the deck order.
+  each game; verbose adds each seat's buildable cards and the deck order.
   Without either, a Debug build logs at debug and a Release build at info.
   'replay' always traces (debug) unless --log-level says otherwise.
 
@@ -77,7 +77,7 @@ Required:
   --players <agents>  The agent in each seat, in seat order, comma-separated (3 to 7).
                       Each one is Name[:setting=value...], e.g.
                       MctsAgent:ExplorationConstant=1.2:IterationBudget=2000 (setting names in any case).
-                      '{ExecutableName} agents' lists every agent and setting. MctsAgent: 3-4 players.
+                      '{ExecutableName} agents' lists every agent and setting.
                       One setting may be a range a..b (see --steps).
   --games <n>         Number of deals to play (with a range: per value).
   --seed <seed>       Run seed: decimal or 0x hex, or 'random' for a new one (it is printed and saved).
@@ -93,14 +93,14 @@ Optional:
                       advantage cancels out. Each seat keeps its wonder; the agents move on one
                       seat per rotation. The games of one deal have the same dealIndex. Default no.
   --parallel <n>      Games played at the same time. Default 1.
-  --output <file>        Results CSV. Default results.csv. A relative name goes in the results
+  --output <file>     Results CSV. Default results.csv. A relative name goes in the results
                       folder next to the program. Rows are appended to an existing file (it must
                       have the same columns). <runId>.run.json beside it records the command,
                       seed, settings and git commit.
   --dataset <file>    Take the deals from a dataset file ('{ExecutableName} help dataset') instead of the
                       seed: game i uses deal i. Agents' random choices still come from the seed.
                       The file's first line says its player count, which must match --players.
-  --log-level <level>       {Logging.Levels}. debug traces every game; for one game use 'replay'.
+  --log-level <level> {Logging.Levels}. debug traces every game; for one game use 'replay'.
 
 Experiment file (--experiment): a JSON object with the same option names, so the run is
 described by a file that is kept with its results (copied to <runId>.experiment.json next to
@@ -158,7 +158,7 @@ From a seed:
   --game-seed <seed>  The seed column of the CSV (decimal or 0x hex). A failed game's log line
                       prints the full replay command.
   --dataset <file>    Deal from a dataset file instead; needs --deal (the dealIndex column).
-  --log-level <level>       Default debug. verbose adds playable cards, purchases and the deck order.
+  --log-level <level> Default debug. verbose adds each seat's buildable cards and the deck order.
 
 The trace shows: setup (seed, agents, wonders), each turn's hands and coins, every choice,
 what each build or discard cost and paid to whom, wonder effects, special turns
@@ -183,14 +183,15 @@ Examples:
                       the results folder).
   --run <ids>         The runs to include (the runId column). Needed when the file has more than
                       one run; 'all' takes every run (only if they are the same kind of experiment).
-  --group-by <grouping>     player (default): each agent configuration is a group, named by the agent and
-                      the settings that differ (e.g. MctsAgent ExplorationConstant=0.3); agent: one group per agent
-                      name; seat; wonder (board and side).
-  --compare-with <n>            Compare every group with group n only (e.g. the baseline). Default: all pairs,
-                      if there are at most 8 groups (otherwise only with --compare-with).
-  --output <file.csv>    Also write the group table there, and the pairs to <file>.pairs.csv (a relative
-                      name goes next to the results CSV).
-  --log-level <level>       {Logging.Levels}.
+  --group-by <grouping>
+                      player (default): each agent configuration is a group, named by the agent
+                      and the settings that differ (e.g. MctsAgent ExplorationConstant=0.3);
+                      agent: one group per agent name; seat; wonder (board and side).
+  --compare-with <n>  Compare every group with group n only (e.g. the baseline). Default: all
+                      pairs, if there are at most 8 groups (otherwise only with --compare-with).
+  --output <file.csv> Also write the group table there, and the pairs to <file>.pairs.csv (a
+                      relative name goes next to the results CSV).
+  --log-level <level> {Logging.Levels}.
 
 Per group: games (rows), win rate (a k-way tie for first counts 1/k) with its 95% Wilson
 interval, the fair share (1 / players: what an agent no better than the others gets), mean VP
@@ -221,7 +222,7 @@ Examples:
   --seats <n>         Number of players, 3 to 7.
   --games <n>         Number of deals.
   --seed <seed>       Deal i is the deal 'run --seed <seed>' plays as game i.
-  --output <file>        Default gameDataset_<seats>p_<games>g.txt in the program folder.
+  --output <file>     Default gameDataset_<seats>p_<games>g.txt in the program folder.
 
 The file starts with 'Players: <seats>'. When a run reads it, the count must match the line-up
 and every deal is checked (deck sizes, card copies for that player count, guilds, wonders).

@@ -15,61 +15,61 @@ namespace _7Wonders.Engine.Payment.Services;
 internal sealed class PaymentSearch
 {
     // Bit i stands for the Resource with value i: Wood, Ore, Clay, Stone, Loom, Glass, Papyrus.
-    private const int Goods = 7;
-    private const int Raw = 0b0001111;
-    private const int Manufactured = 0b1110000;
+    private const int GoodCount = 7;
+    private const int RawMaterialsMask = 0b0001111;
+    private const int ManufacturedGoodsMask = 0b1110000;
 
     private const int StandardTradePrice = 2;
     private const int DiscountedTradePrice = 1;
 
-    private readonly List<int> ownSources = new();
-    private readonly List<int> sellerSources = new();   // west neighbour's first, then east's
-    private int westSourceCount;
-    private readonly int[] westSupply = new int[Goods];
-    private readonly int[] eastSupply = new int[Goods];
-    private readonly int[] westPrice = new int[Goods];
-    private readonly int[] eastPrice = new int[Goods];
-    private int bestTotal;
-    private int bestEast;
+    private readonly List<int> _ownSources = new();
+    private readonly List<int> _sellerSources = new();   // west neighbour's first, then east's
+    private int _westSourceCount;
+    private readonly int[] _westSupply = new int[GoodCount];
+    private readonly int[] _eastSupply = new int[GoodCount];
+    private readonly int[] _westPrice = new int[GoodCount];
+    private readonly int[] _eastPrice = new int[GoodCount];
+    private int _bestTotalCost;
+    private int _bestCostToEast;
 
     /// <summary>
     /// How many units of each good (indexed by <see cref="Resource"/> value) the buyer still has to find.
-    /// <see cref="PaymentPlanner"/> fills it before <see cref="Run"/>; the search changes it while it runs and
-    /// leaves it as it found it.
+    /// <see cref="PaymentPlanner"/> fills it before <see cref="FindCheapestPlan"/>; the search changes it while
+    /// it runs and leaves it as it found it.
     /// </summary>
-    public int[] Need { get; } = new int[Goods];
+    public int[] NeededGoodCounts { get; } = new int[GoodCount];
 
-    /// <summary>The cheapest plan for what <see cref="Need"/> holds, or null.</summary>
-    public PaymentPlan? Run(PlayerState buyer)
+    /// <summary>The cheapest plan for what <see cref="NeededGoodCounts"/> holds, or null.</summary>
+    public PaymentPlan? FindCheapestPlan(PlayerState buyer)
     {
-        Reset(buyer);
-        UseOwn(0);
-        if (bestTotal == int.MaxValue)
+        ResetFor(buyer);
+        UseOwnSources(0);
+        if (_bestTotalCost == int.MaxValue)
         {
             return null;
         }
-        int bestWest = bestTotal - bestEast;
-        return new PaymentPlan(bestWest, bestEast);
+        int bestCostToWest = _bestTotalCost - _bestCostToEast;
+        return new PaymentPlan(bestCostToWest, _bestCostToEast);
     }
 
-    private void Reset(PlayerState buyer)
+    private void ResetFor(PlayerState buyer)
     {
-        ownSources.Clear();
-        sellerSources.Clear();
-        bestTotal = int.MaxValue;
-        bestEast = int.MaxValue;
+        _ownSources.Clear();
+        _sellerSources.Clear();
+        _bestTotalCost = int.MaxValue;
+        _bestCostToEast = int.MaxValue;
 
         CollectOwnSources(buyer);
 
-        AddSeller(buyer.WestNeighbour, westSupply);
-        westSourceCount = sellerSources.Count;
-        AddSeller(buyer.EastNeighbour, eastSupply);
+        AddSeller(buyer.WestNeighbour, _westSupply);
+        _westSourceCount = _sellerSources.Count;
+        AddSeller(buyer.EastNeighbour, _eastSupply);
 
-        for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
+        for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
-            bool isRaw = (Raw & (1 << goodIndex)) != 0;
-            westPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawMaterialsCheapFromWestNeighbour);
-            eastPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawMaterialsCheapFromEastNeighbour);
+            bool isRaw = (RawMaterialsMask & (1 << goodIndex)) != 0;
+            _westPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawMaterialsCheapFromWestNeighbour);
+            _eastPrice[goodIndex] = TradePrice(buyer, isRaw, Ability.RawMaterialsCheapFromEastNeighbour);
         }
     }
 
@@ -81,16 +81,16 @@ internal sealed class PaymentSearch
             int choiceMask = card.ChoiceMask;
             if (choiceMask != 0)
             {
-                ownSources.Add(choiceMask);
+                _ownSources.Add(choiceMask);
             }
         }
         if (PlayerAbilities.Has(buyer, Ability.AnyRawMaterialEachTurn))
         {
-            ownSources.Add(Raw);
+            _ownSources.Add(RawMaterialsMask);
         }
         if (PlayerAbilities.Has(buyer, Ability.AnyManufacturedGoodEachTurn))
         {
-            ownSources.Add(Manufactured);
+            _ownSources.Add(ManufacturedGoodsMask);
         }
     }
 
@@ -117,11 +117,11 @@ internal sealed class PaymentSearch
 
     /// <summary>
     /// Records what <paramref name="seller"/> can sell: their fixed production in <paramref name="supply"/>, and
-    /// their sellable either/or cards in <see cref="sellerSources"/>.
+    /// their sellable either/or cards in <see cref="_sellerSources"/>.
     /// </summary>
     private void AddSeller(PlayerState seller, int[] supply)
     {
-        for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
+        for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
             supply[goodIndex] = seller.Resources[(Resource)goodIndex];
         }
@@ -130,18 +130,18 @@ internal sealed class PaymentSearch
             int choiceMask = card.SellableChoiceMask;
             if (choiceMask != 0)
             {
-                sellerSources.Add(choiceMask);
+                _sellerSources.Add(choiceMask);
             }
         }
     }
 
     /// <summary>A mask of the goods the buyer still needs at least one unit of.</summary>
-    private int NeedMask()
+    private int NeededGoodsMask()
     {
         int neededMask = 0;
-        for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
+        for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
-            if (Need[goodIndex] > 0)
+            if (NeededGoodCounts[goodIndex] > 0)
             {
                 neededMask |= 1 << goodIndex;
             }
@@ -153,40 +153,40 @@ internal sealed class PaymentSearch
     /// Gives each of the buyer's own either/or sources to one still-needed resource, trying every choice.
     /// A free unit never makes a plan dearer, so a source is only left unused when it offers nothing needed.
     /// </summary>
-    private void UseOwn(int sourceIndex)
+    private void UseOwnSources(int sourceIndex)
     {
-        if (bestTotal == 0)
+        if (_bestTotalCost == 0)
         {
             return;
         }
-        int needed = NeedMask();
-        if (needed == 0)
+        int neededMask = NeededGoodsMask();
+        if (neededMask == 0)
         {
-            Consider(0, 0);
+            KeepIfCheapest(0, 0);
             return;
         }
-        if (sourceIndex == ownSources.Count)
+        if (sourceIndex == _ownSources.Count)
         {
-            UseSellers(0);
+            UseSellerSources(0);
             return;
         }
 
         int nextSource = sourceIndex + 1;
-        int options = ownSources[sourceIndex] & needed;
-        if (options == 0)
+        int usableMask = _ownSources[sourceIndex] & neededMask;
+        if (usableMask == 0)
         {
-            UseOwn(nextSource);
+            UseOwnSources(nextSource);
             return;
         }
-        for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
+        for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
-            if ((options & (1 << goodIndex)) == 0)
+            if ((usableMask & (1 << goodIndex)) == 0)
             {
                 continue;
             }
-            Need[goodIndex]--;
-            UseOwn(nextSource);
-            Need[goodIndex]++;
+            NeededGoodCounts[goodIndex]--;
+            UseOwnSources(nextSource);
+            NeededGoodCounts[goodIndex]++;
         }
     }
 
@@ -194,92 +194,94 @@ internal sealed class PaymentSearch
     /// Gives each neighbour either/or source to one resource the buyer still needs and that neighbour
     /// doesn't already offer enough of, trying every choice; then prices the purchase.
     /// </summary>
-    private void UseSellers(int sourceIndex)
+    private void UseSellerSources(int sourceIndex)
     {
-        if (sourceIndex == sellerSources.Count)
+        if (sourceIndex == _sellerSources.Count)
         {
-            Price();
+            PriceRemainingPurchases();
             return;
         }
 
         int nextSource = sourceIndex + 1;
         int[] supply = SupplyOfSourceOwner(sourceIndex);
-        bool any = false;
-        for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
+        bool gaveAnyGood = false;
+        for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
-            if ((sellerSources[sourceIndex] & (1 << goodIndex)) == 0 || supply[goodIndex] >= Need[goodIndex])
+            bool sourceGivesGood = (_sellerSources[sourceIndex] & (1 << goodIndex)) != 0;
+            bool supplyAlreadyEnough = supply[goodIndex] >= NeededGoodCounts[goodIndex];
+            if (!sourceGivesGood || supplyAlreadyEnough)
             {
                 continue;
             }
-            any = true;
+            gaveAnyGood = true;
             supply[goodIndex]++;
-            UseSellers(nextSource);
+            UseSellerSources(nextSource);
             supply[goodIndex]--;
         }
-        if (!any)
+        if (!gaveAnyGood)
         {
-            UseSellers(nextSource);
+            UseSellerSources(nextSource);
         }
     }
 
     /// <summary>The supply of the neighbour who owns seller source <paramref name="sourceIndex"/>.</summary>
     private int[] SupplyOfSourceOwner(int sourceIndex)
     {
-        if (sourceIndex < westSourceCount)
+        if (sourceIndex < _westSourceCount)
         {
-            return westSupply;
+            return _westSupply;
         }
-        return eastSupply;
+        return _eastSupply;
     }
 
     /// <summary>Buys each missing resource from the cheaper neighbour first (west when equal).</summary>
-    private void Price()
+    private void PriceRemainingPurchases()
     {
         int toWest = 0;
         int toEast = 0;
-        for (int goodIndex = 0; goodIndex < Goods; goodIndex++)
+        for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
-            int missingCount = Need[goodIndex];
+            int missingCount = NeededGoodCounts[goodIndex];
             if (missingCount == 0)
             {
                 continue;
             }
 
-            if (westPrice[goodIndex] <= eastPrice[goodIndex])
+            if (_westPrice[goodIndex] <= _eastPrice[goodIndex])
             {
-                int fromWest = Math.Min(missingCount, westSupply[goodIndex]);
+                int fromWest = Math.Min(missingCount, _westSupply[goodIndex]);
                 int fromEast = missingCount - fromWest;
-                if (fromEast > eastSupply[goodIndex])
+                if (fromEast > _eastSupply[goodIndex])
                 {
                     return;
                 }
-                toWest += fromWest * westPrice[goodIndex];
-                toEast += fromEast * eastPrice[goodIndex];
+                toWest += fromWest * _westPrice[goodIndex];
+                toEast += fromEast * _eastPrice[goodIndex];
             }
             else
             {
-                int fromEast = Math.Min(missingCount, eastSupply[goodIndex]);
+                int fromEast = Math.Min(missingCount, _eastSupply[goodIndex]);
                 int fromWest = missingCount - fromEast;
-                if (fromWest > westSupply[goodIndex])
+                if (fromWest > _westSupply[goodIndex])
                 {
                     return;
                 }
-                toEast += fromEast * eastPrice[goodIndex];
-                toWest += fromWest * westPrice[goodIndex];
+                toEast += fromEast * _eastPrice[goodIndex];
+                toWest += fromWest * _westPrice[goodIndex];
             }
         }
-        Consider(toWest + toEast, toEast);
+        KeepIfCheapest(toWest + toEast, toEast);
     }
 
     /// <summary>Keeps the plan if it is cheaper than the best so far, or as cheap and pays less to the east.</summary>
-    private void Consider(int total, int toEast)
+    private void KeepIfCheapest(int total, int toEast)
     {
-        bool isCheaper = total < bestTotal;
-        bool isAsCheapButPaysLessEast = total == bestTotal && toEast < bestEast;
+        bool isCheaper = total < _bestTotalCost;
+        bool isAsCheapButPaysLessEast = total == _bestTotalCost && toEast < _bestCostToEast;
         if (isCheaper || isAsCheapButPaysLessEast)
         {
-            bestTotal = total;
-            bestEast = toEast;
+            _bestTotalCost = total;
+            _bestCostToEast = toEast;
         }
     }
 }
