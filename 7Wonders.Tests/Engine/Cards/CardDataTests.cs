@@ -284,7 +284,8 @@ public class CardDataTests
         Assert.AreEqual(sellableMask, card.SellableChoiceMask, "neighbours can buy");
     }
 
-    // one bit per resource, at the resource's number
+    // one bit per resource, at the resource's number: `1 << n` is a number with only bit n set, and `|=` sets it in
+    // the mask ("Clay Ore" gives 0b110, as Card.ChoiceMask does)
     private static int MaskOf(string resourceNames)
     {
         int mask = 0;

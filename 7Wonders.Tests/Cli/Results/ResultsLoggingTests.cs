@@ -130,6 +130,7 @@ public class ResultsLoggingTests
         using (ResultsCsvWriter writer = new(path))
         {
             ParallelGameWriter gameWriter = new(writer);
+            // Parallel.For calls WriteGame for games 0 to 199 on several threads at once, so the writes overlap.
             Parallel.For(0, 200, gameWriter.WriteGame);
         }
 

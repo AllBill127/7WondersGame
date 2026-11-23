@@ -33,7 +33,8 @@ internal sealed class BruteForcePayment
     // every either/or source: its owner (Buyer, West or East) and the resources it may give
     private readonly List<EitherOrSource> _sources = new();
 
-    // what each owner has of each good, with the sources' choices tried so far added
+    // what each owner has of each good, with the sources' choices tried so far added. A two-dimensional array:
+    // _supply[owner, good] is one cell of a 3 x 7 table (owner Buyer, West or East; good by its Resource value).
     private readonly int[,] _supply = new int[3, 7];
 
     private int _bestTotal = int.MaxValue;
@@ -149,7 +150,9 @@ internal sealed class BruteForcePayment
         }
     }
 
-    // tries source i unused and with each of its options, then the sources after it
+    // tries source i unused and with each of its options, then the sources after it. Recursion with backtracking:
+    // each choice adds one unit to the owner's supply, the call for the next source tries all of its choices on top,
+    // and the unit is taken back before the next choice, so every combination is tried once from the same table.
     private void Assign(int sourceIndex)
     {
         if (sourceIndex == _sources.Count)

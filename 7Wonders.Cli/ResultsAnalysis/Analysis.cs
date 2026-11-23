@@ -340,7 +340,7 @@ internal static class Analysis
     }
 
     /// <summary>
-    /// Every pair of groups, or every group against group <paramref name="compare-with"/>, that played shared deals.
+    /// Every pair of groups, or every group against group <paramref name="comparedGroup"/>, that played shared deals.
     /// </summary>
     public static List<PairStatistics> Pairs(IReadOnlyList<ResultRow> rows, GroupBy grouping,
                                         IReadOnlyList<GroupStatistics> groups,

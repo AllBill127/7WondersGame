@@ -56,6 +56,9 @@ public class PlayerCopyTests
     [TestMethod]
     public void EveryFieldIsKnown_SoCopyFromCopiesIt()
     {
+        // Reflection lists every field PlayerState declares, public or not (the BindingFlags joined with `|` say which
+        // kinds). A property's hidden field is named "<Name>k__BackingField" by the compiler. A field added to
+        // PlayerState appears here and fails the test until it is added to the list (and to CopyFrom).
         string[] fields = typeof(PlayerState)
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .Select(field => field.Name)

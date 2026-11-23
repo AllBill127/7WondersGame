@@ -77,6 +77,8 @@ public class AnalysisTests
     {
         MeanWithStandardError four = Analysis.MeanAndStandardError(new[] { 1.0, 2, 3, 4 });
         Assert.AreEqual(2.5, four.Mean, 1e-12);
+        // squared distances from 2.5: 2.25 + 0.25 + 0.25 + 2.25 = 5; variance 5 / (4 - 1); standard error
+        // sqrt(variance / 4)
         Assert.AreEqual(Math.Sqrt(5.0 / 3 / 4), four.StandardError, 1e-12);
         MeanWithStandardError one = Analysis.MeanAndStandardError(new[] { 7.0 });
         Assert.AreEqual(7.0, one.Mean);

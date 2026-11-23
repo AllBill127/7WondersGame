@@ -136,6 +136,7 @@ public class WonderDataTests
         Assert.AreEqual(coins, player.Resources[Resource.Coins], "coins");
         Assert.AreEqual(shields, player.Resources[Resource.Shields] - shieldsBefore, "shields");
 
+        // `~` flips every bit of the abilities before, so `&` keeps only the abilities that are new (see Ability).
         Ability gained = player.Wonder.Abilities & ~abilitiesBefore;
         CheckEffect(player, effect, gained, scienceBefore);
         if (player.DiscardPileBuildSource != null)
