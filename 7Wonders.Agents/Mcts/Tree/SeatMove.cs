@@ -4,7 +4,8 @@ namespace _7Wonders.Agents.Mcts.Tree;
 
 /// <summary>
 /// A move and the seat that made it: the key of a move's statistics at a node. Equal when the seat and the move
-/// are equal. A struct, because the search makes one for every move it looks up.
+/// are equal. A struct (a value copied on assignment, allocating nothing), because the search makes one for every
+/// move it looks up.
 /// </summary>
 internal readonly struct SeatMove : IEquatable<SeatMove>
 {
@@ -36,6 +37,8 @@ internal readonly struct SeatMove : IEquatable<SeatMove>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // Equal seat moves must give the same hash: HashCode.Combine mixes the two fields Equals compares into one
+        // int. A node's statistics are a dictionary keyed by seat move.
         return HashCode.Combine(Seat, Move);
     }
 }

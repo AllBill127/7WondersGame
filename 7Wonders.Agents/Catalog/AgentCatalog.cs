@@ -37,6 +37,8 @@ public static class AgentCatalog
     {
         get
         {
+            // `lock (Registered)` lets one thread at a time into the block (any other thread waits at the lock), so
+            // a list being read is never changed by Register on another thread at the same moment.
             lock (Registered)
             {
                 return AllEntries();
@@ -175,8 +177,11 @@ public static class AgentCatalog
                 double roundedFrom = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
                 return Convert.ChangeType(Math.Round(roundedFrom), type, CultureInfo.InvariantCulture);
             }
+            // InvariantCulture reads "0.5" the same way on every machine (a Lithuanian culture would expect "0,5").
+            // Convert.ChangeType turns the text into the setting's type (double, float...) chosen at run time.
             return Convert.ChangeType(text, type, CultureInfo.InvariantCulture);
         }
+        // `when` catches the exception only if the condition is true; any other exception passes on to the caller.
         catch (Exception exception) when (IsBadValueError(exception))
         {
             throw new AgentSpecificationException($"{where}: '{text}' is not a valid {type.Name}.");

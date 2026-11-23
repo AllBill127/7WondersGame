@@ -4,6 +4,11 @@ using _7Wonders.Engine.Moves.Enums;
 namespace _7Wonders.Agents.Heuristic;
 
 /// <summary>The best move so far (none: Skip): the first one with the highest value.</summary>
+/// <remarks>
+/// A struct: a value kept in the caller's variable, so it allocates nothing. Because a struct is copied when passed,
+/// <see cref="HeuristicAgent"/> passes it with <c>ref</c>, which hands over the caller's own variable, so the moves
+/// each method considers update the one best move.
+/// </remarks>
 internal struct BestMove
 {
     private double _value;

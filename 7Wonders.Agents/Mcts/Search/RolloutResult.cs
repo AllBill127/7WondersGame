@@ -1,8 +1,8 @@
 ﻿namespace _7Wonders.Agents.Mcts.Search;
 
 /// <summary>
-/// What a rollout gives back up the tree: every seat's reward and the searching player's win share. A struct,
-/// because every iteration makes one.
+/// What a rollout gives back up the tree: every seat's reward and the searching player's win share. A struct (a value
+/// copied on assignment, allocating nothing itself), because every iteration makes one.
 /// </summary>
 internal readonly struct RolloutResult
 {

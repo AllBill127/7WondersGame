@@ -22,6 +22,7 @@ internal sealed class WorkerThreads
     {
         get
         {
+            // Interlocked.Read reads all 64 bits in one step, so it never sees half of a value a worker is adding.
             return Interlocked.Read(ref _otherThreadBytes);
         }
     }
@@ -31,12 +32,18 @@ internal sealed class WorkerThreads
     /// </summary>
     public void Run(int workerCount, int threads)
     {
+        // Parallel.For calls RunWorker once for each number from 0 to workerCount - 1, spreading the calls over
+        // thread-pool threads (at most `threads` at once) and returning when every call has finished. The calling
+        // thread runs some of the workers itself.
         ParallelOptions options = new() { MaxDegreeOfParallelism = threads };
         System.Threading.Tasks.Parallel.For(0, workerCount, options, RunWorker);
     }
 
     private void RunWorker(int worker)
     {
+        // GetAllocatedBytesForCurrentThread counts the bytes this thread has ever allocated, so the difference is
+        // what this worker allocated. Workers on other threads add theirs with Interlocked.Add, which adds as one
+        // indivisible step: two workers adding at the same moment both count (a plain `+=` could lose one).
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         _work(worker);
         if (Environment.CurrentManagedThreadId != _callerThread)

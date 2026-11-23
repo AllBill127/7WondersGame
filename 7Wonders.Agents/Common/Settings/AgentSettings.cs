@@ -13,6 +13,8 @@ internal static class AgentSettings
     /// </summary>
     public static string ConfigurationJson(this IAgent agent)
     {
+        // StringComparer.Ordinal sorts by the characters' codes, the same on every machine (a culture's sort order
+        // could differ between machines and change the JSON).
         SortedDictionary<string, object?> settingValues = new(StringComparer.Ordinal);
         foreach (AgentSetting setting in Of(agent.GetType()))
         {
@@ -28,6 +30,9 @@ internal static class AgentSettings
     /// </summary>
     public static List<AgentSetting> Of(Type agentType)
     {
+        // Reflection: the program reads the agent class's description at run time. GetProperties lists its public
+        // instance properties (the BindingFlags say which kinds); IsDefined asks whether a property is marked with
+        // the attribute, [Setting] or [SettingGroup]. So a new setting needs only the attribute, no list to update.
         List<AgentSetting> settings = new();
         foreach (PropertyInfo property in agentType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
@@ -41,6 +46,7 @@ internal static class AgentSettings
             }
         }
         CheckNamesDiffer(settings, agentType);
+        // OrderBy sorts by what `setting => setting.Name` picks from each setting: the name.
         return settings.OrderBy(setting => setting.Name, StringComparer.Ordinal).ToList();
     }
 

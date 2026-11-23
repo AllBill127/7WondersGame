@@ -48,7 +48,8 @@ internal sealed class MctsSearch
     private Node _tree = new();
     private readonly int _budget;
 
-    // parallel search: the lock of a shared tree (Tree) and what the threads measured
+    // parallel search: the lock of a shared tree (Tree) and what the threads measured. Any object can serve as a
+    // lock: while one thread holds it (Monitor.Enter until Monitor.Exit), another thread asking for it waits.
     private readonly object _treeLock = new();
     private int _iterations;
     private long _lockWaitTicks;
@@ -103,6 +104,7 @@ internal sealed class MctsSearch
     {
         get
         {
+            // Stopwatch counts in ticks; Frequency is ticks per second, so ticks / Frequency is seconds.
             return _lockWaitTicks * 1000.0 / Stopwatch.Frequency;
         }
     }
@@ -242,6 +244,8 @@ internal sealed class MctsSearch
     /// </summary>
     private Random NewStream()
     {
+        // One draw from the search's stream, mixed (see Seeding.Mix) so that neighbouring draws give unrelated
+        // seeds. The streams are made on the calling thread in a fixed order, never inside a worker.
         ulong seed = Seeding.Mix((ulong)_random.NextInt64());
         return Seeding.CreateRandom(seed);
     }
@@ -252,6 +256,7 @@ internal sealed class MctsSearch
     /// </summary>
     private void RunWorkers(int count, Action<int> work)
     {
+        // `work` is a method passed as a value (Action<int>: takes an int, returns nothing); work(worker) calls it.
         int threads = ThreadsFor(count);
         if (threads == 1)
         {
@@ -434,6 +439,8 @@ internal sealed class MctsSearch
     {
         if (_configuration.BudgetKind == MctsBudgetKind.Iterations)
         {
+            // Interlocked.Increment adds 1 and returns the new value in one indivisible step, so two threads can
+            // never both see the same number: exactly the budget's number of iterations start in all.
             int started = Interlocked.Increment(ref _treeIterationsStarted);
             return started <= Math.Max(1, _budget);
         }
@@ -453,6 +460,8 @@ internal sealed class MctsSearch
         BackupHoldingLock(path, result);
     }
 
+    // Only one thread at a time may change the shared tree. The thread takes the lock (EnterTree), and `finally`
+    // gives it back even if the code inside throws, so a failed iteration never leaves the other threads waiting.
     private List<SelectionStep> DescendHoldingLock(Game searchGame, Random random)
     {
         EnterTree();
@@ -488,6 +497,8 @@ internal sealed class MctsSearch
     /// </summary>
     private void EnterTree()
     {
+        // Monitor.Enter waits until no other thread holds the lock and then takes it. Interlocked.Add adds the wait
+        // as one indivisible step, since several threads add to the same total.
         long start = Stopwatch.GetTimestamp();
         Monitor.Enter(_treeLock);
         long waited = Stopwatch.GetTimestamp() - start;
@@ -495,6 +506,13 @@ internal sealed class MctsSearch
     }
 
     /// <summary>Adds (or with a negative count takes back) visits with reward 0 on every move of the path.</summary>
+    /// <remarks>
+    /// Virtual loss: while a thread's rollout runs outside the lock, its path counts as visited <c>count</c> more
+    /// times with no reward. A move's average reward (total / visits) drops, so the other threads' tree policy
+    /// prefers other moves and the threads spread over the tree instead of all exploring the same path. When the
+    /// rollout is backed up, the same visits are taken off again (count negated) and the real result is added, so
+    /// the statistics end as if there had been no virtual loss.
+    /// </remarks>
     private static void AddVirtualLoss(List<SelectionStep> path, int count)
     {
         if (count == 0)
@@ -630,6 +648,20 @@ internal sealed class MctsSearch
     }
 
     /// <summary>The move's value to the deciding seat: its reward so far plus the exploration bonus.</summary>
+    /// <remarks>
+    /// UCB1 as used in UCT (Auer et al. 2002; Kocsis and Szepesvari 2006): average reward + C * sqrt(ln N / n).
+    /// <list type="bullet">
+    /// <item>average reward = total / n, where n is how often the move was tried: how good the move has looked;</item>
+    /// <item>N is how often the move was available (in ISMCTS a move isn't legal in every guess, so N counts the
+    /// iterations it could have been chosen in, not the parent's visits; Cowling et al. 2012);</item>
+    /// <item>the square root grows slowly as N grows and shrinks as the move is tried, so a move tried rarely gets a
+    /// larger bonus and is tried again; C (<see cref="MctsConfiguration.ExplorationConstant"/>) sets how much
+    /// exploring counts against the average. For example, with C = 0.7, N = 100 and n = 10 the bonus is
+    /// 0.7 * sqrt(4.6 / 10) = 0.47.</item>
+    /// </list>
+    /// Smoothed adds 1 to n and N, so a new move has no division by zero. Diminishing divides C by 1 + ln(1 + n), so
+    /// exploration fades as a move is tried more. An untried move has value +infinity, so it is tried first.
+    /// </remarks>
     private double TreeValue(MoveStatistics moveStatistics, int seat)
     {
         if (moveStatistics.Visits == 0)

@@ -38,6 +38,8 @@ internal sealed class MctsAgent : IAgent
             return legal[0];
         }
 
+        // GC.GetAllocatedBytesForCurrentThread counts every byte this thread has allocated so far; the difference
+        // after the search is what the search allocated here (other threads' share comes from the search).
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         Stopwatch clock = Stopwatch.StartNew();
         MctsSearch search = new(Configuration, view.Seat, view.CopyGame(), view.Knowledge, view.Random, clock);
@@ -59,6 +61,8 @@ internal sealed class MctsAgent : IAgent
         _statistics.AllocatedBytes += allocatedOnThisThread + search.OtherThreadBytes;
         _statistics.LockWaitMilliseconds += search.LockWaitMilliseconds;
         // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
+        // string.Create with InvariantCulture writes the numbers the same way on every machine (no thousands separators
+        // or decimal commas from the machine's language settings).
         _statistics.LastNote = string.Create(CultureInfo.InvariantCulture,
             $"{search.Iterations} iterations in {milliseconds:0} ms; {search.TopMoves(3)}");
     }

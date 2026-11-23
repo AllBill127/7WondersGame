@@ -54,6 +54,7 @@ public sealed class AgentSpecification
     /// <summary>The specification as written on the command line.</summary>
     public override string ToString()
     {
+        // Select turns each setting into ":Key=Value"; Concat joins them with nothing between.
         return Name + string.Concat(Settings.Select(setting => $":{setting.Key}={setting.Value}"));
     }
 }

@@ -84,6 +84,8 @@ public sealed class SeatResult : IEquatable<SeatResult>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // HashCode.Combine mixes the fields into one int. Equal results must give equal hashes; it leaves out the two
+        // JSON texts (Combine takes at most 8 values), which is allowed: unequal results may share a hash.
         return HashCode.Combine(Seat, Agent, Wonder, Side, VictoryPoints, Coins, Rank, WinShare);
     }
 

@@ -67,9 +67,12 @@ internal sealed class HeuristicAgent : IAgent
 
         // Each price and value is worked out once and nothing is allocated that needn't be. The values (and so the
         // choices) are the same as working each out when needed.
+        // stackalloc makes the array on the method's stack instead of the heap: it costs nothing to free and is gone
+        // when the method returns. A Span<double> is a view of it that is used like an array (denied[i]).
         Span<double> denied = stackalloc double[hand.Count];
         FillDeniedValues(denied, hand, values);
 
+        // `ref best`: each method updates this variable itself, not a copy (see BestMove).
         BestMove best = new();
         ConsiderBuilds(ref best, player, values, denied);
         if (phase == Phase.ChooseMoves && player.FreeBuildAvailable)

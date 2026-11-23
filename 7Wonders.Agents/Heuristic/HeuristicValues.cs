@@ -47,6 +47,8 @@ internal sealed class HeuristicValues
     /// <summary>The player as it is now, on the scratch copy.</summary>
     private PlayerState Copy()
     {
+        // One copy, made the first time and reset with CopyFrom for every later try (which reuses its lists instead
+        // of allocating new ones), so trying every card in a hand allocates one copy, not one per card.
         if (_scratch == null)
         {
             _scratch = _player.Clone();
@@ -93,6 +95,8 @@ internal sealed class HeuristicValues
     {
         if (_gainCount == _gains.Length)
         {
+            // Array.Resize makes a bigger array, copies the old one into it and stores it in the field (passed with
+            // `ref` so the method can replace it). Doubling keeps the number of resizes small.
             int biggerLength = _gainCount * 2;
             Array.Resize(ref _gainIds, biggerLength);
             Array.Resize(ref _gains, biggerLength);
@@ -129,6 +133,8 @@ internal sealed class HeuristicValues
         {
             return 0;
         }
+        // `??=` makes the next player's values only if they aren't made yet (short for `if (... == null) { ... = new
+        // ...; }`).
         _nextPlayerValues ??= new HeuristicValues(next, _era, _weights);
         return _nextPlayerValues.Gain(card);
     }
@@ -158,6 +164,7 @@ internal sealed class HeuristicValues
     {
         double bonus = ProductionBonus(card);
 
+        // Each test keeps one ability's bit of `grants` with `&`; non-zero means the card gives it (see Ability).
         Ability grants = AbilitiesGrantedBy(card);
         if ((grants & Ability.RawMaterialsCheapFromEastNeighbour) != 0)
         {
@@ -392,6 +399,7 @@ internal sealed class HeuristicValues
             return needed;
         }
 
+        // The resource's bit (1 moved left by its value); a card's choice mask has it set if the card can give it.
         int resourceBit = 1 << (int)resource;
         foreach (Card card in player.BuiltCards)
         {
