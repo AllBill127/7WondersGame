@@ -1,0 +1,55 @@
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Tests.TestHelpers;
+
+namespace _7Wonders.Tests.Engine.Rules;
+
+/// <summary>Building a wonder stage: the card leaves the hand and the trade is paid.</summary>
+[TestClass]
+public class BuildWonderTests
+{
+
+    [TestMethod]
+    public void BuildWonder_WhenAvailable_ReturnsTrue()
+    {
+        // Arrange
+        List<WonderBoardProgress> allWonders = MockHelper.MockWonders();
+        List<WonderBoardProgress> selectWonders = allWonders.GetRange(0, 3);
+        List<PlayerState> players = MockHelper.MockPlayers(selectWonders);
+
+        // give resources for situation
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
+        // manually add clay from clayPool card (building the card would add it; not done here)
+        players[0].Resources[Resource.Clay] += 1;
+        players[1].Resources[Resource.Coins] = 3;
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
+
+        // set hand card for situation
+        Card player1Card = CardsDataset.GameCards[CardId.Baths];
+        players[1].Hand.Add(player1Card);
+
+        // Expected values
+        int expThisPlayerCoins = 1;
+        int expEastPlayerCoins = 5;
+        int expWestPlayerCoins = 3;
+
+        // Test
+        BuildRules.CanBuildWonderStage(players[1]);
+        bool canBuildWonder = MoveTestHelper.BuildWonderStage(players[1], player1Card, players[1].Hand);
+
+        // Evaluate
+        Assert.IsTrue(canBuildWonder);
+        Assert.IsFalse(BuildRules.CanBuildWonderStage(players[1]));
+        // eval hand card change
+        bool cardInHand = players[1].Hand.Contains<Card>(player1Card);
+        Assert.IsFalse(cardInHand);
+        // eval resources change
+        Assert.AreEqual(expEastPlayerCoins, players[0].Resources[Resource.Coins]);
+        Assert.AreEqual(expThisPlayerCoins, players[1].Resources[Resource.Coins]);
+        Assert.AreEqual(expWestPlayerCoins, players[2].Resources[Resource.Coins]);
+    }
+}

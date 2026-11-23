@@ -1,0 +1,236 @@
+﻿using _7Wonders.Engine.Cards.Data;
+using _7Wonders.Engine.Cards.Enums;
+using _7Wonders.Engine.Players.Entities;
+using _7Wonders.Engine.Rules.Services;
+using _7Wonders.Engine.Wonders.Entities;
+using _7Wonders.Engine.Wonders.Enums;
+using _7Wonders.Tests.TestHelpers;
+
+namespace _7Wonders.Tests.Engine.Rules;
+
+/// <summary>Olympia B copying a neighbour's guild at the end of the game.</summary>
+[TestClass]
+public class CopyGuildTests
+{
+
+    [TestMethod]
+    public void CopyGuild_EffectActive_And_Single_GuildCopyable_ReturnsTrue_PlayerBuiltCardsContainGuild()
+    {
+        // Arrange
+        List<WonderBoardProgress> wonders = new()
+        {
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.OlympiaB),
+            new WonderBoardProgress(WonderId.BabylonA),
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
+
+        // set Babylon A stage 3 for CopyGuild effect
+        players[1].Wonder.BuiltStageCount = 3;
+
+        // set cards for situation
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
+
+        // Test
+        bool copyGuildSuccess = GuildCopying.CopyBestNeighbourGuild(players[1]);
+
+        // Evaluate
+        Assert.IsTrue(copyGuildSuccess);
+        bool containsGuild = players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]);
+        Assert.IsTrue(containsGuild);
+        bool noCardChange = players[0].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]);
+        Assert.IsTrue(noCardChange);
+    }
+
+    [TestMethod]
+    public void CopyGuild_EffectActive_And_Multiple_GuildsCopyable_ReturnsTrue_PlayerBuiltCardsContainBestGuild()
+    {
+        // Arrange
+        List<WonderBoardProgress> wonder = new()
+        {
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.OlympiaB),
+            new WonderBoardProgress(WonderId.BabylonA),
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonder);
+
+        // set Babylon A stage 3 for CopyGuild effect
+        players[1].Wonder.BuiltStageCount = 3;
+
+        // set cards for situation
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPit]);
+
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Spies]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Stables]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Walls]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Circus]);
+
+        // Test
+        bool copyGuildSuccess = GuildCopying.CopyBestNeighbourGuild(players[1]);
+
+        // Evaluate
+        Assert.IsTrue(copyGuildSuccess);
+        bool containsGuild = players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Spies]);
+        Assert.IsTrue(containsGuild);
+        bool noCardChangeP1 = players[0].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]);
+        Assert.IsTrue(noCardChangeP1);
+        bool noCardChangeP2 = players[2].BuiltCards.Contains(CardsDataset.GameCards[CardId.Spies]);
+        Assert.IsTrue(noCardChangeP2);
+    }
+
+    [TestMethod]
+    public void CopyGuild_EffectActive_And_No_GuildCopyable_ReturnsFalse_PlayerBuiltCardsDoesntContainGuild()
+    {
+        // Arrange
+        List<WonderBoardProgress> wonder = new()
+        {
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.OlympiaB),
+            new WonderBoardProgress(WonderId.BabylonA),
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonder);
+
+        // set Babylon A stage 3 for CopyGuild effect
+        players[1].Wonder.BuiltStageCount = 3;
+
+        // Expected values
+        int builtCardCountBefore = players[1].BuiltCards.Count;
+
+        // Test
+        bool copyGuildSuccess = GuildCopying.CopyBestNeighbourGuild(players[1]);
+
+        // Evaluate
+        Assert.IsFalse(copyGuildSuccess);
+        Assert.AreEqual(builtCardCountBefore, players[1].BuiltCards.Count);
+    }
+
+    // ===== the guild to copy is chosen by the real CalculateScore() =====
+    // Seats: players[1] is Olympia B; its west neighbour is players[0], its east neighbour players[2].
+
+    private static List<PlayerState> OlympiaBWithStage3()
+    {
+        List<WonderBoardProgress> wonders = new()
+        {
+            new WonderBoardProgress(WonderId.GizahA),
+            new WonderBoardProgress(WonderId.OlympiaB),
+            new WonderBoardProgress(WonderId.BabylonA)
+        };
+        List<PlayerState> players = MockHelper.MockPlayers(wonders);
+        players[1].Wonder.BuiltStageCount = 3;
+        return players;
+    }
+
+    [TestMethod]
+    public void CopyGuild_Craftsmens_CountsTwoVPPerGreyCard()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        // Workers: 3 brown cards next door = 3 VP. Craftsmens: 2 grey cards x 2 = 4 VP.
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Craftsmens]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.StonePit]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.ClayPool]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Loom]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Press]);
+
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
+
+        Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Craftsmens]));
+        Assert.IsFalse(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
+        Assert.AreEqual(4, Scoring.CalculateGuildScore(players[1]));
+    }
+
+    [TestMethod]
+    public void CopyGuild_CopiedGuild_IsCountedByOwnShipowners()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Shipowners]);
+        // Spies is worth 0 VP on its own, but copying it still adds 1 VP through Shipowners.
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Spies]);
+
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
+
+        // Shipowners: 0 brown + 0 grey + 2 guilds (own Shipowners and the copied Spies). Spies: 0 military next door.
+        Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Spies]));
+        Assert.AreEqual(2, Scoring.CalculateGuildScore(players[1]));
+    }
+
+    [TestMethod]
+    public void CopyGuild_Scientists_GivesWildcard_WhenWorthMost()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        // Own science: 2 gears, 2 compasses, 1 tablet = 16 VP; with a wildcard tablet = 26 VP (+10).
+        players[1].Resources[Resource.Gear] = 2;
+        players[1].Resources[Resource.Compass] = 2;
+        players[1].Resources[Resource.Tablet] = 1;
+        // Workers is worth 2 VP.
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.StonePit]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Scientists]);
+
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
+
+        Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Scientists]));
+        Assert.AreEqual(1, PlayerAbilities.ScienceWildcards(players[1]));
+        Assert.AreEqual(26, Scoring.CalculateScientificScore(players[1]));
+    }
+
+    [TestMethod]
+    public void CopyGuild_NotChosenScientists_GivesNoWildcard()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        // No science symbols, so Scientists is worth 1 VP; Workers is worth 2 VP.
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Scientists]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.StonePit]);
+
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
+
+        Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
+        Assert.AreEqual(0, PlayerAbilities.ScienceWildcards(players[1]));
+    }
+
+    [TestMethod]
+    public void CopyGuild_Tie_GoesToFirstCandidate_WestFirst()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        // Both worth 1 VP: Workers (1 brown card next door) at west, Traders (1 yellow card next door) at east.
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Traders]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+        players[2].BuiltCards.Add(CardsDataset.GameCards[CardId.Tavern]);
+
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
+
+        Assert.IsTrue(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Workers]));
+        Assert.IsFalse(players[1].BuiltCards.Contains(CardsDataset.GameCards[CardId.Traders]));
+    }
+
+    [TestMethod]
+    public void CopyGuild_GuildAlreadyOwned_IsNotCopiedAgain()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        players[1].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.LumberYard]);
+
+        Assert.IsFalse(GuildCopying.CopyBestNeighbourGuild(players[1]));
+        Assert.AreEqual(1, players[1].BuiltCards.Count);
+    }
+
+    [TestMethod]
+    public void CopyGuild_LeavesVictoryPointsUnchanged()
+    {
+        List<PlayerState> players = OlympiaBWithStage3();
+        players[1].VictoryPoints = 42;
+        players[0].BuiltCards.Add(CardsDataset.GameCards[CardId.Workers]);
+
+        Assert.IsTrue(GuildCopying.CopyBestNeighbourGuild(players[1]));
+        Assert.AreEqual(42, players[1].VictoryPoints);
+    }
+}

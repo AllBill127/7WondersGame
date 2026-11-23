@@ -1,0 +1,32 @@
+﻿using _7Wonders.Engine.Cards.Entities;
+using _7Wonders.Engine.Effects.Enums;
+using _7Wonders.Engine.Players.Entities;
+
+namespace _7Wonders.Engine.Rules.Services;
+
+/// <summary>
+/// The lasting abilities a player has from built cards and wonder stages (see <see cref="Ability"/>),
+/// and their science wildcards.
+/// </summary>
+public static class PlayerAbilities
+{
+    /// <summary>Does a built card or wonder stage give the player this ability?</summary>
+    public static bool Has(PlayerState player, Ability ability)
+    {
+        // `|` joins the cards' and the wonder's ability bits; `&` keeps those also in `ability`, so the result is
+        // non-zero when the player has it (or, if `ability` holds several, any of them). See Ability.
+        Ability allAbilities = player.Abilities | player.Wonder.Abilities;
+        return (allAbilities & ability) != 0;
+    }
+
+    /// <summary>Science symbols of the player's choice: Scientists Guild, Babylon.</summary>
+    public static int ScienceWildcards(PlayerState player)
+    {
+        int wildcards = player.Wonder.ScienceWildcards;
+        foreach (Card card in player.BuiltCards)
+        {
+            wildcards += card.ScienceWildcards;
+        }
+        return wildcards;
+    }
+}
