@@ -31,9 +31,18 @@ internal static class Analysis
         "winRateDifference", "winRateDifferenceStandardError", "winRateDifferenceLow95", "winRateDifferenceHigh95",
     };
 
+    // Numbers are written and read with the invariant culture: the same digits and decimal point ("0.5") on every
+    // machine, whatever its language settings (a Lithuanian culture would write "0,5"), so files and output match.
     private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     /// <summary>The 95% Wilson score interval for <paramref name="wins"/> out of <paramref name="games"/>.</summary>
+    /// <remarks>
+    /// The range the true win rate lies in with 95% confidence (Wilson 1927). With p = wins / games, n = games and
+    /// z = 1.96 (95% of a normal distribution lies within 1.96 standard deviations), the centre is
+    /// (p + z^2 / 2n) / (1 + z^2 / n) and the half width is z / (1 + z^2 / n) * sqrt(p(1 - p) / n + z^2 / 4n^2).
+    /// Unlike the plain p +- z * sqrt(p(1 - p) / n), it stays inside 0 to 1 and is not zero wide at 0 or n wins:
+    /// 0 wins out of 10 gives 0 to 0.28. The bounds are clamped only against rounding.
+    /// </remarks>
     public static ConfidenceInterval Wilson(double wins, int games, double zScore = PairStatistics.ZScore95)
     {
         if (games == 0)
@@ -49,6 +58,11 @@ internal static class Analysis
     }
 
     /// <summary>Mean and standard error of the mean (0 for fewer than 2 values).</summary>
+    /// <remarks>
+    /// The sample variance is the sum of squared distances from the mean divided by count - 1 (one less, since the
+    /// mean was taken from the same values); the standard error, how far the mean itself is likely off, is
+    /// sqrt(variance / count). The mean +- 1.96 standard errors is its 95% interval.
+    /// </remarks>
     public static MeanWithStandardError MeanAndStandardError(IReadOnlyList<double> values)
     {
         if (values.Count == 0)

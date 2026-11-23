@@ -68,6 +68,8 @@ internal sealed class RunManifest
     /// </summary>
     public static string GetGitCommit()
     {
+        // Reflection: the build writes the commit into the program file as an attribute, and GetCustomAttribute reads
+        // it back at run time.
         AssemblyInformationalVersionAttribute? attribute =
             typeof(RunManifest).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         if (attribute == null)

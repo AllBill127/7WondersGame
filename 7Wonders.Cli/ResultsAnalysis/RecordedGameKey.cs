@@ -35,6 +35,8 @@ internal sealed class RecordedGameKey : IEquatable<RecordedGameKey>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // Equal keys must give the same hash: HashCode.Combine mixes the two fields Equals compares into one int.
+        // The analysis groups rows by this key in a dictionary.
         return HashCode.Combine(RunId, GameIndex);
     }
 }

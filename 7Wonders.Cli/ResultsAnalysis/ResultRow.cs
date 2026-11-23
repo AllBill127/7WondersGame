@@ -79,6 +79,8 @@ internal sealed class ResultRow
     public static List<ResultRow> Read(IEnumerable<Dictionary<string, string>> csvRows)
     {
         List<ResultRow> rows = csvRows.Select(FromCsv).ToList();
+        // GroupBy collects the rows with the same game key (equal by RecordedGameKey.Equals); ToDictionary files each
+        // group's row count under its key.
         Dictionary<RecordedGameKey, int> players = rows
             .GroupBy(row => new RecordedGameKey(row))
             .ToDictionary(game => game.Key, game => game.Count());

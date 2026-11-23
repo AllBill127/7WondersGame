@@ -14,6 +14,8 @@ namespace _7Wonders.Cli.CommandLine;
 /// </summary>
 internal sealed class ReplaySetup
 {
+    // Numbers are written and read with the invariant culture: the same digits and decimal point ("0.5") on every
+    // machine, whatever its language settings (a Lithuanian culture would write "0,5"), so files and output match.
     private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     private ReplaySetup(List<AgentSpecification> specifications, ulong gameSeed, string? datasetName, int? deal,

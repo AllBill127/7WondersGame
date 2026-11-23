@@ -27,6 +27,8 @@ internal sealed class ResultsCsvWriter : IDisposable
     /// <summary>The characters that make a field need quotes.</summary>
     private static readonly char[] CharactersToQuote = { Separator, '"', '\n', '\r' };
 
+    // Several games finish on different threads at once; each writes its rows holding this lock, so one game's rows
+    // are never cut into by another's.
     private readonly object _lock = new();
     private readonly StreamWriter _writer;
 
@@ -90,6 +92,7 @@ internal sealed class ResultsCsvWriter : IDisposable
     /// <summary>One seat's row, its fields quoted where needed (no line break at the end).</summary>
     public static string FormatRow(string runId, long gameIndex, long dealIndex, ulong seed, SeatResult seatResult)
     {
+        // The invariant culture writes numbers the same way on every machine (a point for decimals, no separators).
         CultureInfo invariantCulture = CultureInfo.InvariantCulture;
         string[] fields =
         {
@@ -131,6 +134,9 @@ internal sealed class ResultsCsvWriter : IDisposable
     /// </summary>
     public static IEnumerable<Dictionary<string, string>> ReadRows(string filePath)
     {
+        // An iterator: each `yield return` hands one row to the loop reading them and pauses here until the next one
+        // is asked for, so a large file is read a line at a time instead of all at once. Column names compare
+        // Ordinal: character by character, exactly as written.
         string[]? header = null;
         foreach (string line in File.ReadLines(filePath))
         {

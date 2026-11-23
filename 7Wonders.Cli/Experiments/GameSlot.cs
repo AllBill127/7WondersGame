@@ -1,6 +1,9 @@
 ﻿namespace _7Wonders.Cli.Experiments;
 
-/// <summary>Which deal, seating and sweep value game <see cref="Index"/> of a run plays.</summary>
+/// <summary>
+/// Which deal, seating and sweep value game <see cref="Index"/> of a run plays. A <c>readonly struct</c>: a small
+/// value copied on assignment, which never changes after it is made.
+/// </summary>
 internal readonly struct GameSlot
 {
     /// <summary>

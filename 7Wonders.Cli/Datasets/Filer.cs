@@ -85,6 +85,8 @@ internal static class Filer
     /// <exception cref="InvalidDataException">The lines are not a valid dataset.</exception>
     public static GameDataset Parse(IReadOnlyList<string> lines, string name)
     {
+        // `ref lineIndex` hands the readers below this variable itself, not a copy: each one moves it on past the
+        // lines it read, so the next read starts where the last one stopped.
         int lineIndex = 0;
         int players = ParseHeader(NextNonEmptyLine(lines, ref lineIndex), name);
         List<List<int>[]> deals = new();
@@ -182,6 +184,8 @@ internal static class Filer
 
     private static List<int> ParseIds(string line, string name, int lineNumber)
     {
+        // The two split options joined with `|` both apply: trim each part and drop empty ones. Numbers are read with
+        // the invariant culture, the same on every machine.
         List<int> ids = new();
         foreach (string part in line.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
@@ -316,6 +320,7 @@ internal static class Filer
 
     private static bool IsNotWonderId(int id)
     {
+        // Enum.IsDefined asks whether the number is one of the values WonderId declares.
         return !Enum.IsDefined(typeof(WonderId), id);
     }
 }

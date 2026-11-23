@@ -19,6 +19,8 @@ namespace _7Wonders.Cli.CommandLine;
 /// </summary>
 internal sealed class GameRunner
 {
+    // Numbers are written and read with the invariant culture: the same digits and decimal point ("0.5") on every
+    // machine, whatever its language settings (a Lithuanian culture would write "0,5"), so files and output match.
     private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     private readonly RunPlan _plan;
@@ -26,6 +28,7 @@ internal sealed class GameRunner
     private readonly List<List<int>[]>? _deals;
     private readonly ResultsCsvWriter _writer;
     private readonly Stopwatch _runClock;
+    // Setting up a match runs one at a time (see SetUpMatch); any object can serve as the lock.
     private readonly object _setupLock = new();
     private int _completed;
     private int _failed;
@@ -66,13 +69,16 @@ internal sealed class GameRunner
     /// <summary>Plays every game of the plan, at most the plan's <see cref="RunPlan.Parallel"/> at a time.</summary>
     public void PlayAll()
     {
+        // Parallel.For calls PlayGame once for each game number, on thread-pool threads, at most `Parallel` at once,
+        // and returns when all have finished. Each game takes its seed from its number, so the order the threads
+        // finish in changes nothing but the order of the rows in the file.
         ParallelOptions options = new() { MaxDegreeOfParallelism = _plan.Parallel };
         Parallel.For(0, _plan.Total, options, PlayGame);
     }
 
     /// <summary>
-    /// Plays game <paramref name="i"/>. It always gets the same deal, seating, seed and sweep value, whatever the
-    /// thread timing; every sweep value and every seating plays the same deals.
+    /// Plays game <paramref name="gameIndex"/>. It always gets the same deal, seating, seed and sweep value, whatever
+    /// the thread timing; every sweep value and every seating plays the same deals.
     /// </summary>
     private void PlayGame(int gameIndex)
     {
@@ -87,6 +93,8 @@ internal sealed class GameRunner
         {
             List<SeatResult> results = match.Play().Results;
             _writer.WriteGame(_runId, gameIndex, slot.Deal, game.Seed, results);
+            // Several games finish at once: Interlocked.Increment adds 1 and returns the new count as one indivisible
+            // step, so no finished game is lost from the count (a plain ++ could lose one).
             int done = Interlocked.Increment(ref _completed);
             LogGameDone(log, slot, results, done, watch.Elapsed);
         }
@@ -100,6 +108,8 @@ internal sealed class GameRunner
 
     private Match SetUpMatch(GameSlot slot, List<AgentSpecification> seats, ILogger log)
     {
+        // `lock` lets one thread at a time into the block; the others wait at it. Creating agents (the catalog and
+        // its reflection) and setting up the game happen one game at a time, which costs little next to playing.
         lock (_setupLock)
         {
             List<IAgent> agents = new(seats.Count);

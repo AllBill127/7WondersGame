@@ -51,6 +51,8 @@ internal sealed class CliArguments
             command = "help";
         }
 
+        // OrdinalIgnoreCase: option names match character by character, ignoring upper and lower case, the same on
+        // every machine (a culture's rules could match differently).
         Dictionary<string, string> options = new(StringComparer.OrdinalIgnoreCase);
         bool help = false;
         for (int argumentIndex = 1; argumentIndex < arguments.Count; argumentIndex++)
@@ -71,6 +73,7 @@ internal sealed class CliArguments
                 throw new UsageException($"Unexpected '{argument}'. Options are written as --name value.", command);
             }
 
+            // `ref`: ReadOption moves the loop's own index on past the option's value.
             KeyValuePair<string, string> option = ReadOption(arguments, ref argumentIndex, command);
             if (!options.TryAdd(option.Key, option.Value))
             {
@@ -233,6 +236,7 @@ internal sealed class CliArguments
             return null;
         }
 
+        // The invariant culture reads numbers the same way on every machine.
         bool isWholeNumber = int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value);
         if (!isWholeNumber || value < minimum || value > maximum)
         {

@@ -58,6 +58,7 @@ internal sealed class Sweep : IEquatable<Sweep>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // Equal sweeps must give the same hash: HashCode.Combine mixes the fields Equals compares into one int.
         return HashCode.Combine(Seat, Setting, From, To, Steps);
     }
 

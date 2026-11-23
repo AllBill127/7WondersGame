@@ -83,6 +83,8 @@ internal static class LineUp
         {
             throw new InvalidOperationException("range setting without a sweep value");
         }
+        // "R" (round-trip) writes as many digits as reading the text back needs to give exactly the same double, and
+        // the invariant culture writes a point for decimals on every machine.
         return sweepValue.Value.ToString("R", CultureInfo.InvariantCulture);
     }
 }

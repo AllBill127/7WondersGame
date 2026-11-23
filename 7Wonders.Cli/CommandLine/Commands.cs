@@ -34,6 +34,8 @@ internal static class Commands
     /// <summary>Exit code: the command line was wrong.</summary>
     public const int BadUsage = 2;
 
+    // Numbers are written and read with the invariant culture: the same digits and decimal point ("0.5") on every
+    // machine, whatever its language settings (a Lithuanian culture would write "0,5"), so files and output match.
     private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
 
     private static string ProgramDirectory
@@ -57,6 +59,8 @@ internal static class Commands
     /// <summary>
     /// 'run': plays the games of the plan and appends their rows to the results CSV, with a manifest next to it.
     /// </summary>
+    // `async Task<int>`: the method may `await` slow work (reading a dataset file) without blocking its thread; the
+    // Task is the exit code that comes when the method has finished, and Main waits for it.
     public static async Task<int> Run(CliArguments cli, string[] arguments)
     {
         RunPlan plan = RunPlan.FromCli(cli);
@@ -538,7 +542,8 @@ internal static class Commands
     private static void PrintAnalysis(string csv, List<ResultRow> rows, List<string> runs, GroupBy grouping,
                                       List<GroupStatistics> groups, List<PairStatistics> pairs, bool allPairs)
     {
-        int games = rows.Select(row => (row.RunId, row.GameIndex)).Distinct().Count();
+        // Distinct drops repeated values (games compare by RecordedGameKey.Equals), and Count counts what is left.
+        int games = rows.Select(row => new RecordedGameKey(row)).Distinct().Count();
         int deals = rows.Select(row => row.Seed).Distinct().Count();
         Console.WriteLine($"{csv}: {games} games on {deals} deals, {RunOrRuns(runs.Count)} " +
                           $"{string.Join(", ", runs)}, grouped by {grouping.ToString().ToLowerInvariant()}");
