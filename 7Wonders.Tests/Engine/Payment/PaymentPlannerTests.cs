@@ -192,6 +192,46 @@ public class PaymentPlannerTests
     }
 
     [TestMethod]
+    public void PlanNamesTheGoodsBoughtFromEachNeighbour()
+    {
+        // West has ore, east has loom and wood; the buyer needs one ore, one loom and two wood.
+        List<PlayerState> table = SetUp(coins: 8);
+        PlayerState west = table[0];
+        PlayerState buyer = table[1];
+        PlayerState east = table[2];
+        west.Resources[Resource.Ore] = 1;
+        east.Resources[Resource.Loom] = 1;
+        east.Resources[Resource.Wood] = 2;
+        Dictionary<Resource, int> cost = new()
+        {
+            { Resource.Ore, 1 },
+            { Resource.Loom, 1 },
+            { Resource.Wood, 2 },
+        };
+
+        PaymentPlan? plan = PaymentPlanner.Plan(buyer, cost);
+
+        Assert.IsNotNull(plan);
+        Assert.AreEqual(new PaymentPlan(2, 6), plan);
+        Assert.AreEqual("1 Ore", plan.Value.BoughtFromWest.ToString());
+        Assert.AreEqual("2 Wood, 1 Loom", plan.Value.BoughtFromEast.ToString());
+    }
+
+    [TestMethod]
+    public void PlanFromOwnCity_BuysNothing()
+    {
+        List<PlayerState> table = SetUp(coins: 0);
+        PlayerState buyer = table[1];
+        buyer.Resources[Resource.Wood] = 2;
+
+        PaymentPlan? plan = PaymentPlanner.Plan(buyer, Cost(Resource.Wood, Resource.Wood));
+
+        Assert.IsNotNull(plan);
+        Assert.IsTrue(plan.Value.BoughtFromWest.IsNone, "west");
+        Assert.IsTrue(plan.Value.BoughtFromEast.IsNone, "east");
+    }
+
+    [TestMethod]
     public void EquallyCheap_BuysFromWest()
     {
         List<PlayerState> table = SetUp(coins: 2);
@@ -351,7 +391,23 @@ public class PaymentPlannerTests
             PaymentPlan? actual = PaymentPlanner.Plan(buyer, cost);
             string costText = string.Join(",", cost.Select(resourceCost => $"{resourceCost.Value} {resourceCost.Key}"));
             Assert.AreEqual(expected, actual, $"case {test}: cost {costText}, coins {buyer.Resources[Resource.Coins]}");
+            if (actual != null)
+            {
+                // every unit bought costs 1 or 2 coins
+                AssertCoinsFitUnits(actual.Value.ToWest, actual.Value.BoughtFromWest, $"case {test}, west");
+                AssertCoinsFitUnits(actual.Value.ToEast, actual.Value.BoughtFromEast, $"case {test}, east");
+            }
         }
+    }
+
+    private static void AssertCoinsFitUnits(int coins, BoughtGoods bought, string message)
+    {
+        int unitCount = 0;
+        foreach (Resource good in GoodsList)
+        {
+            unitCount += bought.CountOf(good);
+        }
+        Assert.IsTrue(unitCount <= coins && coins <= 2 * unitCount, $"{message}: {coins} coins for {bought}");
     }
 
     // a few goods of each kind, some brown either/or cards, sometimes a Caravansery or Forum

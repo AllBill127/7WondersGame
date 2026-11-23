@@ -31,6 +31,8 @@ internal sealed class PaymentSearch
     private readonly int[] _eastPrice = new int[GoodCount];
     private int _bestTotalCost;
     private int _bestCostToEast;
+    private BoughtGoods _bestBoughtFromWest;
+    private BoughtGoods _bestBoughtFromEast;
 
     /// <summary>
     /// How many units of each good (indexed by <see cref="Resource"/> value) the buyer still has to find.
@@ -49,7 +51,7 @@ internal sealed class PaymentSearch
             return null;
         }
         int bestCostToWest = _bestTotalCost - _bestCostToEast;
-        return new PaymentPlan(bestCostToWest, _bestCostToEast);
+        return new PaymentPlan(bestCostToWest, _bestCostToEast, _bestBoughtFromWest, _bestBoughtFromEast);
     }
 
     private void ResetFor(PlayerState buyer)
@@ -162,7 +164,7 @@ internal sealed class PaymentSearch
         int neededMask = NeededGoodsMask();
         if (neededMask == 0)
         {
-            KeepIfCheapest(0, 0);
+            KeepIfCheapest(0, 0, BoughtGoods.None, BoughtGoods.None);
             return;
         }
         if (sourceIndex == _ownSources.Count)
@@ -239,6 +241,8 @@ internal sealed class PaymentSearch
     {
         int toWest = 0;
         int toEast = 0;
+        BoughtGoods boughtFromWest = BoughtGoods.None;
+        BoughtGoods boughtFromEast = BoughtGoods.None;
         for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
             int missingCount = NeededGoodCounts[goodIndex];
@@ -257,6 +261,8 @@ internal sealed class PaymentSearch
                 }
                 toWest += fromWest * _westPrice[goodIndex];
                 toEast += fromEast * _eastPrice[goodIndex];
+                boughtFromWest = boughtFromWest.With((Resource)goodIndex, fromWest);
+                boughtFromEast = boughtFromEast.With((Resource)goodIndex, fromEast);
             }
             else
             {
@@ -268,13 +274,15 @@ internal sealed class PaymentSearch
                 }
                 toEast += fromEast * _eastPrice[goodIndex];
                 toWest += fromWest * _westPrice[goodIndex];
+                boughtFromEast = boughtFromEast.With((Resource)goodIndex, fromEast);
+                boughtFromWest = boughtFromWest.With((Resource)goodIndex, fromWest);
             }
         }
-        KeepIfCheapest(toWest + toEast, toEast);
+        KeepIfCheapest(toWest + toEast, toEast, boughtFromWest, boughtFromEast);
     }
 
     /// <summary>Keeps the plan if it is cheaper than the best so far, or as cheap and pays less to the east.</summary>
-    private void KeepIfCheapest(int total, int toEast)
+    private void KeepIfCheapest(int total, int toEast, BoughtGoods boughtFromWest, BoughtGoods boughtFromEast)
     {
         bool isCheaper = total < _bestTotalCost;
         bool isAsCheapButPaysLessEast = total == _bestTotalCost && toEast < _bestCostToEast;
@@ -282,6 +290,8 @@ internal sealed class PaymentSearch
         {
             _bestTotalCost = total;
             _bestCostToEast = toEast;
+            _bestBoughtFromWest = boughtFromWest;
+            _bestBoughtFromEast = boughtFromEast;
         }
     }
 }

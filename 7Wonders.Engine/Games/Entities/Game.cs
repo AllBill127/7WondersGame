@@ -11,6 +11,7 @@ using _7Wonders.Engine.Games.Knowledge;
 using _7Wonders.Engine.Moves.Dtos;
 using _7Wonders.Engine.Moves.Enums;
 using _7Wonders.Engine.Moves.Exceptions;
+using _7Wonders.Engine.Payment.Dtos;
 using _7Wonders.Engine.Players.Entities;
 using _7Wonders.Engine.Randomness.Services;
 using _7Wonders.Engine.Rules.Services;
@@ -935,15 +936,13 @@ public class Game
         // a skipped move has no card and pays nothing
         MoveAction action = MoveAction.Skip;
         Card? card = null;
-        int paidToWest = 0;
-        int paidToEast = 0;
+        PaymentPlan payment = PaymentPlan.Free;
         int paidToBank = 0;
         if (plannedMove != null)
         {
             action = plannedMove.Action;
             card = plannedMove.Card;
-            paidToWest = plannedMove.Payment.ToWest;
-            paidToEast = plannedMove.Payment.ToEast;
+            payment = plannedMove.Payment;
             paidToBank = plannedMove.CoinCost;
         }
         List<IEffectSource> effectSources = new();
@@ -959,9 +958,11 @@ public class Game
             before.Coins,
             after.Coins,
             player.WestNeighbour.Seat,
-            paidToWest,
+            payment.ToWest,
+            payment.BoughtFromWest,
             player.EastNeighbour.Seat,
-            paidToEast,
+            payment.ToEast,
+            payment.BoughtFromEast,
             paidToBank,
             gained,
             usedUp,

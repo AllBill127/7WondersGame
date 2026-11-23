@@ -236,11 +236,13 @@ internal sealed class MatchTraceWriter : IMatchListener
         List<string> details = new();
         if (moveResolved.PaidToWest > 0)
         {
-            details.Add($"paid {moveResolved.PaidToWest} to seat {moveResolved.WestSeat} (west)");
+            string west = $"seat {moveResolved.WestSeat} (west)";
+            details.Add($"paid {moveResolved.PaidToWest} to {west} for {moveResolved.BoughtFromWest}");
         }
         if (moveResolved.PaidToEast > 0)
         {
-            details.Add($"paid {moveResolved.PaidToEast} to seat {moveResolved.EastSeat} (east)");
+            string east = $"seat {moveResolved.EastSeat} (east)";
+            details.Add($"paid {moveResolved.PaidToEast} to {east} for {moveResolved.BoughtFromEast}");
         }
         if (moveResolved.PaidToBank > 0)
         {

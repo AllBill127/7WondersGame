@@ -2,16 +2,31 @@
 
 /// <summary>
 /// How a player pays for a card or wonder stage: the coins given to each neighbour for the resources bought
-/// from them. A card's own coin cost (for example Tree Farm's 1 coin) is paid separately.
-/// Two plans are equal when they pay each neighbour the same.
+/// from them, and which goods those are. A card's own coin cost (for example Tree Farm's 1 coin) is paid separately.
+/// Two plans are equal when they pay each neighbour the same; the goods aren't compared, since they are only
+/// reported (in the game record) and never change what anyone pays.
 /// </summary>
 public readonly struct PaymentPlan : IEquatable<PaymentPlan>
 {
-    /// <summary>A plan paying <paramref name="toWest"/> coins west and <paramref name="toEast"/> east.</summary>
+    /// <summary>
+    /// A plan paying <paramref name="toWest"/> coins west and <paramref name="toEast"/> east, without the goods
+    /// (for tests that only check the price).
+    /// </summary>
     public PaymentPlan(int toWest, int toEast)
+        : this(toWest, toEast, BoughtGoods.None, BoughtGoods.None)
+    {
+    }
+
+    /// <summary>
+    /// A plan paying <paramref name="toWest"/> coins west for <paramref name="boughtFromWest"/> and
+    /// <paramref name="toEast"/> east for <paramref name="boughtFromEast"/>.
+    /// </summary>
+    public PaymentPlan(int toWest, int toEast, BoughtGoods boughtFromWest, BoughtGoods boughtFromEast)
     {
         ToWest = toWest;
         ToEast = toEast;
+        BoughtFromWest = boughtFromWest;
+        BoughtFromEast = boughtFromEast;
     }
 
     /// <summary>Coins paid to the west neighbour.</summary>
@@ -19,6 +34,12 @@ public readonly struct PaymentPlan : IEquatable<PaymentPlan>
 
     /// <summary>Coins paid to the east neighbour.</summary>
     public int ToEast { get; }
+
+    /// <summary>The goods bought from the west neighbour.</summary>
+    public BoughtGoods BoughtFromWest { get; }
+
+    /// <summary>The goods bought from the east neighbour.</summary>
+    public BoughtGoods BoughtFromEast { get; }
 
     /// <summary>Coins paid to both neighbours together.</summary>
     public int Total

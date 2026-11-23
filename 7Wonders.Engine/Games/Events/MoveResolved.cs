@@ -1,6 +1,7 @@
 ﻿using _7Wonders.Engine.Cards.Entities;
 using _7Wonders.Engine.Effects.Interfaces;
 using _7Wonders.Engine.Moves.Enums;
+using _7Wonders.Engine.Payment.Dtos;
 
 namespace _7Wonders.Engine.Games.Events;
 
@@ -16,8 +17,10 @@ public sealed class MoveResolved : GameEvent
                         int coinsAfter,
                         int westSeat,
                         int paidToWest,
+                        BoughtGoods boughtFromWest,
                         int eastSeat,
                         int paidToEast,
+                        BoughtGoods boughtFromEast,
                         int paidToBank,
                         IReadOnlyList<string> gained,
                         IReadOnlyList<string> usedUp,
@@ -31,8 +34,10 @@ public sealed class MoveResolved : GameEvent
         CoinsAfter = coinsAfter;
         WestSeat = westSeat;
         PaidToWest = paidToWest;
+        BoughtFromWest = boughtFromWest;
         EastSeat = eastSeat;
         PaidToEast = paidToEast;
+        BoughtFromEast = boughtFromEast;
         PaidToBank = paidToBank;
         Gained = gained;
         UsedUp = usedUp;
@@ -63,11 +68,17 @@ public sealed class MoveResolved : GameEvent
     /// <summary>The coins paid to the west neighbour for resources.</summary>
     public int PaidToWest { get; }
 
+    /// <summary>The goods bought from the west neighbour.</summary>
+    public BoughtGoods BoughtFromWest { get; }
+
     /// <summary>The east neighbour's seat.</summary>
     public int EastSeat { get; }
 
     /// <summary>The coins paid to the east neighbour for resources.</summary>
     public int PaidToEast { get; }
+
+    /// <summary>The goods bought from the east neighbour.</summary>
+    public BoughtGoods BoughtFromEast { get; }
 
     /// <summary>The coins paid to the bank (the card's coin cost).</summary>
     public int PaidToBank { get; }
