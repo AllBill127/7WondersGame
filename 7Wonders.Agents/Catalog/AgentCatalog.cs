@@ -199,7 +199,7 @@ public static class AgentCatalog
 
     /// <summary>
     /// The specification that rebuilds an agent from its name and its configuration JSON (as
-    /// <see cref="IAgent.ConfigurationJson"/> writes it, e.g. in a results row).
+    /// <see cref="AgentSettings.ConfigurationJson"/> writes it, e.g. in a results row).
     /// </summary>
     public static AgentSpecification FromResultRow(string agent, string configurationJson)
     {

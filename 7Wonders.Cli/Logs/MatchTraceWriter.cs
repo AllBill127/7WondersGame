@@ -106,7 +106,8 @@ internal sealed class MatchTraceWriter : IMatchListener
         {
             extraMove = " (extra move " + GivenBy(shown.ExtraMoveSources) + ")";
         }
-        _log.Debug("Seat {Seat}{ExtraMove}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; {Source}: {Cards}",
+        _log.Debug("Seat {Seat}{ExtraMove}: {Coins} coins, {Shields} shields, {Wonder} stage {Stage}; "
+            + "{Source}: {Cards}",
             shown.Seat,
             extraMove,
             shown.Coins,

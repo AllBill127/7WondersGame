@@ -60,7 +60,7 @@ internal sealed class MctsAgent : IAgent
         _statistics.LongestSearchMilliseconds = Math.Max(_statistics.LongestSearchMilliseconds, milliseconds);
         _statistics.AllocatedBytes += allocatedOnThisThread + search.OtherThreadBytes;
         _statistics.LockWaitMilliseconds += search.LockWaitMilliseconds;
-        // a few lines of text per decision, next to the search itself: cheap enough to make whether traced or not
+        // A few lines of text per decision, next to the search itself: cheap enough to make whether traced or not.
         // string.Create with InvariantCulture writes the numbers the same way on every machine (no thousands separators
         // or decimal commas from the machine's language settings).
         _statistics.LastNote = string.Create(CultureInfo.InvariantCulture,

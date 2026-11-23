@@ -28,6 +28,8 @@ public sealed class SeatChose : MatchEntry
     /// <summary>The move chosen.</summary>
     public Move Move { get; }
 
-    /// <summary>Why the agent chose it, in a line (e.g. a search's top moves); null if the agent said nothing.</summary>
+    /// <summary>
+    /// Why the agent chose it, in a line (e.g. a search's top moves); null if the agent said nothing.
+    /// </summary>
     public string? Note { get; }
 }

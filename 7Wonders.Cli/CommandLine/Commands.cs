@@ -59,8 +59,10 @@ internal static class Commands
     /// <summary>
     /// 'run': plays the games of the plan and appends their rows to the results CSV, with a manifest next to it.
     /// </summary>
-    // `async Task<int>`: the method may `await` slow work (reading a dataset file) without blocking its thread; the
-    // Task is the exit code that comes when the method has finished, and Main waits for it.
+    /// <remarks>
+    /// <c>async Task&lt;int&gt;</c>: the method may <c>await</c> slow work (reading a dataset file) without blocking
+    /// its thread; the Task is the exit code that comes when the method has finished, and Main waits for it.
+    /// </remarks>
     public static async Task<int> Run(CliArguments cli, string[] arguments)
     {
         RunPlan plan = RunPlan.FromCli(cli);

@@ -48,6 +48,13 @@ public sealed class Card : IEquatable<Card>, IEffectSource
     private readonly int[] _copies;
 
     /// <summary>A card as listed in <see cref="CardsDataset"/>.</summary>
+    /// <param name="id">Which card this is; the two copies of a name in different eras have different ids.</param>
+    /// <param name="name">The name printed on the card.</param>
+    /// <param name="type">The card's colour.</param>
+    /// <param name="era">The era (age) whose deck it is in: 1, 2 or 3.</param>
+    /// <param name="freeIfBuilt">
+    /// The card that lets this one be built for free (chaining), or <see cref="CardId.None"/>.
+    /// </param>
     /// <param name="cost">
     /// Wood, Ore, Clay, Stone, Loom, Glass, Papyrus, Coins (not the <see cref="Resource"/> order).
     /// </param>

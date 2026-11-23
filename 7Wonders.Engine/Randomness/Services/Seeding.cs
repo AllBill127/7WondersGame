@@ -15,9 +15,11 @@ public static class Seeding
     public const ulong GameStream = 0;
     /// <summary>Seat s uses stream AgentStreamBase + s.</summary>
     public const ulong AgentStreamBase = 1;
-    // 1UL << 32 is 1 moved 32 binary places to the left, that is 2^32 (4,294,967,296): far above any seat number,
-    // so a copy's stream never equals a seat's stream.
     /// <summary>The n-th copy of a game (MCTS search) uses stream CopyStreamBase + n.</summary>
+    /// <remarks>
+    /// <c>1UL &lt;&lt; 32</c> is 1 moved 32 binary places to the left, that is 2^32 (4,294,967,296): far above any
+    /// seat number, so a copy's stream never equals a seat's stream.
+    /// </remarks>
     public const ulong CopyStreamBase = 1UL << 32;
 
     /// <summary>The SplitMix64 output function.</summary>

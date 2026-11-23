@@ -20,10 +20,10 @@ public static class PaymentPlanner
 {
     // One search per thread, reused: planning runs for every card a heuristic looks at (thousands of times a
     // second in a search's rollouts), and a new one each time was a large share of what a rollout allocates.
-    // It is made on first use in each thread: a [ThreadStatic] field's initializer runs only on the first thread,
-    // so on every other thread the field would start out null.
     // [ThreadStatic] gives each thread its own copy of this static field: parallel games and parallel searches each
     // use their own search object, so they never share its working arrays and need no lock.
+    // It is made on first use in each thread (in Plan): a [ThreadStatic] field's initializer runs only on the first
+    // thread, so on every other thread the field would start out null.
     [ThreadStatic] private static PaymentSearch? _search;
 
     /// <summary>
@@ -41,8 +41,8 @@ public static class PaymentPlanner
         // This thread's search, made the first time it plans. `??=` assigns only when the field is null: it is short
         // for `if (_search == null) { _search = new PaymentSearch(); }`.
         _search ??= new PaymentSearch();
-        // What the fixed production doesn't cover. Usually nothing, and then no search is needed.
         PaymentSearch search = _search;
+        // What the fixed production doesn't cover. Usually nothing, and then no search is needed.
         bool missing = FillMissing(buyer, cost, search.NeededGoodCounts);
         if (!missing)
         {

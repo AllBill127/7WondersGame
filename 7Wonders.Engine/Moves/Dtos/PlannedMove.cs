@@ -15,7 +15,12 @@ namespace _7Wonders.Engine.Moves.Dtos;
 /// </summary>
 internal sealed class PlannedMove
 {
-    /// <summary>A planned move that doesn't come from the discard pile.</summary>
+    /// <summary>
+    /// A planned move, not marked as a free build from the discard pile (<see cref="AsDiscardPileBuild"/> marks it).
+    /// </summary>
+    /// <param name="player">The player making the move.</param>
+    /// <param name="action">What the player does.</param>
+    /// <param name="card">The card built, used for a wonder stage or discarded.</param>
     /// <param name="source">Where the card comes from: the hand, or the discard pile (Halikarnassos).</param>
     /// <param name="payment">Coins to each neighbour for the resources bought from them.</param>
     /// <param name="coinCost">The card's own coin cost, paid to the bank.</param>
