@@ -55,6 +55,7 @@ internal sealed class WonderBoard
             WonderStage stage = stages[stageIndex];
             stage.Wonder = id;
             stage.Number = builtStages;
+            // `|` adds this stage's ability bits to those of the stages before it (see Ability).
             AbilitiesAfter[builtStages] = AbilitiesAfter[stageIndex] | AbilitiesGrantedBy(stage);
             ScienceWildcardsAfter[builtStages] = ScienceWildcardsAfter[stageIndex] + ScienceWildcardsIn(stage);
         }

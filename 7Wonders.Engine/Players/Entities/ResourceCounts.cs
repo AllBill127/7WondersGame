@@ -23,6 +23,10 @@ public sealed class ResourceCounts : IReadOnlyCollection<KeyValuePair<Resource, 
     private readonly int[] _counts = new int[Size];
 
     /// <summary>The count of <paramref name="resource"/>.</summary>
+    /// <remarks>
+    /// An indexer: it lets the object be read and written with square brackets like an array. The resource's enum
+    /// value is its position in the array (<c>(int)Resource.Coins</c>).
+    /// </remarks>
     public int this[Resource resource]
     {
         get
@@ -47,6 +51,7 @@ public sealed class ResourceCounts : IReadOnlyCollection<KeyValuePair<Resource, 
     /// <summary>Makes these counts equal to <paramref name="source"/>'s.</summary>
     public void CopyFrom(ResourceCounts source)
     {
+        // Copies the numbers into this object's own array, so a reused copy (PlayerState.CopyFrom) allocates nothing.
         Array.Copy(source._counts, _counts, Size);
     }
 
@@ -61,12 +66,16 @@ public sealed class ResourceCounts : IReadOnlyCollection<KeyValuePair<Resource, 
     /// <summary>Each resource with its count, in the order of <see cref="Listed"/>.</summary>
     public IEnumerator<KeyValuePair<Resource, int>> GetEnumerator()
     {
+        // An iterator: each `yield return` hands one pair to the foreach loop reading it and pauses here until the
+        // loop asks for the next one. This is what lets `foreach (... in player.Resources)` work.
         foreach (Resource resource in Listed)
         {
             yield return new KeyValuePair<Resource, int>(resource, _counts[(int)resource]);
         }
     }
 
+    // The non-generic version older code and interfaces ask for (the interface's name before the method means it is
+    // only reached through IEnumerable); it hands back the generic one.
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();

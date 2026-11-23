@@ -52,6 +52,10 @@ public sealed class Card : IEquatable<Card>, IEffectSource
     /// Wood, Ore, Clay, Stone, Loom, Glass, Papyrus, Coins (not the <see cref="Resource"/> order).
     /// </param>
     /// <param name="copies">Copies in the deck for 3, 4, 5, 6 and 7 players.</param>
+    /// <param name="effects">
+    /// <c>params</c>: the effects are listed one after another in the call, and the compiler gathers them into the
+    /// array.
+    /// </param>
     public Card(CardId id, string name, CardType type, int era, CardId freeIfBuilt, int[] cost, int[] copies,
                 params IEffect[] effects)
     {
@@ -63,7 +67,9 @@ public sealed class Card : IEquatable<Card>, IEffectSource
         _copies = copies.ToArray();
         Effects = effects;
 
-        // what the effects add up to, worked out once, since the payment search reads them all the time
+        // what the effects add up to, worked out once, since the payment search reads them all the time.
+        // `effect is OneOf choice` tests the effect's type and, if it is a OneOf, names it `choice`. `|=` adds the
+        // choice's goods to the card's mask (bit i set for good i, see OneOf.Mask): a Clay/Ore card gets 0b0000110.
         foreach (IEffect effect in effects)
         {
             if (effect is OneOf choice)
@@ -118,6 +124,7 @@ public sealed class Card : IEquatable<Card>, IEffectSource
     /// <summary>Cards are the same card when they have the same <see cref="Id"/>.</summary>
     public bool Equals(Card? other)
     {
+        // `is not null` tests for null without calling an == operator a type might define.
         return other is not null && Id == other.Id;
     }
 
@@ -130,6 +137,8 @@ public sealed class Card : IEquatable<Card>, IEffectSource
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // Dictionaries and sets first group items by this number and then compare with Equals, so cards that are
+        // equal must give the same number. Equals compares only the Id, so the hash is the Id's own.
         return Id.GetHashCode();
     }
 

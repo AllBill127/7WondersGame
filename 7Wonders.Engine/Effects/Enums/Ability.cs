@@ -9,6 +9,12 @@ namespace _7Wonders.Engine.Effects.Enums;
 /// built; a wonder's are read from its built stages (<see cref="WonderBoardProgress.Abilities"/>).
 /// Check them with <see cref="PlayerAbilities.Has"/>.
 /// </summary>
+/// <remarks>
+/// <c>[Flags]</c>: each ability is one bit (<c>1 &lt;&lt; n</c> is 2 to the power n: 1, 2, 4, 8...), so a player's
+/// abilities fit in one value. <c>a | b</c> holds both; <c>(abilities &amp; ability) != 0</c> tests for one. A player
+/// with the Marketplace and Olympia B stage 1 has <c>0b1100</c> (12). <c>[Flags]</c> also makes <c>ToString</c> list
+/// every set ability by name.
+/// </remarks>
 [Flags]
 public enum Ability
 {

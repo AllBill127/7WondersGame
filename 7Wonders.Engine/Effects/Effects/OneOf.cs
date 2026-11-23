@@ -23,7 +23,13 @@ public sealed class OneOf : IEffect
     /// <summary>The resources it can produce, one per turn.</summary>
     public Resource[] Choices { get; }
 
-    /// <summary>Bit i stands for the resource with value i.</summary>
+    /// <summary>The choices as one number: bit i is 1 when the resource with value i is a choice.</summary>
+    /// <remarks>
+    /// <c>1 &lt;&lt; (int)choice</c> is 1 moved left by the resource's value, a number with only that resource's bit
+    /// set (Ore = 1 gives 0b10, Clay = 2 gives 0b100); <c>|=</c> sets that bit in the mask. Clay or Ore gives
+    /// 0b110 (6). The payment search tests and combines such masks with one <c>&amp;</c> or <c>|</c> instead of
+    /// looping over lists.
+    /// </remarks>
     public int Mask
     {
         get

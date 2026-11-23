@@ -31,6 +31,7 @@ internal sealed class PlayerSnapshot
     public static PlayerSnapshot Of(PlayerState player)
     {
         List<string> flags = new();
+        // Enum.GetValues lists every value Ability declares; each one past None is a single bit.
         foreach (Ability ability in Enum.GetValues<Ability>())
         {
             if (ability != Ability.None && PlayerAbilities.Has(player, ability))

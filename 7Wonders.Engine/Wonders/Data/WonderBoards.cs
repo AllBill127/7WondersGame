@@ -40,6 +40,8 @@ internal static class WonderBoards
         };
     }
 
+    // `params` lets a caller list the effects (or stages, in Board) one after another, as the tables below do; the
+    // compiler gathers them into the array.
     /// <summary>A stage costing <paramref name="cost"/> with <paramref name="effects"/>.</summary>
     private static WonderStage Stage(IReadOnlyDictionary<Resource, int> cost, params IEffect[] effects)
     {
@@ -52,6 +54,8 @@ internal static class WonderBoards
         return new WonderBoard(id, name, production, stages);
     }
 
+    // The boards are listed in an array, and ToDictionary files each one under its Id (`board => board.Id` says
+    // which value is the key).
     /// <summary>Every board, both sides, by id.</summary>
     public static readonly IReadOnlyDictionary<WonderId, WonderBoard> All = new[]
     {

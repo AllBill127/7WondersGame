@@ -30,7 +30,8 @@ public sealed class Move : IEquatable<Move>
         {
             return false;
         }
-        // the same comparison the record made: Card's own Equals (by Id), without boxing through object
+        // EqualityComparer<Card?>.Default calls Card.Equals (by Id) and handles nulls (a Skip has no card), without
+        // boxing through object
         return Action == other.Action && EqualityComparer<Card?>.Default.Equals(Card, other.Card);
     }
 
@@ -43,12 +44,15 @@ public sealed class Move : IEquatable<Move>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // Equal moves must give the same hash: HashCode.Combine mixes the action and the card's hash (its Id's) into
+        // one int, the two things Equals compares.
         return HashCode.Combine(Action, Card);
     }
 
     /// <summary>Whether both are the same move.</summary>
     public static bool operator ==(Move? left, Move? right)
     {
+        // `is null` checks for null without calling this operator again (`left == null` here would call itself).
         if (left is null)
         {
             return right is null;

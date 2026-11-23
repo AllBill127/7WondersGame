@@ -13,6 +13,8 @@ public static class PlayerAbilities
     /// <summary>Does a built card or wonder stage give the player this ability?</summary>
     public static bool Has(PlayerState player, Ability ability)
     {
+        // `|` joins the cards' and the wonder's ability bits; `&` keeps those also in `ability`, so the result is
+        // non-zero when the player has it (or, if `ability` holds several, any of them). See Ability.
         Ability allAbilities = player.Abilities | player.Wonder.Abilities;
         return (allAbilities & ability) != 0;
     }

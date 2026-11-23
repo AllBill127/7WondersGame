@@ -5,8 +5,9 @@ using _7Wonders.Engine.Players.Entities;
 namespace _7Wonders.Engine.Moves.Dtos;
 
 /// <summary>
-/// A player's move as it goes into <see cref="Game.ResolveMoves"/>, with the cards it is made from. A struct,
-/// because every turn of every rollout makes one per player.
+/// A player's move as it goes into <see cref="Game.ResolveMoves"/>, with the cards it is made from. A struct (a value
+/// copied on assignment, allocating nothing; see <see cref="Payment.Dtos.PaymentPlan"/>), because every turn of
+/// every rollout makes one per player.
 /// </summary>
 internal readonly struct SubmittedMove
 {

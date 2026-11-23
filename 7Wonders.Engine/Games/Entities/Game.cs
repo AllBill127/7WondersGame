@@ -278,6 +278,9 @@ public class Game
     /// <summary>A new list of the cards in random order (one draw from the game's stream per card).</summary>
     private List<Card> Shuffled(IEnumerable<Card> cards)
     {
+        // Gives each card a random number, one draw per card in the deck's order, and sorts the cards by it.
+        // OrderBy's sort is stable and the draws come from the game's seeded stream, so the same seed always gives
+        // the same order. Changing how the shuffle draws would change every seeded game (and the golden master).
         return cards.OrderBy(card => _random.Next()).ToList();
     }
 

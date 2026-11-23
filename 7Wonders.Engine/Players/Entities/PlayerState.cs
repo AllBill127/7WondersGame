@@ -140,6 +140,9 @@ public sealed class PlayerState
     /// </summary>
     public PlayerState Clone()
     {
+        // MemberwiseClone makes a new object with every field copied as it is: numbers and enums are copied, but
+        // lists and other objects are shared with this one. The lines after it replace the shared lists, the wonder
+        // and the counts with copies; the neighbours are pointed at the copies by CloneTable.
         PlayerState copy = (PlayerState)MemberwiseClone();
         copy.Wonder = Wonder.Clone();
         copy.Hand = new List<Card>(Hand);
@@ -161,7 +164,8 @@ public sealed class PlayerState
             throw new ArgumentException($"Seat {Seat} can't copy seat {source.Seat}.", nameof(source));
         }
 
-        // the same board only needs its stage counter
+        // Reuses this object's lists and counts instead of making new ones: Clear and AddRange keep a list's array,
+        // so copying allocates nothing once the lists have grown to size. The same board only needs its stage counter
         if (Wonder.Id == source.Wonder.Id)
         {
             Wonder.BuiltStageCount = source.Wonder.BuiltStageCount;

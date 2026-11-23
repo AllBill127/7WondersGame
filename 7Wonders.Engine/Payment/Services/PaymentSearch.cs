@@ -14,7 +14,11 @@ namespace _7Wonders.Engine.Payment.Services;
 /// </summary>
 internal sealed class PaymentSearch
 {
-    // Bit i stands for the Resource with value i: Wood, Ore, Clay, Stone, Loom, Glass, Papyrus.
+    // A set of goods is kept as one int, a "mask": bit i is 1 when the Resource with value i is in the set (Wood is
+    // bit 0, Ore 1, Clay 2, Stone 3, Loom 4, Glass 5, Papyrus 6). The binary literals below read right to left:
+    // 0b0001111 has bits 0-3 set (the raw materials), 0b1110000 bits 4-6 (the manufactured goods). A Clay/Ore card is
+    // 0b0000110. `1 << i` is the mask of good i alone; `mask & other` keeps the goods in both sets; `mask | other`
+    // joins two sets; `(mask & (1 << i)) != 0` asks whether good i is in the set.
     private const int GoodCount = 7;
     private const int RawMaterialsMask = 0b0001111;
     private const int ManufacturedGoodsMask = 0b1110000;
@@ -67,6 +71,7 @@ internal sealed class PaymentSearch
         _westSourceCount = _sellerSources.Count;
         AddSeller(buyer.EastNeighbour, _eastSupply);
 
+        // Whether good i is a raw material: its bit is set in the raw materials' mask.
         for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
             bool isRaw = (RawMaterialsMask & (1 << goodIndex)) != 0;
@@ -104,6 +109,7 @@ internal sealed class PaymentSearch
     {
         if (isRaw)
         {
+            // `|` joins the two abilities into one set; Has is true when the buyer has either of them.
             if (PlayerAbilities.Has(buyer, rawTradingPost | Ability.RawMaterialsCheapFromBothNeighbours))
             {
                 return DiscountedTradePrice;
@@ -145,6 +151,7 @@ internal sealed class PaymentSearch
         {
             if (NeededGoodCounts[goodIndex] > 0)
             {
+                // Adds good i to the set: `|=` sets its bit and leaves the others as they were.
                 neededMask |= 1 << goodIndex;
             }
         }
@@ -155,6 +162,14 @@ internal sealed class PaymentSearch
     /// Gives each of the buyer's own either/or sources to one still-needed resource, trying every choice.
     /// A free unit never makes a plan dearer, so a source is only left unused when it offers nothing needed.
     /// </summary>
+    /// <remarks>
+    /// A depth-first search by recursion: for source number <paramref name="sourceIndex"/> it tries each good the
+    /// source can give, lowers that good's need by one, lets the call for the next source try all of its choices,
+    /// and then raises the need again (backtracking), so the next choice starts from the same state. With two
+    /// Clay/Ore sources and a need of 1 Clay and 1 Ore it tries Clay+Clay, Clay+Ore, Ore+Clay and Ore+Ore. After the
+    /// last own source it goes on to the neighbours' sources the same way, and each complete set of choices is
+    /// priced. Counting down and back up in one array, instead of copying it for each try, allocates nothing.
+    /// </remarks>
     private void UseOwnSources(int sourceIndex)
     {
         if (_bestTotalCost == 0)
@@ -174,6 +189,7 @@ internal sealed class PaymentSearch
         }
 
         int nextSource = sourceIndex + 1;
+        // The goods this source offers that are still needed (bits set in both masks).
         int usableMask = _ownSources[sourceIndex] & neededMask;
         if (usableMask == 0)
         {
@@ -209,12 +225,14 @@ internal sealed class PaymentSearch
         bool gaveAnyGood = false;
         for (int goodIndex = 0; goodIndex < GoodCount; goodIndex++)
         {
+            // Whether good i is one this source can give: its bit is set in the source's mask.
             bool sourceGivesGood = (_sellerSources[sourceIndex] & (1 << goodIndex)) != 0;
             bool supplyAlreadyEnough = supply[goodIndex] >= NeededGoodCounts[goodIndex];
             if (!sourceGivesGood || supplyAlreadyEnough)
             {
                 continue;
             }
+            // Adds the unit to the neighbour's supply, searches on, and takes it back (as in UseOwnSources).
             gaveAnyGood = true;
             supply[goodIndex]++;
             UseSellerSources(nextSource);

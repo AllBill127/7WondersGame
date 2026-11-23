@@ -22,6 +22,8 @@ public static class PaymentPlanner
     // second in a search's rollouts), and a new one each time was a large share of what a rollout allocates.
     // It is made on first use in each thread: a [ThreadStatic] field's initializer runs only on the first thread,
     // so on every other thread the field would start out null.
+    // [ThreadStatic] gives each thread its own copy of this static field: parallel games and parallel searches each
+    // use their own search object, so they never share its working arrays and need no lock.
     [ThreadStatic] private static PaymentSearch? _search;
 
     /// <summary>
@@ -36,8 +38,10 @@ public static class PaymentPlanner
             return null;
         }
 
-        // What the fixed production doesn't cover. Usually nothing, and then no search is needed.
+        // This thread's search, made the first time it plans. `??=` assigns only when the field is null: it is short
+        // for `if (_search == null) { _search = new PaymentSearch(); }`.
         _search ??= new PaymentSearch();
+        // What the fixed production doesn't cover. Usually nothing, and then no search is needed.
         PaymentSearch search = _search;
         bool missing = FillMissing(buyer, cost, search.NeededGoodCounts);
         if (!missing)
@@ -75,9 +79,13 @@ public static class PaymentPlanner
     {
         Array.Clear(need);
         bool missing = false;
+        // `cost is Dictionary<Resource, int> dictionary` checks the cost's real type and, if it matches, names it
+        // `dictionary` as that type. The costs are dictionaries; looping over one through the interface would box
+        // its enumerator (copy it onto the heap), so the loop over the concrete type allocates nothing.
+        // `foreach ((Resource resource, int amount) in ...)` splits each key and value pair into two variables, and
+        // `missing |= ...` sets missing to true once any good is missing (a bool OR that stays true).
         if (cost is Dictionary<Resource, int> dictionary)
         {
-            // (the costs are dictionaries; enumerating one through the interface would allocate)
             foreach ((Resource resource, int amount) in dictionary)
             {
                 missing |= AddMissing(buyer, need, resource, amount);

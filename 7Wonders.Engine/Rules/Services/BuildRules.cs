@@ -123,6 +123,7 @@ public static class BuildRules
     {
         foreach (Card playedCard in player.BuiltCards)
         {
+            // `is A or B` is true when the id is either value.
             if (playedCard.Id is CardId.EastTradingPost or CardId.WestTradingPost)
             {
                 return true;

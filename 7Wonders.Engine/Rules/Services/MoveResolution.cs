@@ -28,6 +28,7 @@ public static class MoveResolution
         // The card is in the city before its effect applies, so the Lighthouse counts itself.
         // Sources: https://rules.dized.com/7-wonders/rule/question/19075b63-591e-4e99-8dfc-5fa34b726973,
         //          https://rules.dized.com/7-wonders/rule/symbols/third-age-cards
+        // `is A or B` is true when the action is either value.
         if (move.Action is MoveAction.Build or MoveAction.BuildWithFreeBuild)
         {
             player.BuiltCards.Add(move.Card);

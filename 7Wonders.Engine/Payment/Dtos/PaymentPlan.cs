@@ -6,6 +6,12 @@
 /// Two plans are equal when they pay each neighbour the same; the goods aren't compared, since they are only
 /// reported (in the game record) and never change what anyone pays.
 /// </summary>
+/// <remarks>
+/// A <c>readonly struct</c> is a value, not an object: it lives inside the variable or field that holds it, is copied
+/// when assigned, and creating one allocates nothing on the heap. <c>readonly</c> means no field changes after the
+/// constructor. Plans are made for every card a heuristic looks at in every rollout, so a class here would allocate
+/// millions of objects per search.
+/// </remarks>
 public readonly struct PaymentPlan : IEquatable<PaymentPlan>
 {
     /// <summary>
@@ -55,7 +61,8 @@ public readonly struct PaymentPlan : IEquatable<PaymentPlan>
     {
         get
         {
-            return default;
+            // default is the struct with every field zero: no coins, nothing bought.
+        return default;
         }
     }
 
@@ -68,6 +75,7 @@ public readonly struct PaymentPlan : IEquatable<PaymentPlan>
     /// <inheritdoc/>
     public override bool Equals(object? otherObject)
     {
+        // `is PaymentPlan other` tests the object's type and, if it matches, names it `other` as a PaymentPlan.
         if (otherObject is PaymentPlan other)
         {
             return Equals(other);
@@ -78,6 +86,8 @@ public readonly struct PaymentPlan : IEquatable<PaymentPlan>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
+        // Equal plans must give the same hash, so it mixes the same two fields Equals compares; HashCode.Combine
+        // mixes several values into one int.
         return HashCode.Combine(ToWest, ToEast);
     }
 

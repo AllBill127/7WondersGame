@@ -1,8 +1,9 @@
 ﻿namespace _7Wonders.Engine.Games.Dtos;
 
 /// <summary>
-/// What a player is ranked by at the end of a game: victory points, then coins. A struct, because MCTS ranks the
-/// players at the end of every rollout.
+/// What a player is ranked by at the end of a game: victory points, then coins. A struct (a value copied on
+/// assignment, allocating nothing; see <see cref="Payment.Dtos.PaymentPlan"/>), because MCTS ranks the players at the
+/// end of every rollout.
 /// </summary>
 internal readonly struct FinalScore
 {

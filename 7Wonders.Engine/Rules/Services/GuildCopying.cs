@@ -77,6 +77,10 @@ public static class GuildCopying
     /// Scores the player with <paramref name="guild"/> added, and keeps it as the best guild if it scores more than
     /// <paramref name="bestScore"/> (the first of equal ones stays).
     /// </summary>
+    /// <remarks>
+    /// <c>ref</c> passes the caller's own variables instead of copies of their values, so the assignments below change
+    /// <c>bestGuild</c> and <c>bestScore</c> in <see cref="BestGuildToCopy"/>.
+    /// </remarks>
     private static void KeepGuildIfBetter(PlayerState player, Card guild, ref Card? bestGuild, ref int bestScore)
     {
         player.BuiltCards.Add(guild);

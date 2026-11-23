@@ -35,6 +35,7 @@ public static class EffectSources
     {
         foreach (IEffect effect in effects)
         {
+            // `&` keeps the ability bits set in both; non-zero means the effect grants it (see Ability).
             if ((effect.Grants & ability) != 0)
             {
                 return true;
